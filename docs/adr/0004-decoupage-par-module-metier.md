@@ -1,0 +1,9 @@
+# Le code est découpé par module métier, aux frontières vérifiées
+
+Le code métier vit dans `src/modules/`, un dossier par module (`referentiel`, `legislatif`, `programmes`, `quiz`, `sources`, puis les modules à venir), chacun avec son schéma Drizzle, ses requêtes, ses Server Actions, sa validation et ses composants ; `src/app/` ne contient que des routes fines. Les dépendances vont dans un seul sens : `app` → modules → `referentiel` et code partagé (`components/ui`, `lib`). Un module n'importe jamais un autre module, sauf `referentiel`, et ne lit pas les tables d'un autre ; quand une page a besoin de deux modules, c'est elle qui les assemble. La règle est vérifiée par ESLint (`import/no-restricted-paths`).
+
+## Considered Options
+
+- Découpage technique (`components/`, `lib/`, `db/`) : simple au début, mais chaque fonctionnalité se disperse dans tout le projet.
+- Couches repository / service / controller : ajoutent des fichiers sans isolation réelle avec les Server Components et Drizzle ; on n'en ajoute une que si un module le justifie.
+- Fichier `index.ts` qui réexporte chaque module : écarté, ces « barrel files » ralentissent la compilation Next.js ; on importe le fichier utile et ESLint garde les frontières.
