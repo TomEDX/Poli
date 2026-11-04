@@ -12,7 +12,7 @@ const modules = readdirSync("./src/modules", { withFileTypes: true })
 const moduleBoundaries = modules.map((name) => ({
   target: `./src/modules/${name}`,
   from: "./src/modules",
-  except: [...new Set([`./${name}`, "./reference"])],
+  except: name === "reference" ? ["./reference"] : [`./${name}`, "./reference"],
   message: "A module may only import itself and the reference module (ADR 0004).",
 }));
 

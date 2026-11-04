@@ -4,6 +4,8 @@ import postgres from "postgres";
 
 import { TEST_DATABASE_URL } from "./database-url";
 
+const connect = (url: string) => postgres(url, { max: 1, onnotice: () => {} });
+
 export default async function createTestDatabase() {
   const url = new URL(TEST_DATABASE_URL);
   const name = url.pathname.slice(1);
@@ -13,12 +15,12 @@ export default async function createTestDatabase() {
   }
 
   url.pathname = "/postgres";
-  const admin = postgres(url.toString(), { max: 1, onnotice: () => {} });
-  await admin`drop database if exists ${admin(name)} with (force)`;
-  await admin`create database ${admin(name)}`;
-  await admin.end();
+  const maintenance = connect(url.toString());
+  await maintenance`drop database if exists ${maintenance(name)} with (force)`;
+  await maintenance`create database ${maintenance(name)}`;
+  await maintenance.end();
 
-  const client = postgres(TEST_DATABASE_URL, { max: 1, onnotice: () => {} });
+  const client = connect(TEST_DATABASE_URL);
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   await client.end();
 }
