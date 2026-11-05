@@ -8,9 +8,11 @@ Le code passe par local → develop → prod (ADR 0006). Ce document décrit com
 | --- | --- | --- | --- |
 | Local | toutes | Supabase local (Docker), lancé par `pnpm dev` | aucun |
 | Develop | `develop` | projet `poli-develop` | déploiement Preview de la branche `develop`, sur https://poli-git-develop-tomedx.vercel.app (connexion Vercel requise) |
-| Prod | `main` | projet `poli-prod` | déploiement Production |
+| Prod | `main` | projet `poli-prod` | déploiement Production, public sur https://poli-topaz.vercel.app |
 
 Le fichier [vercel.json](../vercel.json) ne laisse Vercel construire que `develop` et `main`.
+
+Les autres adresses Vercel (`poli-git-main-…`, `poli-tomedx…`, ou celles qui contiennent un identifiant de déploiement) sont réservées aux personnes connectées au compte Vercel.
 
 ## Livrer une version
 
