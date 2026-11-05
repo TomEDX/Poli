@@ -16,7 +16,7 @@ cp .env.example .env
 pnpm dev
 ```
 
-`pnpm dev` démarre le Supabase local, applique les migrations Drizzle, puis lance l'app sur http://localhost:3000. Le studio Supabase est sur http://127.0.0.1:54323 et les e-mails envoyés (liens de connexion) sur http://127.0.0.1:54324. `pnpm db:stop` arrête les conteneurs.
+`pnpm dev` démarre le Supabase local, applique les migrations Drizzle, insère le jeu de données fictif (une arborescence de thématiques) si la base n'a encore aucune thématique, puis lance l'app sur http://localhost:3000. Le studio Supabase est sur http://127.0.0.1:54323 et les e-mails envoyés (liens de connexion) sur http://127.0.0.1:54324. `pnpm db:stop` arrête les conteneurs.
 
 L'administration est sur http://localhost:3000/admin. Pour s'y connecter, créer un éditeur en suivant [Ajouter un éditeur](docs/environnements.md#ajouter-un-éditeur).
 
@@ -29,6 +29,7 @@ L'administration est sur http://localhost:3000/admin. Pour s'y connecter, créer
 | `pnpm test` | Tests Vitest sur une base `poli_test` recréée à chaque lancement et vidée avant chaque test (le Supabase local doit tourner) |
 | `pnpm db:generate` | Génère une migration à partir des schémas `src/modules/*/schema.ts` |
 | `pnpm db:migrate` | Applique les migrations sur la base de `DATABASE_URL` |
+| `pnpm db:seed` | Insère le jeu de données fictif dans la base locale si elle n'a aucune thématique (refuse toute autre base) |
 
 ## Organisation du code
 
