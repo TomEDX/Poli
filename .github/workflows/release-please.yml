@@ -1,7 +1,7 @@
 name: Release
 
 # Release-please runs on develop so that the release commit is part of the
-# version promoted to stage and main by fast-forward (ADR 0006).
+# version promoted to main by fast-forward (ADR 0006).
 on:
   push:
     branches: [develop]

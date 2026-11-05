@@ -4,7 +4,7 @@ Application neutre qui aide un public non spécialiste à comprendre les program
 
 Le vocabulaire du projet est dans [GLOSSARY.md](GLOSSARY.md) et les décisions d'architecture dans [docs/adr/](docs/adr/).
 
-Les environnements (develop, stage, prod), la livraison d'une version et la liste des secrets sont décrits dans [docs/environnements.md](docs/environnements.md).
+Les environnements (develop, prod), la livraison d'une version et la liste des secrets sont décrits dans [docs/environnements.md](docs/environnements.md).
 
 ## Démarrer en local
 
