@@ -38,8 +38,9 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
         run: |
-          # A new branch has no previous commit to compare with.
-          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+          # A new branch has no previous commit, and a force push leaves one the
+          # checkout no longer has: lint the last commit only.
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             pnpm exec commitlint --last --verbose
           else
             pnpm exec commitlint --from "$BEFORE" --to "$GITHUB_SHA" --verbose
