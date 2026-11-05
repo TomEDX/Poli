@@ -1,0 +1,21 @@
+name: Promote
+
+# Fast-forwards main to develop, so the commit tested on develop is the one that
+# reaches production (ADR 0006). The deploy key is the only actor allowed to push
+# to main.
+on:
+  workflow_dispatch:
+
+concurrency: promote
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: promotion
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.PROMOTE_SSH_KEY }}
+          fetch-depth: 0
+      # A plain push is rejected unless it is a fast-forward.
+      - run: git push origin refs/remotes/origin/develop:refs/heads/main

@@ -20,3 +20,39 @@ jobs:
       # Tests only need Postgres, not the whole Supabase stack.
       - run: pnpm exec supabase db start
       - run: pnpm test
+
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint pushed commits
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # A new branch has no previous commit to compare with.
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            pnpm exec commitlint --last --verbose
+          else
+            pnpm exec commitlint --from "$BEFORE" --to "$GITHUB_SHA" --verbose
+          fi
+      - name: Lint pull request commits
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+      # The title becomes the commit message of a squash merge.
+      - name: Lint pull request title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
