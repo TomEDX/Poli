@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: promotion
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.PROMOTE_SSH_KEY }}
           fetch-depth: 0
