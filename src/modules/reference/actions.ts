@@ -11,123 +11,105 @@ import {
   type DeleteResult,
   deleteSubtopic,
   deleteTopic,
+  type Direction,
   moveSubtopic,
   moveTopic,
   renameSubtopic,
   renameTopic,
+  type TopicInput,
   type WriteResult,
 } from "./topics";
 import { topicFormSchema } from "./validation";
 
-export type TopicFormState =
-  | { status: "idle" }
-  | { status: "saved" }
-  | { status: "error"; message: string; values: { name: string; slug: string } };
+export type ActionResult = { ok: true } | { ok: false; message: string };
 
-export type DeleteState = { status: "idle" } | { status: "error"; message: string };
-
-const optionalId = z.uuid().optional().catch(undefined);
-const moveSchema = z.object({ id: z.uuid(), direction: z.enum(["up", "down"]) });
+const idSchema = z.uuid();
+const directionSchema = z.enum(["up", "down"]);
 
 const goneMessage = "Cet élément n'existe plus : rechargez la page.";
+const invalidRequest: ActionResult = { ok: false, message: "Requête invalide : rechargez la page." };
+const topicSlugTaken = (slug: string) => `L'identifiant « ${slug} » est déjà pris par une autre thématique.`;
+const subtopicSlugTaken = (slug: string) =>
+  `L'identifiant « ${slug} » est déjà pris par une autre sous-thématique de cette thématique.`;
 
 // Topics feed every public page, which are regenerated after each change (ADR 0005).
 function regeneratePublicPages() {
   revalidatePath("/", "layout");
 }
 
-function formValues(formData: FormData) {
-  return { name: String(formData.get("name") ?? ""), slug: String(formData.get("slug") ?? "") };
+// Server Actions receive whatever the client sends: ids are checked before any query.
+async function withId(rawId: unknown, run: (id: string) => Promise<ActionResult>): Promise<ActionResult> {
+  const parsed = idSchema.safeParse(rawId);
+  return parsed.success ? run(parsed.data) : invalidRequest;
 }
 
 async function save(
-  formData: FormData,
-  write: (input: { name: string; slug: string }) => Promise<WriteResult>,
+  values: unknown,
+  write: (input: TopicInput) => Promise<WriteResult>,
   slugTakenMessage: (slug: string) => string,
-): Promise<TopicFormState> {
-  const values = formValues(formData);
+): Promise<ActionResult> {
   const parsed = topicFormSchema.safeParse(values);
-  if (!parsed.success) {
-    return { status: "error", message: parsed.error.issues[0].message, values };
-  }
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0].message };
   const result = await write(parsed.data);
   if (!result.ok) {
-    const message = result.reason === "slug-taken" ? slugTakenMessage(parsed.data.slug) : goneMessage;
-    return { status: "error", message, values };
+    return { ok: false, message: result.reason === "slug-taken" ? slugTakenMessage(parsed.data.slug) : goneMessage };
   }
   regeneratePublicPages();
-  return { status: "saved" };
+  return { ok: true };
 }
 
-export const saveTopic = editorAction(
-  async (_editor, _state: TopicFormState, formData: FormData): Promise<TopicFormState> => {
-    const id = optionalId.parse(formData.get("id") ?? undefined);
-    return save(
-      formData,
-      (input) => (id ? renameTopic(id, input) : createTopic(input)),
-      (slug) => `L'identifiant « ${slug} » est déjà pris par une autre thématique.`,
-    );
-  },
-);
-
-export const saveSubtopic = editorAction(
-  async (_editor, _state: TopicFormState, formData: FormData): Promise<TopicFormState> => {
-    const id = optionalId.parse(formData.get("id") ?? undefined);
-    const topicId = optionalId.parse(formData.get("topicId") ?? undefined);
-    return save(
-      formData,
-      async (input) => {
-        if (id) return renameSubtopic(id, input);
-        if (topicId) return createSubtopic(topicId, input);
-        return { ok: false, reason: "not-found" };
-      },
-      (slug) => `L'identifiant « ${slug} » est déjà pris par une autre sous-thématique de cette thématique.`,
-    );
-  },
-);
-
-export const moveTopicAction = editorAction(async (_editor, formData: FormData) => {
-  const parsed = moveSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
-  await moveTopic(parsed.data.id, parsed.data.direction);
+async function remove(result: DeleteResult, inUseMessage: string): Promise<ActionResult> {
+  if (!result.ok) return { ok: false, message: result.reason === "in-use" ? inUseMessage : goneMessage };
   regeneratePublicPages();
-});
-
-export const moveSubtopicAction = editorAction(async (_editor, formData: FormData) => {
-  const parsed = moveSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
-  await moveSubtopic(parsed.data.id, parsed.data.direction);
-  regeneratePublicPages();
-});
-
-async function removeWith(
-  formData: FormData,
-  remove: (id: string) => Promise<DeleteResult>,
-  inUseMessage: string,
-): Promise<DeleteState> {
-  const id = optionalId.parse(formData.get("id") ?? undefined);
-  const result: DeleteResult = id ? await remove(id) : { ok: false, reason: "not-found" };
-  if (!result.ok) {
-    return { status: "error", message: result.reason === "in-use" ? inUseMessage : goneMessage };
-  }
-  regeneratePublicPages();
-  return { status: "idle" };
+  return { ok: true };
 }
 
-export const deleteTopicAction = editorAction(
-  async (_editor, _state: DeleteState, formData: FormData): Promise<DeleteState> =>
-    removeWith(
-      formData,
-      deleteTopic,
+async function move(rawDirection: unknown, run: (direction: Direction) => Promise<void>): Promise<ActionResult> {
+  const direction = directionSchema.safeParse(rawDirection);
+  if (!direction.success) return invalidRequest;
+  await run(direction.data);
+  regeneratePublicPages();
+  return { ok: true };
+}
+
+export const createTopicAction = editorAction(async (_editor, values: TopicInput) =>
+  save(values, createTopic, topicSlugTaken),
+);
+
+export const renameTopicAction = editorAction(async (_editor, topicId: string, values: TopicInput) =>
+  withId(topicId, (id) => save(values, (input) => renameTopic(id, input), topicSlugTaken)),
+);
+
+export const moveTopicAction = editorAction(async (_editor, topicId: string, direction: Direction) =>
+  withId(topicId, (id) => move(direction, (checked) => moveTopic(id, checked))),
+);
+
+export const deleteTopicAction = editorAction(async (_editor, topicId: string) =>
+  withId(topicId, async (id) =>
+    remove(
+      await deleteTopic(id),
       "Une de ses sous-thématiques est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de supprimer la thématique.",
     ),
+  ),
 );
 
-export const deleteSubtopicAction = editorAction(
-  async (_editor, _state: DeleteState, formData: FormData): Promise<DeleteState> =>
-    removeWith(
-      formData,
-      deleteSubtopic,
+export const createSubtopicAction = editorAction(async (_editor, topicId: string, values: TopicInput) =>
+  withId(topicId, (id) => save(values, (input) => createSubtopic(id, input), subtopicSlugTaken)),
+);
+
+export const renameSubtopicAction = editorAction(async (_editor, subtopicId: string, values: TopicInput) =>
+  withId(subtopicId, (id) => save(values, (input) => renameSubtopic(id, input), subtopicSlugTaken)),
+);
+
+export const moveSubtopicAction = editorAction(async (_editor, subtopicId: string, direction: Direction) =>
+  withId(subtopicId, (id) => move(direction, (checked) => moveSubtopic(id, checked))),
+);
+
+export const deleteSubtopicAction = editorAction(async (_editor, subtopicId: string) =>
+  withId(subtopicId, async (id) =>
+    remove(
+      await deleteSubtopic(id),
       "Cette sous-thématique est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de la supprimer.",
     ),
+  ),
 );
