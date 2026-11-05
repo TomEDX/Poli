@@ -1,0 +1,34 @@
+name: Promote
+
+# Fast-forwards stage from develop, or main from stage, so the same commit
+# reaches every environment (ADR 0006). The deploy key is the only actor allowed
+# to push to stage and main.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Branche à mettre à jour
+        type: choice
+        options: [stage, main]
+
+concurrency: promote
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: promotion
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.PROMOTE_SSH_KEY }}
+          fetch-depth: 0
+      - name: Fast-forward
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          case "$TARGET" in
+            stage) source=develop ;;
+            main) source=stage ;;
+          esac
+          # A plain push is rejected unless it is a fast-forward.
+          git push origin "refs/remotes/origin/${source}:refs/heads/${TARGET}"

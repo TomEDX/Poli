@@ -1,0 +1,35 @@
+name: Migrate
+
+# Applies the Drizzle migrations to the database of the environment that matches
+# the pushed branch (ADR 0006). The URL is the Supabase session pooler: GitHub
+# runners only speak IPv4, which the direct connection does not offer.
+on:
+  push:
+    branches: [develop, stage, main]
+  workflow_dispatch:
+
+concurrency: migrate-${{ github.ref_name }}
+
+jobs:
+  migrate:
+    if: contains(fromJSON('["develop", "stage", "main"]'), github.ref_name)
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Stage has no database until the move to Supabase Pro.
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::No database for ${GITHUB_REF_NAME} yet, migrations skipped."
+            exit 0
+          fi
+          pnpm db:migrate
