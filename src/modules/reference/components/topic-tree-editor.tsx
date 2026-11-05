@@ -14,6 +14,12 @@ import type { TopicTree } from "../topics";
 import { DeleteButton } from "./delete-button";
 import { TopicForm } from "./topic-form";
 
+function topicDeletionConfirmation(name: string, subtopicCount: number) {
+  if (subtopicCount === 0) return `Supprimer la thématique « ${name} » ?`;
+  if (subtopicCount === 1) return `Supprimer la thématique « ${name} » et sa sous-thématique ?`;
+  return `Supprimer la thématique « ${name} » et ses ${subtopicCount} sous-thématiques ?`;
+}
+
 type MoveButtonsProps = {
   action: (formData: FormData) => Promise<void>;
   id: string;
@@ -93,7 +99,7 @@ export function TopicTreeEditor({ tree }: { tree: TopicTree }) {
                   action={deleteTopicAction}
                   id={topic.id}
                   label={`Supprimer « ${topic.name} »`}
-                  confirmation={`Supprimer la thématique « ${topic.name} » et ses ${topic.subtopics.length} sous-thématiques ?`}
+                  confirmation={topicDeletionConfirmation(topic.name, topic.subtopics.length)}
                 />
               </div>
 

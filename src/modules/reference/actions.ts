@@ -32,7 +32,7 @@ const moveSchema = z.object({ id: z.uuid(), direction: z.enum(["up", "down"]) })
 const goneMessage = "Cet élément n'existe plus : rechargez la page.";
 
 // Topics feed every public page, which are regenerated after each change (ADR 0005).
-function publish() {
+function regeneratePublicPages() {
   revalidatePath("/", "layout");
 }
 
@@ -55,7 +55,7 @@ async function save(
     const message = result.reason === "slug-taken" ? slugTakenMessage(parsed.data.slug) : goneMessage;
     return { status: "error", message, values };
   }
-  publish();
+  regeneratePublicPages();
   return { status: "saved" };
 }
 
@@ -90,14 +90,14 @@ export const moveTopicAction = editorAction(async (_editor, formData: FormData) 
   const parsed = moveSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   await moveTopic(parsed.data.id, parsed.data.direction);
-  publish();
+  regeneratePublicPages();
 });
 
 export const moveSubtopicAction = editorAction(async (_editor, formData: FormData) => {
   const parsed = moveSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   await moveSubtopic(parsed.data.id, parsed.data.direction);
-  publish();
+  regeneratePublicPages();
 });
 
 async function removeWith(
@@ -110,7 +110,7 @@ async function removeWith(
   if (!result.ok) {
     return { status: "error", message: result.reason === "in-use" ? inUseMessage : goneMessage };
   }
-  publish();
+  regeneratePublicPages();
   return { status: "idle" };
 }
 

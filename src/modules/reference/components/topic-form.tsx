@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import type { TopicFormState } from "../actions";
+import { NAME_MAX_LENGTH } from "../validation";
 
 const initialState: TopicFormState = { status: "idle" };
 
@@ -41,7 +42,7 @@ export function TopicForm({ action, hiddenFields = {}, name = "", slug, nameLabe
             name="name"
             defaultValue={values.name}
             required
-            maxLength={80}
+            maxLength={NAME_MAX_LENGTH}
             aria-invalid={failed}
             aria-describedby={failed ? errorId : undefined}
           />

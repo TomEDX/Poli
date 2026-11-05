@@ -166,6 +166,15 @@ describe("deletion", () => {
   });
 
   describe("of a subtopic used by content", () => {
+    it("stays guarded: every table pointing at subtopics restricts their deletion", async () => {
+      const references = await db.execute<{ name: string; onDelete: string }>(
+        sql`select conrelid::regclass::text as name, confdeltype::text as "onDelete" from pg_constraint
+            where contype = 'f' and confrelid = 'public.subtopics'::regclass`,
+      );
+
+      expect(references.filter((reference) => reference.onDelete !== "r")).toEqual([]);
+    });
+
     // Stands for any content table: they all reference subtopics with onDelete "restrict".
     afterEach(async () => {
       await db.execute(sql`drop table if exists test_contents`);
