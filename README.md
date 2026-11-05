@@ -16,7 +16,9 @@ cp .env.example .env
 pnpm dev
 ```
 
-`pnpm dev` démarre le Supabase local, applique les migrations Drizzle, puis lance l'app sur http://localhost:3000. Le studio Supabase est sur http://127.0.0.1:54323. `pnpm db:stop` arrête les conteneurs.
+`pnpm dev` démarre le Supabase local, applique les migrations Drizzle, puis lance l'app sur http://localhost:3000. Le studio Supabase est sur http://127.0.0.1:54323 et les e-mails envoyés (liens de connexion) sur http://127.0.0.1:54324. `pnpm db:stop` arrête les conteneurs.
+
+L'administration est sur http://localhost:3000/admin. Pour s'y connecter, créer un éditeur en suivant [Ajouter un éditeur](docs/environnements.md#ajouter-un-éditeur).
 
 ## Commandes
 
@@ -38,5 +40,6 @@ Le code est en anglais. Les routes vivent dans `src/app/` et restent fines ; le 
 | `legislation` | Législatif : textes, amendements, scrutins |
 | `programmes` | Programmes : extraits |
 | `quiz` | Quiz : questions, positions, score d'accord |
+| `editors` | Éditeurs : table des éditeurs, connexion par lien magique, garde `editorAction` des Server Actions d'écriture |
 
-Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).
+Un module n'importe que lui-même, `reference` et `editors` (ADR 0004, ADR 0007). Toute Server Action d'écriture passe par `editorAction`. Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).

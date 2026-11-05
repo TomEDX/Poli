@@ -21,6 +21,14 @@ export default async function createTestDatabase() {
   await maintenance.end();
 
   const client = connect(TEST_DATABASE_URL);
+  // A fresh database lacks the grants Supabase gives its API roles on every
+  // project; recreate them so access rules are tested as they run in Supabase.
+  await client.unsafe(`
+    grant usage on schema public to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+  `);
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   await client.end();
 }

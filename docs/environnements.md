@@ -35,10 +35,46 @@ Les secrets vivent dans des environnements GitHub, chacun lisible seulement depu
 | GitHub, environnement `promotion` | `PROMOTE_SSH_KEY` | `develop` | Clé privée de la clé de déploiement « Poli promotion » |
 | Vercel, Production | `DATABASE_URL` | `main` | Adresse *Transaction pooler* (port 6543) de `poli-prod` |
 | Vercel, Preview branche `develop` | `DATABASE_URL` | `develop` | Adresse *Transaction pooler* (port 6543) de `poli-develop` |
+| Vercel, Production | `SUPABASE_URL` | `main` | `https://<identifiant>.supabase.co` de `poli-prod` |
+| Vercel, Production | `SUPABASE_PUBLISHABLE_KEY` | `main` | Clé *publishable* (`sb_publishable_…`) de `poli-prod` |
+| Vercel, Preview branche `develop` | `SUPABASE_URL` | `develop` | `https://<identifiant>.supabase.co` de `poli-develop` |
+| Vercel, Preview branche `develop` | `SUPABASE_PUBLISHABLE_KEY` | `develop` | Clé *publishable* (`sb_publishable_…`) de `poli-develop` |
 
 Les adresses se trouvent dans Supabase : projet → **Connect** → onglet **Direct**. GitHub Actions utilise le *Session pooler*, car ses machines n'ont que l'IPv4 ; l'app utilise le *Transaction pooler*, adapté aux connexions courtes de Vercel.
 
+L'identifiant du projet est dans **Project Settings → General**, la clé *publishable* dans **Project Settings → API Keys**. Elle peut être publique ; la clé secrète (`sb_secret_…`) n'est utilisée nulle part.
+
 Pour changer un secret GitHub : `gh secret set <NOM> --env <environnement> --repo TomEDX/Poli`, puis coller la valeur. Le jeton de release-please expire : le renouveler avant sa date d'expiration de la même façon.
+
+## Connexion des éditeurs
+
+Les éditeurs se connectent à `/admin` par lien magique (Supabase Auth). Supabase ne sert qu'à l'authentification : la Data API est désactivée et l'app lit et écrit la base par Drizzle. Un éditeur est un compte Supabase Auth dont l'adresse figure dans la table `editors`.
+
+Réglages de chaque projet Supabase, dans **Authentication** :
+
+| Réglage | `poli-develop` | `poli-prod` |
+| --- | --- | --- |
+| **Sign In / Providers** → *Allow new users to sign up* | désactivé | désactivé |
+| **URL Configuration** → *Site URL* | `https://poli-git-develop-tomedx.vercel.app` | `https://poli-topaz.vercel.app` |
+| **URL Configuration** → *Redirect URLs* | `https://poli-git-develop-tomedx.vercel.app/auth/confirm` | `https://poli-topaz.vercel.app/auth/confirm` |
+
+Les e-mails partent du service intégré de Supabase, avec le modèle par défaut. Ce service n'écrit qu'aux membres de l'organisation Supabase et limite les envois (quelques e-mails par heure) : chaque éditeur doit être invité dans l'organisation (**Organization Settings → Team → Invite**). Un projet gratuit ne peut pas modifier ses modèles d'e-mail sans SMTP externe ; le lien du modèle par défaut ne fonctionne donc que dans le navigateur où il a été demandé.
+
+### Ajouter un éditeur
+
+1. Inviter la personne dans l'organisation Supabase si ce n'est pas déjà fait (voir ci-dessus).
+2. Dans le projet, **Authentication → Users → Add user → Create new user** : son adresse, un mot de passe aléatoire jamais réutilisé (`openssl rand -base64 32`), *Auto Confirm User* coché. La connexion se fait par lien magique, le mot de passe ne sert pas.
+3. Dans **SQL Editor**, ajouter l'adresse en minuscules :
+
+   ```sql
+   insert into editors (email) values ('prenom.nom@exemple.fr');
+   ```
+
+4. La personne demande un lien sur `/sign-in` et l'ouvre dans le même navigateur.
+
+Pour retirer un éditeur, supprimer sa ligne de `editors` (il perd l'accès à l'administration) puis son compte dans **Authentication → Users**.
+
+En local, même procédure dans le studio (http://127.0.0.1:54323) ; les e-mails arrivent dans Mailpit (http://127.0.0.1:54324), sans invitation.
 
 ## Réglages du dépôt
 
