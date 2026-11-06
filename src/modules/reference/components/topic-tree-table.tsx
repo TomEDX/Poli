@@ -11,12 +11,9 @@ import {
   type ActionResult,
   createSubtopicAction,
   createTopicAction,
-  deleteSubtopicAction,
-  deleteTopicAction,
-  moveSubtopicAction,
-  moveTopicAction,
-  renameSubtopicAction,
-  renameTopicAction,
+  editNodeAction,
+  moveNodeAction,
+  removeNodeAction,
 } from "../actions";
 import type { Direction, TopicTree } from "../topics";
 import { NAME_MAX_LENGTH, slugify } from "../validation";
@@ -302,7 +299,7 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                         label={`Nom de la thématique « ${topic.name} »`}
                         initial={topic.name}
                         onClose={stopEditing}
-                        onSave={(name) => renameTopicAction(topic.id, { name, slug: topic.slug })}
+                        onSave={(name) => editNodeAction({ level: "topic", id: topic.id }, { name })}
                       />
                     ) : (
                       <EditableText
@@ -324,7 +321,7 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                         field="slug"
                         initial={topic.slug}
                         onClose={stopEditing}
-                        onSave={(slug) => renameTopicAction(topic.id, { name: topic.name, slug })}
+                        onSave={(slug) => editNodeAction({ level: "topic", id: topic.id }, { slug })}
                       />
                     ) : (
                       <EditableText
@@ -343,9 +340,13 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                       isLast={topicIndex === tree.length - 1}
                       disabled={pending}
                       canMove={!search}
-                      onMove={(direction) => run(topic.id, () => moveTopicAction(topic.id, direction))}
+                      onMove={(direction) =>
+                        run(topic.id, () => moveNodeAction({ level: "topic", id: topic.id }, direction))
+                      }
                       onDelete={() =>
-                        deleteRow(topic.id, topicDeletionConfirmation(topic), () => deleteTopicAction(topic.id))
+                        deleteRow(topic.id, topicDeletionConfirmation(topic), () =>
+                          removeNodeAction({ level: "topic", id: topic.id }),
+                        )
                       }
                     />
                   </div>
@@ -367,7 +368,7 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                                 label={`Nom de la sous-thématique « ${subtopic.name} »`}
                                 initial={subtopic.name}
                                 onClose={stopEditing}
-                                onSave={(name) => renameSubtopicAction(subtopic.id, { name, slug: subtopic.slug })}
+                                onSave={(name) => editNodeAction({ level: "subtopic", id: subtopic.id }, { name })}
                               />
                             ) : (
                               <EditableText
@@ -385,7 +386,7 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                                 field="slug"
                                 initial={subtopic.slug}
                                 onClose={stopEditing}
-                                onSave={(slug) => renameSubtopicAction(subtopic.id, { name: subtopic.name, slug })}
+                                onSave={(slug) => editNodeAction({ level: "subtopic", id: subtopic.id }, { slug })}
                               />
                             ) : (
                               <EditableText
@@ -404,10 +405,12 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                               isLast={subtopicIndex === topic.subtopics.length - 1}
                               disabled={pending}
                               canMove={!search}
-                              onMove={(direction) => run(subtopic.id, () => moveSubtopicAction(subtopic.id, direction))}
+                              onMove={(direction) =>
+                                run(subtopic.id, () => moveNodeAction({ level: "subtopic", id: subtopic.id }, direction))
+                              }
                               onDelete={() =>
                                 deleteRow(subtopic.id, `Supprimer la sous-thématique « ${subtopic.name} » ?`, () =>
-                                  deleteSubtopicAction(subtopic.id),
+                                  removeNodeAction({ level: "subtopic", id: subtopic.id }),
                                 )
                               }
                             />
