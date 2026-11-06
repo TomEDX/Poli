@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/TomEDX/Poli/compare/poli-v0.4.0...poli-v0.4.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* edit only the changed field of a topic, and build every editor write with editorWrite ([#31](https://github.com/TomEDX/Poli/issues/31)) ([cced345](https://github.com/TomEDX/Poli/commit/cced3452434644ae6cc670fe5a689c0de7b0eb1d))
+
 ## [0.4.0](https://github.com/TomEDX/Poli/compare/poli-v0.3.0...poli-v0.4.0) (2026-11-06)
 
 
