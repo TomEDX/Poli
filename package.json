@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "supabase start && drizzle-kit migrate && next dev",
+    "dev": "supabase start && drizzle-kit migrate && node scripts/seed-local.ts && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,6 +12,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:seed": "node scripts/seed-local.ts",
     "db:stop": "supabase stop"
   },
   "dependencies": {
@@ -46,5 +47,8 @@
     "typescript": "^5",
     "vitest": "^5.1.0"
   },
-  "packageManager": "pnpm@12.0.0"
+  "packageManager": "pnpm@12.0.0",
+  "engines": {
+    "node": ">=24.2"
+  }
 }

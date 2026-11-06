@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 // Each content section adds its entry here as it is built.
-const sections: { href: string; label: string }[] = [];
+const sections: { href: string; label: string }[] = [{ href: "/admin/topics", label: "Thématiques" }];
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
