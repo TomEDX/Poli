@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/TomEDX/Poli/compare/poli-v0.3.0...poli-v0.4.0) (2026-11-06)
+
+
+### Features
+
+* let editors manage topics and subtopics ([#29](https://github.com/TomEDX/Poli/issues/29)) ([beb9f20](https://github.com/TomEDX/Poli/commit/beb9f20046fca23f2a5e3f4803eb9ba95c5ce300))
+
 ## [0.3.0](https://github.com/TomEDX/Poli/compare/poli-v0.2.0...poli-v0.3.0) (2026-11-05)
 
 
