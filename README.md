@@ -41,6 +41,6 @@ Le code est en anglais. Les routes vivent dans `src/app/` et restent fines ; le 
 | `legislation` | Législatif : textes, amendements, scrutins |
 | `programmes` | Programmes : extraits |
 | `quiz` | Quiz : questions, positions, score d'accord |
-| `editors` | Éditeurs : table des éditeurs, connexion par lien magique, garde `editorAction` des Server Actions d'écriture |
+| `editors` | Éditeurs : table des éditeurs, connexion par lien magique, `editorWrite`, qui construit les Server Actions d'écriture |
 
-Un module n'importe que lui-même, `reference` et `editors` (ADR 0004, ADR 0007). Toute Server Action d'écriture passe par `editorAction`. Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).
+Un module n'importe que lui-même, `reference` et `editors` (ADR 0004, ADR 0007). Toute Server Action d'écriture est construite avec `editorWrite`. Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).

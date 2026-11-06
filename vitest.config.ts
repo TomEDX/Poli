@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     env: { DATABASE_URL: TEST_DATABASE_URL },
     globalSetup: ["./test/global-setup.ts"],
-    setupFiles: ["./test/reset-database.ts"],
+    setupFiles: ["./test/reset-database.ts", "./test/mock-next-cache.ts"],
     // All test files share one database that is emptied before each test.
     fileParallelism: false,
   },
