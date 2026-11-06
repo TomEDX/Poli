@@ -15,41 +15,26 @@ export type TopicChanges = { name?: string; slug?: string };
 
 export type Direction = "up" | "down";
 
-export type CreateResult = { ok: true; id: string } | { ok: false; reason: "slug-taken" | "not-found" };
-
-// unchanged tells the caller that nothing was written, so public pages need no regeneration.
-export type TreeResult =
-  | { ok: true; unchanged?: true }
-  | { ok: false; reason: "slug-taken" | "not-found" | "in-use" };
-
-const uniqueViolation = "23505";
-const foreignKeyViolation = "23503";
-
-// Drizzle wraps the driver error and keeps the Postgres one as its cause.
-function postgresCode(error: unknown): string | undefined {
-  const { cause, code } = error as { cause?: { code?: string }; code?: string };
-  return cause?.code ?? code;
-}
-
-async function write(run: () => Promise<{ id: string } | undefined>): Promise<CreateResult> {
-  try {
-    const row = await run();
-    return row ? { ok: true, id: row.id } : { ok: false, reason: "not-found" };
-  } catch (error) {
-    const code = postgresCode(error);
-    if (code === uniqueViolation) return { ok: false, reason: "slug-taken" };
-    // On a write, a missing reference means the parent topic was deleted meanwhile.
-    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
-    throw error;
-  }
-}
-
 export type TopicTree = {
   id: string;
   name: string;
   slug: string;
   subtopics: { id: string; name: string; slug: string }[];
 }[];
+
+export type CreateResult = { ok: true; id: string } | { ok: false; reason: "slug-taken" | "not-found" };
+
+export type EditResult = Outcome<"slug-taken" | "not-found">;
+
+export type MoveResult = Outcome<"not-found">;
+
+export type RemoveResult = Outcome<"in-use" | "not-found">;
+
+// unchanged means nothing was written, so the public pages need no regeneration.
+type Outcome<Reason extends string> = { ok: true; unchanged?: true } | { ok: false; reason: Reason };
+
+const uniqueViolation = "23505";
+const foreignKeyViolation = "23503";
 
 export async function getTopicTree(): Promise<TopicTree> {
   const topicRows = await db
@@ -98,56 +83,30 @@ export async function createSubtopic(topicId: string, input: TopicInput): Promis
 }
 
 // Only the given fields are written, so an edit never brings back a value another editor changed.
-export async function editNode(node: TopicNode, changes: TopicChanges): Promise<TreeResult> {
+export async function editNode(node: TopicNode, changes: TopicChanges): Promise<EditResult> {
   if (changes.name === undefined && changes.slug === undefined) throw new Error("An edit needs a name or a slug.");
   const result = await write(async () => {
-    if (node.level === "topic") {
-      const [edited] = await db.update(topics).set(changes).where(eq(topics.id, node.id)).returning({ id: topics.id });
-      return edited;
-    }
-    const [edited] = await db
-      .update(subtopics)
-      .set(changes)
-      .where(eq(subtopics.id, node.id))
-      .returning({ id: subtopics.id });
+    const [edited] =
+      node.level === "topic"
+        ? await db.update(topics).set(changes).where(eq(topics.id, node.id)).returning({ id: topics.id })
+        : await db.update(subtopics).set(changes).where(eq(subtopics.id, node.id)).returning({ id: subtopics.id });
     return edited;
   });
   return result.ok ? { ok: true } : result;
 }
 
-export async function moveNode(node: TopicNode, direction: Direction): Promise<TreeResult> {
+export async function moveNode(node: TopicNode, direction: Direction): Promise<MoveResult> {
   return db.transaction(async (tx) => {
-    let siblings: { id: string }[];
-    if (node.level === "topic") {
-      siblings = await tx
-        .select({ id: topics.id })
-        .from(topics)
-        .orderBy(asc(topics.position), asc(topics.createdAt))
-        .for("update");
-    } else {
-      const [moved] = await tx
-        .select({ topicId: subtopics.topicId })
-        .from(subtopics)
-        .where(eq(subtopics.id, node.id));
-      if (!moved) return { ok: false, reason: "not-found" };
-      siblings = await tx
-        .select({ id: subtopics.id })
-        .from(subtopics)
-        .where(eq(subtopics.topicId, moved.topicId))
-        .orderBy(asc(subtopics.position), asc(subtopics.createdAt))
-        .for("update");
-    }
-
-    const ids = siblings.map((sibling) => sibling.id);
-    const index = ids.indexOf(node.id);
+    const siblings = await lockSiblings(tx, node);
+    const index = siblings.indexOf(node.id);
     if (index === -1) return { ok: false, reason: "not-found" };
     const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= ids.length) return { ok: true, unchanged: true };
-    [ids[index], ids[target]] = [ids[target], ids[index]];
+    if (target < 0 || target >= siblings.length) return { ok: true, unchanged: true };
 
+    [siblings[index], siblings[target]] = [siblings[target], siblings[index]];
     // Every sibling is renumbered, which also repairs equal positions left by two
     // creations at the same time.
-    for (const [position, id] of ids.entries()) {
+    for (const [position, id] of siblings.entries()) {
       if (node.level === "topic") await tx.update(topics).set({ position: position + 1 }).where(eq(topics.id, id));
       else await tx.update(subtopics).set({ position: position + 1 }).where(eq(subtopics.id, id));
     }
@@ -156,7 +115,7 @@ export async function moveNode(node: TopicNode, direction: Direction): Promise<T
 }
 
 // Deleting a topic deletes its subtopics too.
-export async function removeNode(node: TopicNode): Promise<TreeResult> {
+export async function removeNode(node: TopicNode): Promise<RemoveResult> {
   try {
     const [deleted] =
       node.level === "topic"
@@ -168,4 +127,47 @@ export async function removeNode(node: TopicNode): Promise<TreeResult> {
     if (postgresCode(error) === foreignKeyViolation) return { ok: false, reason: "in-use" };
     throw error;
   }
+}
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// Ids of the node and its siblings in their current order, locked until the transaction
+// ends; empty when the node no longer exists.
+async function lockSiblings(tx: Transaction, node: TopicNode): Promise<string[]> {
+  if (node.level === "topic") {
+    const rows = await tx
+      .select({ id: topics.id })
+      .from(topics)
+      .orderBy(asc(topics.position), asc(topics.createdAt))
+      .for("update");
+    return rows.map((row) => row.id);
+  }
+  const [moved] = await tx.select({ topicId: subtopics.topicId }).from(subtopics).where(eq(subtopics.id, node.id));
+  if (!moved) return [];
+  const rows = await tx
+    .select({ id: subtopics.id })
+    .from(subtopics)
+    .where(eq(subtopics.topicId, moved.topicId))
+    .orderBy(asc(subtopics.position), asc(subtopics.createdAt))
+    .for("update");
+  return rows.map((row) => row.id);
+}
+
+async function write(run: () => Promise<{ id: string } | undefined>): Promise<CreateResult> {
+  try {
+    const row = await run();
+    return row ? { ok: true, id: row.id } : { ok: false, reason: "not-found" };
+  } catch (error) {
+    const code = postgresCode(error);
+    if (code === uniqueViolation) return { ok: false, reason: "slug-taken" };
+    // On a write, a missing reference means the parent topic was deleted meanwhile.
+    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
+    throw error;
+  }
+}
+
+// Drizzle wraps the driver error and keeps the Postgres one as its cause.
+function postgresCode(error: unknown): string | undefined {
+  const { cause, code } = error as { cause?: { code?: string }; code?: string };
+  return cause?.code ?? code;
 }

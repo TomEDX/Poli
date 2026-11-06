@@ -6,9 +6,9 @@ import { Fragment, useId, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { ActionResult } from "@/modules/editors/editor-write";
 
 import {
-  type ActionResult,
   createSubtopicAction,
   createTopicAction,
   editNodeAction,
