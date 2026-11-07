@@ -5,14 +5,14 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPublishedAmendments } from "@/modules/legislation/amendments";
-import { EditorialSummary } from "@/modules/legislation/components/editorial-summary";
-import { TextAmendments } from "@/modules/legislation/components/text-amendments";
-import { TextHeader } from "@/modules/legislation/components/text-header";
-import { FinalVoteResult, TextVotes } from "@/modules/legislation/components/text-votes";
-import { SourceLinks } from "@/modules/reference/components/source-links";
-import { getPublishedText } from "@/modules/legislation/texts";
-import { getPublishedVotes } from "@/modules/legislation/votes";
+import { getPublishedAmendments } from "@/modules/legislation/amendments/queries";
+import { EditorialSummary } from "@/modules/legislation/texts/components/editorial-summary";
+import { TextAmendments } from "@/modules/legislation/amendments/components/text-amendments";
+import { TextHeader } from "@/modules/legislation/texts/components/text-header";
+import { FinalVoteResult, TextVotes } from "@/modules/legislation/votes/components/text-votes";
+import { SourceLinks } from "@/modules/reference/sources/components/source-links";
+import { getPublishedText } from "@/modules/legislation/texts/queries";
+import { getPublishedVotes } from "@/modules/legislation/votes/queries";
 
 export const metadata: Metadata = { title: "Texte · Poli." };
 

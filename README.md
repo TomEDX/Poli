@@ -43,4 +43,4 @@ Le code est en anglais. Les routes vivent dans `src/app/` et restent fines ; le 
 | `quiz` | Quiz : questions, positions, score d'accord |
 | `editors` | Éditeurs : table des éditeurs, connexion par lien magique, `editorWrite`, qui construit les Server Actions d'écriture |
 
-Un module n'importe que lui-même, `reference` et `editors` (ADR 0004, ADR 0007). Toute Server Action d'écriture est construite avec `editorWrite`. Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).
+Un module n'importe que lui-même, `reference` et `editors` (ADR 0004, ADR 0007). Un module qui réunit plusieurs concepts se range en un dossier par concept, avec des fichiers nommés d'après leur rôle : `queries.ts`, `actions.ts`, `validation.ts`, `vocabulary.ts`, `components/` (ADR 0008). Toute Server Action d'écriture est construite avec `editorWrite`. Le code partagé est dans `src/lib/` et `src/components/ui/` (composants shadcn/ui).

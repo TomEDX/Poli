@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { date, integer, pgEnum, pgPolicy, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { publicationStatuses } from "./publication-status";
-import { sourceKinds } from "./source-kinds";
+import { sourceKinds } from "./sources/vocabulary";
 
 // Shared by every publishable content table: only published content reaches the public.
 export const publicationStatus = pgEnum("publication_status", publicationStatuses);

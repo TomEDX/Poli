@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { PublishedTextList } from "@/modules/legislation/components/published-text-list";
-import { TextListFilters } from "@/modules/legislation/components/text-list-filters";
-import { readTextList, textListHref } from "@/modules/legislation/text-list-params";
-import { getPublishedTexts, getPublishedTextTopics, type TextFilters } from "@/modules/legislation/texts";
+import { PublishedTextList } from "@/modules/legislation/texts/components/published-text-list";
+import { TextListFilters } from "@/modules/legislation/texts/components/text-list-filters";
+import { readTextList, textListHref } from "@/modules/legislation/texts/list-params";
+import { getPublishedTexts, getPublishedTextTopics, type TextFilters } from "@/modules/legislation/texts/queries";
 
 export const metadata: Metadata = {
   title: "Textes · Poli.",

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { ParliamentaryGroupTable } from "@/modules/reference/components/parliamentary-group-table";
-import { getCurrentLegislature, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
-import { getParties } from "@/modules/reference/parties";
+import { ParliamentaryGroupTable } from "@/modules/reference/parliamentary-groups/components/parliamentary-group-table";
+import { getCurrentLegislature, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups/queries";
+import { getParties } from "@/modules/reference/parties/queries";
 
 export const metadata: Metadata = { title: "Groupes parlementaires · Administration · Poli." };
 

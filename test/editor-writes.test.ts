@@ -5,8 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => null) }));
 
 // The editors module's own actions sign editors in and out, so they are open to visitors.
+// A module split into concepts has one actions file per concept (ADR 0008).
 const actionFiles = import.meta.glob<Record<string, unknown>>([
-  "/src/modules/*/actions.ts",
+  "/src/modules/**/actions.ts",
   "!/src/modules/editors/actions.ts",
 ]);
 

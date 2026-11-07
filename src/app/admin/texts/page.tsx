@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { TextTable } from "@/modules/legislation/components/text-table";
-import { getTexts } from "@/modules/legislation/texts";
-import { getSources } from "@/modules/reference/sources";
-import { getTopicTree } from "@/modules/reference/topics";
+import { TextTable } from "@/modules/legislation/texts/components/text-table";
+import { getTexts } from "@/modules/legislation/texts/queries";
+import { getSources } from "@/modules/reference/sources/queries";
+import { getTopicTree } from "@/modules/reference/topics/queries";
 
 export const metadata: Metadata = { title: "Textes · Administration · Poli." };
 

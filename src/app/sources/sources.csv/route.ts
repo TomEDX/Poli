@@ -1,5 +1,5 @@
-import { sourcesCsv } from "@/modules/reference/sources-csv";
-import { getSources } from "@/modules/reference/sources";
+import { sourcesCsv } from "@/modules/reference/sources/csv";
+import { getSources } from "@/modules/reference/sources/queries";
 
 export async function GET() {
   return new Response(await sourcesFile(), {

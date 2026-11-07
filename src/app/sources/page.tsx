@@ -2,8 +2,8 @@ import { Download } from "lucide-react";
 import type { Metadata } from "next";
 
 import { buttonVariants } from "@/components/ui/button";
-import { SourceList } from "@/modules/reference/components/source-list";
-import { getSources } from "@/modules/reference/sources";
+import { SourceList } from "@/modules/reference/sources/components/source-list";
+import { getSources } from "@/modules/reference/sources/queries";
 
 export const metadata: Metadata = {
   title: "Sources · Poli.",

@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { getPublishedAmendments } from "@/modules/legislation/amendments";
-import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
-import { getPublishedVotes } from "@/modules/legislation/votes";
-import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/extracts";
-import { getPublishedCandidacies } from "@/modules/reference/candidacies";
-import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
-import { createParty, getParties } from "@/modules/reference/parties";
-import { createSource, getSources } from "@/modules/reference/sources";
-import { createTopic, getTopicTree } from "@/modules/reference/topics";
+import { getPublishedAmendments } from "@/modules/legislation/amendments/queries";
+import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts/queries";
+import { getPublishedVotes } from "@/modules/legislation/votes/queries";
+import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/queries";
+import { createParty, getParties, getPublishedCandidacies } from "@/modules/reference/parties/queries";
+import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups/queries";
+import { createSource, getSources } from "@/modules/reference/sources/queries";
+import { createTopic, getTopicTree } from "@/modules/reference/topics/queries";
 
 import { seedLocalDatabase } from "./seed-local";
 

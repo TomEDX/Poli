@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
-import { createParty, getParties } from "@/modules/reference/parties";
-import { createSource } from "@/modules/reference/sources";
-import { createSubtopic, createTopic } from "@/modules/reference/topics";
+import { createParty, getParties } from "@/modules/reference/parties/queries";
+import { createSource } from "@/modules/reference/sources/queries";
+import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
 import { createExtractAction, moveExtractAction, removeExtractAction, saveExtractAction } from "./actions";
-import { getExtracts, getPublishedProgramme } from "./extracts";
+import { getExtracts, getPublishedProgramme } from "./queries";
 
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => "editrice@example.fr") }));
 
