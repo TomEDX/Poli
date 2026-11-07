@@ -1,10 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
 import { candidacyLabel } from "./candidacy-label";
+import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
 import type { PublicationStatus } from "./publication-status";
 import { candidacies, parties } from "./schema";
 
@@ -44,11 +44,11 @@ export async function createCandidacy(partyId: string, input: NewCandidacy): Pro
     const [created] = await db.insert(candidacies).values({ ...input, partyId }).returning({ id: candidacies.id });
     return { ok: true, id: created.id };
   } catch (error) {
-    // A foreign key breaks when the party was deleted meanwhile.
-    return {
-      ok: false,
-      reason: refusalOf(error, { taken: { candidacies_party_id_unique: "party-has-candidacy" }, foreignKey: "not-found" }),
-    };
+    const { code } = postgresError(error);
+    if (code === uniqueViolation) return { ok: false, reason: "party-has-candidacy" };
+    // The party was deleted meanwhile.
+    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
+    throw error;
   }
 }
 

@@ -2,7 +2,6 @@ import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import {
   getCurrentLegislature,
@@ -17,6 +16,7 @@ import type { AmendmentFate, AmendmentOpinion } from "./amendment-kinds";
 import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { amendments, texts, votes } from "./schema";
 import { getPublishedVotes, type PublishedVote } from "./votes";
+import { Refused, refusalOf } from "./write-refusals";
 
 export type AmendmentInput = {
   number: number;
@@ -132,7 +132,7 @@ export async function createAmendment(
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -147,7 +147,7 @@ export async function saveAmendment(id: string, { sourceIds, ...amendment }: Ame
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 

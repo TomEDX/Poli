@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { directions } from "@/lib/direction";
-
 import { publicationStatuses } from "./publication-status";
 import { sourceKinds } from "./source-kinds";
 
@@ -74,7 +72,7 @@ export const candidacyStatusSchema = z.enum(publicationStatuses);
 
 export const topicNodeSchema = z.object({ level: z.enum(["topic", "subtopic"]), id: z.uuid() });
 
-export const directionSchema = z.enum(directions);
+export const directionSchema = z.enum(["up", "down"]);
 
 // On creation, an empty slug is built from the name.
 export const newTopicSchema = z

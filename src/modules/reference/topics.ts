@@ -1,9 +1,8 @@
 import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import type { Direction } from "@/lib/direction";
-import { refusalOf } from "@/lib/write-refusals";
 
+import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
 import { subtopics, topics } from "./schema";
 
 export type Level = "topic" | "subtopic";
@@ -14,6 +13,8 @@ export type TopicNode = { level: Level; id: string };
 export type TopicInput = { name: string; slug: string };
 
 export type TopicChanges = { name?: string; slug?: string };
+
+export type Direction = "up" | "down";
 
 export type TopicTree = {
   id: string;
@@ -32,11 +33,6 @@ export type RemoveResult = Outcome<"in-use" | "not-found">;
 
 // unchanged means nothing was written, so the public pages need no regeneration.
 type Outcome<Reason extends string> = { ok: true; unchanged?: true } | { ok: false; reason: Reason };
-
-const slugTakenReasons: Record<string, "slug-taken"> = {
-  topics_slug_unique: "slug-taken",
-  subtopics_topic_id_slug_unique: "slug-taken",
-};
 
 export async function getTopicTree(): Promise<TopicTree> {
   const topicRows = await db
@@ -126,7 +122,8 @@ export async function removeNode(node: TopicNode): Promise<RemoveResult> {
     return deleted ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
     // On a delete, a reference that blocks it is content still filed under a subtopic.
-    return { ok: false, reason: refusalOf(error, { foreignKey: "in-use" }) };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
   }
 }
 
@@ -159,7 +156,10 @@ async function write(run: () => Promise<{ id: string } | undefined>): Promise<Cr
     const row = await run();
     return row ? { ok: true, id: row.id } : { ok: false, reason: "not-found" };
   } catch (error) {
+    const { code } = postgresError(error);
+    if (code === uniqueViolation) return { ok: false, reason: "slug-taken" };
     // On a write, a missing reference means the parent topic was deleted meanwhile.
-    return { ok: false, reason: refusalOf(error, { taken: slugTakenReasons, foreignKey: "not-found" }) };
+    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
+    throw error;
   }
 }

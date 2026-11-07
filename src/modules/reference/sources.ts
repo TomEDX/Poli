@@ -1,10 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
 import type { SourceKind } from "./source-kinds";
+import { foreignKeyViolation, postgresError } from "./postgres-errors";
 import { sources } from "./schema";
 
 export type SourceInput = {
@@ -70,6 +70,7 @@ export async function removeSource(id: string): Promise<RemoveSourceResult> {
     const [deleted] = await db.delete(sources).where(eq(sources.id, id)).returning({ id: sources.id });
     return deleted ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { foreignKey: "in-use" }) };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
   }
 }

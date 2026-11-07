@@ -2,7 +2,6 @@ import { and, asc, count, desc, eq, exists, inArray, type SQL } from "drizzle-or
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
@@ -12,6 +11,7 @@ import type { SourceSummary } from "@/modules/reference/sources";
 import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { textSubtopics, texts } from "./schema";
 import type { TextNature } from "./text-natures";
+import { Refused, refusalOf } from "./write-refusals";
 
 export type TextInput = {
   nature: TextNature;
@@ -165,7 +165,7 @@ export async function createText({ subtopicIds, sourceIds = [], ...text }: NewTe
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -196,7 +196,7 @@ export async function saveText(id: string, { subtopicIds, sourceIds, ...text }: 
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 

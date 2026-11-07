@@ -1,11 +1,11 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import type { Direction } from "@/lib/direction";
-import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
+import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
 import { legislatures, parliamentaryGroupParties, parliamentaryGroups, parties } from "./schema";
+import type { Direction } from "./topics";
 
 export type Legislature = { id: string; number: number; startedOn: string; endedOn: string | null };
 
@@ -41,6 +41,13 @@ const takenReasons: Record<string, Taken> = {
   parliamentary_groups_legislature_id_name_unique: "name-taken",
   parliamentary_groups_legislature_id_abbreviation_unique: "abbreviation-taken",
 };
+
+// Thrown inside a transaction to roll it back with the reason the editor will read.
+class Refused extends Error {
+  constructor(readonly reason: "not-found") {
+    super(reason);
+  }
+}
 
 // The groups of the current legislature in the official order, for the public pages and
 // the administration alike: groups are not drafted.
@@ -112,7 +119,8 @@ export async function createParliamentaryGroup({
     });
   } catch (error) {
     // A party picked by the editor was deleted meanwhile.
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "not-found" };
+    return { ok: false, reason: takenReason(error) };
   }
 }
 
@@ -155,7 +163,8 @@ export async function removeParliamentaryGroup(id: string): Promise<RemoveParlia
       .returning({ id: parliamentaryGroups.id });
     return deleted ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, { foreignKey: "in-use" }) };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
   }
 }
 
@@ -192,7 +201,17 @@ export async function saveParliamentaryGroup(
     });
     return { ok: true };
   } catch (error) {
+    if (error instanceof Refused) return { ok: false, reason: error.reason };
     // A party picked by the editor was deleted meanwhile.
-    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "not-found" };
+    return { ok: false, reason: takenReason(error) };
   }
+}
+
+// Rethrows anything but a name or abbreviation already taken in the legislature.
+function takenReason(error: unknown): Taken {
+  const { code, constraint } = postgresError(error);
+  const reason = code === uniqueViolation && constraint ? takenReasons[constraint] : undefined;
+  if (!reason) throw error;
+  return reason;
 }
