@@ -3,7 +3,7 @@ import { useId } from "react";
 
 import { formatCounts, formatHeldOn, voteReference, voteSubjectHeadings } from "../vote-labels";
 import { groupPositionLabels, voteResultLabels } from "../vote-kinds";
-import type { PublishedVote } from "../votes";
+import type { PublishedGroupVote, PublishedVote } from "../votes";
 
 // The outcome of the vote on the whole text, shown before anything else about it.
 export function FinalVoteResult({ votes }: { votes: PublishedVote[] }) {
@@ -45,6 +45,44 @@ export function TextVotes({ votes }: { votes: PublishedVote[] }) {
   );
 }
 
+// The vote of each group in a scrutin, in the official order the scrutin comes in.
+export function GroupVoteList({ groupVotes }: { groupVotes: PublishedGroupVote[] }) {
+  if (groupVotes.length === 0) {
+    return <p className="text-sm text-muted-foreground">Le vote des groupes n’est pas renseigné pour ce scrutin.</p>;
+  }
+
+  return (
+    <ul className="flex flex-col divide-y">
+      {groupVotes.map(({ group, position, counts }) => (
+        <li key={group.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5">
+          <span>
+            {group.name} <span className="text-muted-foreground">({group.abbreviation})</span>
+          </span>
+          <span className="flex flex-col items-end">
+            <span className="font-medium">{groupPositionLabels[position]}</span>
+            {counts && <span className="text-xs text-muted-foreground tabular-nums">{formatCounts(counts)}</span>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function OfficialVoteLink({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-fit rounded-sm text-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      Consulter la page officielle du scrutin
+      <ExternalLink aria-hidden className="ml-1 inline size-3.5 align-baseline" />
+      <span className="sr-only"> (nouvel onglet)</span>
+    </a>
+  );
+}
+
 function VoteCard({ vote }: { vote: PublishedVote }) {
   const headingId = useId();
 
@@ -58,36 +96,9 @@ function VoteCard({ vote }: { vote: PublishedVote }) {
           {voteReference(vote)} · {formatHeldOn(vote.heldOn)} ·{" "}
           <span className="font-medium text-foreground">{voteResultLabels[vote.result]}</span>
         </p>
-        {vote.officialUrl && (
-          <a
-            href={vote.officialUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-fit rounded-sm text-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            Consulter la page officielle du scrutin
-            <ExternalLink aria-hidden className="ml-1 inline size-3.5 align-baseline" />
-            <span className="sr-only"> (nouvel onglet)</span>
-          </a>
-        )}
+        {vote.officialUrl && <OfficialVoteLink href={vote.officialUrl} />}
       </header>
-      {vote.groupVotes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Le vote des groupes n’est pas renseigné pour ce scrutin.</p>
-      ) : (
-        <ul className="flex flex-col divide-y">
-          {vote.groupVotes.map(({ group, position, counts }) => (
-            <li key={group.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5">
-              <span>
-                {group.name} <span className="text-muted-foreground">({group.abbreviation})</span>
-              </span>
-              <span className="flex flex-col items-end">
-                <span className="font-medium">{groupPositionLabels[position]}</span>
-                {counts && <span className="text-xs text-muted-foreground tabular-nums">{formatCounts(counts)}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <GroupVoteList groupVotes={vote.groupVotes} />
     </article>
   );
 }

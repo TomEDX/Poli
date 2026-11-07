@@ -6,7 +6,7 @@ import type { WriteOutcome } from "@/modules/editors/editor-write";
 import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 
-import { groupVotes, texts, votes } from "./schema";
+import { amendments, groupVotes, texts, votes } from "./schema";
 import type { GroupPosition, VoteResult, VoteSubject } from "./vote-kinds";
 
 // How many members of the group voted each way.
@@ -22,6 +22,8 @@ export type VoteInput = {
   heldOn: string;
   result: VoteResult;
   officialUrl: string | null;
+  // The amendment of the same text this scrutin voted on; only for a scrutin on an amendment.
+  amendmentId: string | null;
   groupVotes: GroupVoteInput[];
 };
 
@@ -42,11 +44,14 @@ export type SaveVoteResult = WriteOutcome<VoteRefusal>;
 
 export type RemoveVoteResult = WriteOutcome<"not-found">;
 
-type VoteRefusal = "number-taken" | "group-voted-twice" | "not-found";
+type VoteRefusal = "number-taken" | "group-voted-twice" | "amendment-voted-twice" | "not-found";
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const takenReasons: Record<string, VoteRefusal> = {
   votes_text_id_number_unique: "number-taken",
   group_votes_vote_id_group_id_unique: "group-voted-twice",
+  votes_amendment_id_unique: "amendment-voted-twice",
 };
 
 // Thrown inside a transaction to roll it back with the reason the editor will read.
@@ -63,6 +68,7 @@ const voteColumns = {
   heldOn: votes.heldOn,
   result: votes.result,
   officialUrl: votes.officialUrl,
+  amendmentId: votes.amendmentId,
 };
 
 // The scrutins of a published text, the one on the whole text first; none for a draft.
@@ -99,6 +105,7 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
         .insert(votes)
         .values({ ...vote, textId })
         .returning({ id: votes.id });
+      await checkAmendmentOfText(tx, vote.amendmentId, textId);
       if (cast.length > 0) {
         await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(created.id, groupVote)));
       }
@@ -113,8 +120,9 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
 export async function saveVote(id: string, { groupVotes: cast, ...vote }: VoteInput): Promise<SaveVoteResult> {
   try {
     await db.transaction(async (tx) => {
-      const [found] = await tx.update(votes).set(vote).where(eq(votes.id, id)).returning({ id: votes.id });
+      const [found] = await tx.update(votes).set(vote).where(eq(votes.id, id)).returning({ textId: votes.textId });
       if (!found) throw new Refused("not-found");
+      await checkAmendmentOfText(tx, vote.amendmentId, found.textId);
       await tx.delete(groupVotes).where(eq(groupVotes.voteId, id));
       if (cast.length > 0) await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(id, groupVote)));
     });
@@ -130,6 +138,16 @@ export async function removeVote(id: string): Promise<RemoveVoteResult> {
 }
 
 const voteOrder = [sql`${votes.subject} = 'whole_text' desc`, asc(votes.heldOn), asc(votes.number)];
+
+// An amendment of another text reads to the editor as one that no longer exists.
+async function checkAmendmentOfText(tx: Transaction, amendmentId: string | null, textId: string) {
+  if (!amendmentId) return;
+  const [found] = await tx
+    .select({ id: amendments.id })
+    .from(amendments)
+    .where(and(eq(amendments.id, amendmentId), eq(amendments.textId, textId)));
+  if (!found) throw new Refused("not-found");
+}
 
 // The group votes of each scrutin, groups in the official order.
 async function groupVotesOf(voteIds: string[]): Promise<Map<string, PublishedGroupVote[]>> {

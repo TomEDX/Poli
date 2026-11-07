@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { getPublishedAmendments } from "@/modules/legislation/amendments";
 import { createText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
 import { getPublishedVotes } from "@/modules/legislation/votes";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
@@ -70,6 +71,7 @@ describe("local seed", () => {
       sources: true,
       texts: true,
       votes: true,
+      amendments: true,
     });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
@@ -126,10 +128,23 @@ describe("local seed", () => {
 
     const groups = await getParliamentaryGroups();
     const votes = (await Promise.all((await getPublishedTexts()).map((text) => getPublishedVotes(text.id)))).flat();
-    expect(votes).toMatchObject([{ subject: "whole_text" }]);
-    const [vote] = votes;
+    const finalVotes = votes.filter((vote) => vote.subject === "whole_text");
+    expect(finalVotes).toHaveLength(1);
+    const [vote] = finalVotes;
     expect(vote.groupVotes.map((groupVote) => groupVote.group.id)).toEqual(groups.map((group) => group.id));
     expect(vote.groupVotes.some((groupVote) => groupVote.counts === null)).toBe(true);
     expect(vote.groupVotes.some((groupVote) => groupVote.counts !== null)).toBe(true);
+  });
+
+  it("adds published amendments to a published text, one with a public scrutin, one voted by show of hands", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ amendments: true });
+
+    const texts = await getPublishedTexts();
+    const amendments = (await Promise.all(texts.map((text) => getPublishedAmendments(text.id)))).flat();
+    expect(amendments.some((amendment) => amendment.vote !== null && amendment.vote.groupVotes.length > 0)).toBe(true);
+    expect(
+      amendments.some((amendment) => amendment.vote === null && ["adopted", "rejected"].includes(amendment.fate)),
+    ).toBe(true);
+    expect(amendments.some((amendment) => amendment.authorGroup !== null)).toBe(true);
   });
 });

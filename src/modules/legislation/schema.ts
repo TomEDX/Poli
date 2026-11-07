@@ -3,6 +3,7 @@ import { check, date, integer, pgEnum, pgPolicy, pgTable, text, timestamp, uniqu
 
 import { legislatures, parliamentaryGroups, publicationStatus, subtopics } from "@/modules/reference/schema";
 
+import { amendmentFates, amendmentOpinions } from "./amendment-kinds";
 import { textNatures } from "./text-natures";
 import { groupPositions, voteResults, voteSubjects } from "./vote-kinds";
 
@@ -13,6 +14,10 @@ export const voteSubject = pgEnum("vote_subject", voteSubjects);
 export const voteResult = pgEnum("vote_result", voteResults);
 
 export const groupPosition = pgEnum("group_position", groupPositions);
+
+export const amendmentFate = pgEnum("amendment_fate", amendmentFates);
+
+export const amendmentOpinion = pgEnum("amendment_opinion", amendmentOpinions);
 
 // The Assemblée numbers every document it receives once per legislature, bills and
 // member bills alike, so a number identifies a text within its legislature.
@@ -74,8 +79,43 @@ export const textSubtopics = pgTable(
   ],
 ).enableRLS();
 
-// A scrutin follows the publication of its text. An amendment scrutin will point to its
-// amendment once amendments exist (#11), through an optional column added then.
+// The Assemblée numbers amendments once per text. An amendment shows only when it is
+// published and so is its text.
+export const amendments = pgTable(
+  "amendments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    textId: uuid()
+      .notNull()
+      .references(() => texts.id, { onDelete: "cascade" }),
+    number: integer().notNull(),
+    authorLabel: text().notNull(),
+    authorGroupId: uuid().references(() => parliamentaryGroups.id, { onDelete: "restrict" }),
+    cosignatories: text(),
+    summary: text().notNull(),
+    fate: amendmentFate().notNull(),
+    governmentOpinion: amendmentOpinion().notNull().default("none"),
+    committeeOpinion: amendmentOpinion().notNull().default("none"),
+    status: publicationStatus().notNull().default("draft"),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique("amendments_text_id_number_unique").on(table.textId, table.number),
+    pgPolicy("amendments_public_read_published", {
+      for: "select",
+      to: ["anon", "authenticated"],
+      using: sql`${table.status} = 'published'
+                 and exists (select 1 from texts where texts.id = ${table.textId} and texts.status = 'published')`,
+    }),
+  ],
+).enableRLS();
+
+// A scrutin follows the publication of its text. A scrutin on an amendment may point to it,
+// and an amendment has at most one public scrutin; deleting the amendment keeps the scrutin.
 export const votes = pgTable(
   "votes",
   {
@@ -89,6 +129,7 @@ export const votes = pgTable(
     result: voteResult().notNull(),
     // Null when the editors have no official page to point to.
     officialUrl: text(),
+    amendmentId: uuid().references(() => amendments.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -97,6 +138,8 @@ export const votes = pgTable(
   },
   (table) => [
     unique("votes_text_id_number_unique").on(table.textId, table.number),
+    unique("votes_amendment_id_unique").on(table.amendmentId),
+    check("votes_amendment_id_on_amendment_only", sql`${table.amendmentId} is null or ${table.subject} = 'amendment'`),
     pgPolicy("votes_public_read_published", {
       for: "select",
       to: ["anon", "authenticated"],

@@ -5,7 +5,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { getPublishedAmendments } from "@/modules/legislation/amendments";
 import { EditorialSummary } from "@/modules/legislation/components/editorial-summary";
+import { TextAmendments } from "@/modules/legislation/components/text-amendments";
 import { TextHeader } from "@/modules/legislation/components/text-header";
 import { FinalVoteResult, TextVotes } from "@/modules/legislation/components/text-votes";
 import { getPublishedText } from "@/modules/legislation/texts";
@@ -34,15 +36,18 @@ export default function TextPage({ params }: PageProps<"/textes/[id]">) {
 
 async function PublishedTextPage({ params }: Pick<PageProps<"/textes/[id]">, "params">) {
   const { id } = await params;
-  const [text, votes] = await Promise.all([cachedText(id), cachedVotes(id)]);
+  const [text, votes, amendments] = await Promise.all([cachedText(id), cachedVotes(id), cachedAmendments(id)]);
   if (!text) notFound();
+  // A scrutin on an amendment shown below is read with that amendment, not twice.
+  const shownWithAmendment = new Set(amendments.map((amendment) => amendment.vote?.id));
 
   return (
     <article className="flex flex-col gap-8">
       <TextHeader text={text} />
       <FinalVoteResult votes={votes} />
       <EditorialSummary summary={text.summary} />
-      <TextVotes votes={votes} />
+      <TextVotes votes={votes.filter((vote) => !shownWithAmendment.has(vote.id))} />
+      <TextAmendments amendments={amendments} />
     </article>
   );
 }
@@ -56,6 +61,11 @@ async function cachedText(id: string) {
 async function cachedVotes(textId: string) {
   "use cache";
   return getPublishedVotes(textId);
+}
+
+async function cachedAmendments(textId: string) {
+  "use cache";
+  return getPublishedAmendments(textId);
 }
 
 function TextSkeleton() {

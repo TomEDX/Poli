@@ -149,7 +149,8 @@ export async function moveParliamentaryGroup(id: string, direction: Direction): 
   });
 }
 
-// Refused while the group has voted in a scrutin, which would lose its vote.
+// Refused while the group has voted in a scrutin or is the group of an amendment's author,
+// which would lose its vote or the amendment's group.
 export async function removeParliamentaryGroup(id: string): Promise<RemoveParliamentaryGroupResult> {
   try {
     const [deleted] = await db

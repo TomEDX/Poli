@@ -6,6 +6,7 @@ import { editors } from "@/modules/editors/schema";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 
 import { createVoteAction, saveVoteAction } from "./actions";
+import { createAmendment } from "./amendments";
 import { createText } from "./texts";
 import { getVotes } from "./votes";
 
@@ -69,6 +70,7 @@ describe("scrutin actions", () => {
         heldOn: "2026-09-30",
         result: "adopted",
         officialUrl: null,
+        amendmentId: null,
         groupVotes: [
           { groupId: left, position: "for", counts: { for: 30, against: 2, abstention: 1, nonVoting: 0 } },
           { groupId: right, position: "against", counts: null },
@@ -142,6 +144,39 @@ describe("scrutin actions", () => {
     expect(await saveVoteAction(vote.id, { ...form, result: "", groupVotes: [once] })).toEqual({
       ok: false,
       message: "Choisissez le résultat du scrutin.",
+    });
+  });
+
+  it("link a scrutin on an amendment to it, never another kind of scrutin, and only once", async () => {
+    const textId = await draftTextId();
+    const amendment = await createAmendment(textId, {
+      number: 12,
+      authorLabel: "Mme Claire Martin",
+      authorGroupId: null,
+      cosignatories: null,
+      summary: "L’amendement avance la date d’entrée en vigueur.",
+      fate: "rejected",
+      governmentOpinion: "unfavourable",
+      committeeOpinion: "unfavourable",
+      status: "draft",
+    });
+    if (!amendment.ok) throw new Error("Could not create the amendment");
+    const onAmendment = { ...form, subject: "amendment", groupVotes: [] };
+
+    expect(await createVoteAction(textId, { ...onAmendment, amendmentId: amendment.id })).toEqual({ ok: true });
+    expect(await createVoteAction(textId, { ...form, number: "413", amendmentId: amendment.id, groupVotes: [] })).toEqual({
+      ok: true,
+    });
+    expect(await createVoteAction(textId, { ...onAmendment, number: "414", amendmentId: "" })).toEqual({ ok: true });
+    expect((await getVotes(textId)).map((vote) => [vote.number, vote.amendmentId])).toEqual([
+      [413, null],
+      [412, amendment.id],
+      [414, null],
+    ]);
+
+    expect(await createVoteAction(textId, { ...onAmendment, number: "415", amendmentId: amendment.id })).toEqual({
+      ok: false,
+      message: "Cet amendement est déjà relié à un autre scrutin.",
     });
   });
 });

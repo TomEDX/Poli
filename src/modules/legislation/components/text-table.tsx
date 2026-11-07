@@ -79,7 +79,7 @@ export function TextTable({ texts, topicTree }: { texts: Text[]; topicTree: Topi
                 <TableHead className="hidden h-11 px-4 text-muted-foreground md:table-cell">Déposé le</TableHead>
                 <TableHead className="h-11 px-4 text-right text-muted-foreground">En ligne</TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Scrutins</span>
+                  <span className="sr-only">Amendements et scrutins</span>
                 </TableHead>
                 <TableHead className="w-10">
                   <span className="sr-only">Ouvrir</span>
@@ -163,10 +163,10 @@ function TextRow({ text, openRef, onOpen }: TextRowProps) {
         <Link
           href={`/admin/texts/${text.id}`}
           className={buttonVariants({ variant: "ghost", size: "sm" })}
-          aria-label={`Scrutins du ${reference.toLowerCase()}`}
+          aria-label={`Amendements et scrutins du ${reference.toLowerCase()}`}
         >
           <Vote data-icon="inline-start" aria-hidden />
-          <span className="hidden sm:inline">Scrutins</span>
+          <span className="hidden sm:inline">Votes</span>
         </Link>
       </TableCell>
       <TableCell className="w-10 pr-4 pl-0">

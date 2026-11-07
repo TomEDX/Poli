@@ -1,49 +1,39 @@
 "use client";
 
-import { ArrowLeft, ChevronRight, Plus, Vote as VoteIcon } from "lucide-react";
-import Link from "next/link";
-import { useRef, useState } from "react";
+import { ChevronRight, Plus, Vote as VoteIcon } from "lucide-react";
+import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 
-import { textReference } from "../text-labels";
-import type { Text } from "../texts";
+import { amendmentReference } from "../amendment-labels";
+import type { Amendment } from "../amendments";
 import { voteResultLabels, voteSubjectLabels } from "../vote-kinds";
 import { formatHeldOn, voteReference } from "../vote-labels";
 import type { Vote } from "../votes";
 import { VoteSheet } from "./vote-sheet";
 
-type VoteTableProps = { text: Text; votes: Vote[]; groups: ParliamentaryGroup[] };
+type VoteTableProps = { textId: string; votes: Vote[]; groups: ParliamentaryGroup[]; amendments: Amendment[] };
 
-export function VoteTable({ text, votes, groups }: VoteTableProps) {
+export function VoteTable({ textId, votes, groups, amendments }: VoteTableProps) {
   // The sheet keeps the scrutin it shows while it closes; null means a new scrutin.
   const [sheet, setSheet] = useState<{ open: boolean; voteId: string | null }>({ open: false, voteId: null });
   const newVoteButton = useRef<HTMLButtonElement>(null);
   const openButtons = useRef(new Map<string, HTMLButtonElement>());
+  const headingId = useId();
 
   const shown = votes.find((vote) => vote.id === sheet.voteId) ?? null;
   const open = (voteId: string | null) => setSheet({ open: true, voteId });
+  const amendmentOf = (vote: Vote) => amendments.find((amendment) => amendment.id === vote.amendmentId);
 
   return (
-    <div className="flex max-w-5xl flex-col gap-8">
-      <Link
-        href="/admin/texts"
-        className="flex w-fit items-center gap-1 rounded-sm text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <ArrowLeft aria-hidden className="size-4" />
-        Tous les textes
-      </Link>
+    <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-medium text-muted-foreground">{textReference(text)}</p>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-balance">Scrutins</h1>
-          <p className="text-sm text-muted-foreground">
-            {text.officialTitle}. Les scrutins apparaissent sur le site quand le texte est en ligne.
-          </p>
-        </div>
+        <h2 id={headingId} className="font-heading text-xl font-semibold tracking-tight">
+          Scrutins
+        </h2>
         {votes.length > 0 && (
           <Button ref={newVoteButton} onClick={() => open(null)}>
             <Plus data-icon="inline-start" />
@@ -104,6 +94,7 @@ export function VoteTable({ text, votes, groups }: VoteTableProps) {
                     </button>
                     <p className="mt-0.5 text-muted-foreground">
                       {voteReference(vote)}
+                      {amendmentOf(vote) && <> · {amendmentReference(amendmentOf(vote)!)}</>}
                       <span className="md:hidden"> · {formatHeldOn(vote.heldOn)}</span>
                     </p>
                   </TableCell>
@@ -122,14 +113,15 @@ export function VoteTable({ text, votes, groups }: VoteTableProps) {
       )}
 
       <VoteSheet
-        textId={text.id}
+        textId={textId}
         vote={shown}
         groups={groups}
+        amendments={amendments}
         open={sheet.open}
         onOpenChange={(isOpen) => setSheet((current) => ({ ...current, open: isOpen }))}
         returnFocus={() => (shown ? openButtons.current.get(shown.id) : newVoteButton.current) ?? newVoteButton.current}
       />
-    </div>
+    </section>
   );
 }
 

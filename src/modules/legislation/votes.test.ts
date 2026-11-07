@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createParliamentaryGroup, removeParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
+import { createAmendment, getAmendments, removeAmendment } from "./amendments";
 import { createText, saveText } from "./texts";
 import { createVote, getPublishedVotes, getVotes, removeVote, saveVote, type VoteInput } from "./votes";
 
@@ -12,6 +13,7 @@ const finalVote = {
   heldOn: "2026-09-30",
   result: "adopted",
   officialUrl: "https://assemblee.example.org/scrutins/412",
+  amendmentId: null,
 } as const;
 
 async function publishedTextId() {
@@ -193,6 +195,79 @@ describe("scrutins in the administration", () => {
     expect(await getVotes(textId)).toEqual([]);
     expect(await removeVote(created.id)).toEqual({ ok: false, reason: "not-found" });
     expect(await saveVote(created.id, { ...finalVote, groupVotes: [] })).toEqual({ ok: false, reason: "not-found" });
+  });
+});
+
+describe("a scrutin on an amendment", () => {
+  const amendmentVote = { ...finalVote, subject: "amendment" as const, number: 398, groupVotes: [] };
+
+  async function amendmentId(textId: string, number = 12) {
+    const created = await createAmendment(textId, {
+      number,
+      authorLabel: "Mme Claire Martin",
+      authorGroupId: null,
+      cosignatories: null,
+      summary: "L’amendement réserve les ombrières aux grands parkings.",
+      fate: "adopted",
+      governmentOpinion: "none",
+      committeeOpinion: "none",
+      status: "published",
+    });
+    if (!created.ok) throw new Error("Could not create the amendment");
+    return created.id;
+  }
+
+  it("is linked to its amendment, which keeps a single scrutin", async () => {
+    const textId = await publishedTextId();
+    const amendment = await amendmentId(textId);
+
+    const created = await createVote(textId, { ...amendmentVote, amendmentId: amendment });
+
+    expect(created).toEqual({ ok: true, id: expect.any(String) });
+    expect(await getVotes(textId)).toMatchObject([{ number: 398, amendmentId: amendment }]);
+    expect(await createVote(textId, { ...amendmentVote, number: 399, amendmentId: amendment })).toEqual({
+      ok: false,
+      reason: "amendment-voted-twice",
+    });
+
+    const other = await createVote(textId, { ...amendmentVote, number: 399, amendmentId: null });
+    if (!other.ok) throw new Error("Could not create the scrutin");
+    expect(await saveVote(other.id, { ...amendmentVote, number: 399, amendmentId: amendment })).toEqual({
+      ok: false,
+      reason: "amendment-voted-twice",
+    });
+  });
+
+  it("cannot be linked to an amendment of another text", async () => {
+    const textId = await publishedTextId();
+    const amendment = await amendmentId(textId);
+    const otherText = await createText({
+      nature: "member_bill",
+      number: 230,
+      officialTitle: "Proposition de loi visant à renforcer la prévention en santé",
+      filedOn: "2026-10-03",
+      officialUrl: null,
+      summary: "Le texte crée un rendez-vous de prévention.",
+      subtopicIds: [],
+    });
+    if (!otherText.ok) throw new Error("Could not create the text");
+
+    expect(await createVote(otherText.id, { ...amendmentVote, amendmentId: amendment })).toEqual({
+      ok: false,
+      reason: "not-found",
+    });
+    expect(await getVotes(otherText.id)).toEqual([]);
+  });
+
+  it("stays when its amendment is deleted, linked to nothing", async () => {
+    const textId = await publishedTextId();
+    const amendment = await amendmentId(textId);
+    await createVote(textId, { ...amendmentVote, amendmentId: amendment });
+
+    await removeAmendment(amendment);
+
+    expect(await getAmendments(textId)).toEqual([]);
+    expect(await getVotes(textId)).toMatchObject([{ number: 398, amendmentId: null }]);
   });
 });
 

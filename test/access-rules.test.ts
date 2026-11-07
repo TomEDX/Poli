@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { createAmendment } from "@/modules/legislation/amendments";
 import { createText } from "@/modules/legislation/texts";
 import { createVote } from "@/modules/legislation/votes";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
@@ -136,6 +137,7 @@ describe("database access rules", () => {
       heldOn: "2026-10-20",
       result: "adopted" as const,
       officialUrl: null,
+      amendmentId: null,
       groupVotes: [{ groupId: group.id, position: "for" as const, counts: null }],
     };
     await createVote(published.id, { ...vote, number: 10 });
@@ -147,6 +149,39 @@ describe("database access rules", () => {
         await asRole(role, "select v.number from group_votes gv join votes v on v.id = gv.vote_id"),
         role,
       ).toEqual([{ number: 10 }]);
+    }
+  });
+
+  it("let clients read the published amendments of published texts, never a draft amendment or text", async () => {
+    const topic = await createTopic({ name: "Santé", slug: "sante" });
+    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+    const text = {
+      nature: "member_bill" as const,
+      officialTitle: "Proposition de loi",
+      filedOn: "2026-10-03",
+      officialUrl: null,
+      summary: "Résumé",
+      subtopicIds: [subtopic.id],
+    };
+    const published = await createText({ ...text, number: 1, status: "published" });
+    const draft = await createText({ ...text, number: 2 });
+    if (!published.ok || !draft.ok) throw new Error("Could not create the texts");
+    const amendment = {
+      authorLabel: "Mme Claire Martin",
+      authorGroupId: null,
+      cosignatories: null,
+      summary: "Résumé",
+      fate: "rejected" as const,
+      governmentOpinion: "none" as const,
+      committeeOpinion: "none" as const,
+    };
+    await createAmendment(published.id, { ...amendment, number: 10, status: "published" });
+    await createAmendment(published.id, { ...amendment, number: 11, status: "draft" });
+    await createAmendment(draft.id, { ...amendment, number: 20, status: "published" });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select number from amendments"), role).toEqual([{ number: 10 }]);
     }
   });
 });

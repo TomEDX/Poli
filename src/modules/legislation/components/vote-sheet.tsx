@@ -33,6 +33,8 @@ import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-group
 import { URL_MAX_LENGTH } from "@/modules/reference/validation";
 
 import { createVoteAction, removeVoteAction, saveVoteAction } from "../actions";
+import { amendmentReference } from "../amendment-labels";
+import type { Amendment } from "../amendments";
 import { groupPositionLabels, groupPositions, voteResultLabels, voteResults, voteSubjectLabels, voteSubjects } from "../vote-kinds";
 import { voteReference } from "../vote-labels";
 import { voteSchema } from "../vote-validation";
@@ -43,13 +45,15 @@ type VoteSheetProps = {
   // null to create a new scrutin.
   vote: Vote | null;
   groups: ParliamentaryGroup[];
+  // The amendments of the text, which a scrutin on an amendment can be linked to.
+  amendments: Amendment[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Where the focus goes once the sheet closes: the row or button that opened it.
   returnFocus: () => HTMLElement | null;
 };
 
-type TypedField = "subject" | "number" | "heldOn" | "result" | "officialUrl";
+type TypedField = "subject" | "amendmentId" | "number" | "heldOn" | "result" | "officialUrl";
 
 type CountsRow = Record<keyof GroupCounts, string>;
 
@@ -57,7 +61,7 @@ type GroupRow = { position: string; counts: CountsRow };
 
 type Errors = Partial<Record<TypedField | "form", string>> & { groups?: Record<string, string> };
 
-const fieldOrder: TypedField[] = ["subject", "number", "heldOn", "result", "officialUrl"];
+const fieldOrder: TypedField[] = ["subject", "amendmentId", "number", "heldOn", "result", "officialUrl"];
 
 const countFields: { key: keyof GroupCounts; label: string }[] = [
   { key: "for", label: "Pour" },
@@ -68,7 +72,7 @@ const countFields: { key: keyof GroupCounts; label: string }[] = [
 
 const blankCounts: CountsRow = { for: "", against: "", abstention: "", nonVoting: "" };
 
-export function VoteSheet({ textId, vote, groups, open, onOpenChange, returnFocus }: VoteSheetProps) {
+export function VoteSheet({ textId, vote, groups, amendments, open, onOpenChange, returnFocus }: VoteSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-2xl" finalFocus={() => returnFocus() ?? true}>
@@ -79,17 +83,31 @@ export function VoteSheet({ textId, vote, groups, open, onOpenChange, returnFocu
           </SheetDescription>
         </SheetHeader>
         {/* Keyed by scrutin so the fields start again from the scrutin shown. */}
-        <VoteForm key={vote?.id ?? "new"} textId={textId} vote={vote} groups={groups} onDone={() => onOpenChange(false)} />
+        <VoteForm
+          key={vote?.id ?? "new"}
+          textId={textId}
+          vote={vote}
+          groups={groups}
+          amendments={amendments}
+          onDone={() => onOpenChange(false)}
+        />
       </SheetContent>
     </Sheet>
   );
 }
 
-type VoteFormProps = { textId: string; vote: Vote | null; groups: ParliamentaryGroup[]; onDone: () => void };
+type VoteFormProps = {
+  textId: string;
+  vote: Vote | null;
+  groups: ParliamentaryGroup[];
+  amendments: Amendment[];
+  onDone: () => void;
+};
 
-function VoteForm({ textId, vote, groups, onDone }: VoteFormProps) {
+function VoteForm({ textId, vote, groups, amendments, onDone }: VoteFormProps) {
   const [values, setValues] = useState<Record<TypedField, string>>(() => ({
     subject: vote?.subject ?? "",
+    amendmentId: vote?.amendmentId ?? "",
     number: vote ? String(vote.number) : "",
     heldOn: vote?.heldOn ?? "",
     result: vote?.result ?? "",
@@ -102,6 +120,7 @@ function VoteForm({ textId, vote, groups, onDone }: VoteFormProps) {
   const groupsId = useId();
   const ids: Record<TypedField, string> = {
     subject: useId(),
+    amendmentId: useId(),
     number: useId(),
     heldOn: useId(),
     result: useId(),
@@ -202,6 +221,27 @@ function VoteForm({ textId, vote, groups, onDone }: VoteFormProps) {
               {error("result")}
             </Field>
           </div>
+          {values.subject === "amendment" && (
+            <Field data-invalid={errors.amendmentId ? true : undefined}>
+              <FieldLabel htmlFor={ids.amendmentId}>Amendement voté</FieldLabel>
+              <NativeSelect {...fieldProps("amendmentId")} className="w-full">
+                <NativeSelectOption value="">Aucun : l’amendement n’est pas saisi</NativeSelectOption>
+                {amendments.map((amendment) => {
+                  const linkedElsewhere = amendment.vote !== null && amendment.vote.id !== vote?.id;
+                  return (
+                    <NativeSelectOption key={amendment.id} value={amendment.id} disabled={linkedElsewhere}>
+                      {amendmentReference(amendment)} · {amendment.authorLabel}
+                      {linkedElsewhere && amendment.vote ? ` (déjà relié au scrutin n°\u00a0${amendment.vote.number})` : ""}
+                    </NativeSelectOption>
+                  );
+                })}
+              </NativeSelect>
+              <FieldDescription>
+                Le site affiche le vote des groupes sous cet amendement. Un amendement n’a qu’un scrutin public.
+              </FieldDescription>
+              {error("amendmentId")}
+            </Field>
+          )}
           <Field data-invalid={errors.officialUrl ? true : undefined}>
             <FieldLabel htmlFor={ids.officialUrl}>Lien officiel (facultatif)</FieldLabel>
             <Input

@@ -63,12 +63,18 @@ _À éviter_ : loi (tant qu'il n'est pas adopté), dossier
 **Amendement** :
 Proposition de modification d'un texte, déposée par un auteur avec d'éventuels cosignataires, qui a un sort (adopté, rejeté, retiré, non soutenu…).
 
+**Avis** :
+Position du gouvernement ou de la commission sur un amendement avant son vote : favorable, défavorable, sagesse (s'en remet à l'Assemblée) ou aucun avis.
+
 **Scrutin** :
 Vote de l'Assemblée sur un texte, un article, un amendement ou une motion.
 
 **Scrutin public** :
 Scrutin dont le vote de chaque député est enregistré ; seul cas où l'on connaît le vote d'un groupe parlementaire.
 _À éviter_ : vote nominatif
+
+**Vote à main levée** :
+Vote de l'Assemblée sans scrutin public : le résultat est connu, pas le vote de chaque groupe. Un amendement adopté ou rejeté sans scrutin public l'a été ainsi.
 
 **Décompte** :
 Nombre de voix pour, contre, abstentions et non votants d'un groupe parlementaire lors d'un scrutin public.

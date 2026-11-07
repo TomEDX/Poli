@@ -42,15 +42,26 @@ const groupVoteField = z
     path: ["counts"],
   });
 
-// A scrutin with every group vote, as the form sends it on a creation and on an edit.
-export const voteSchema = z.object({
-  subject: z.enum(voteSubjects, { error: "Choisissez l’objet du scrutin." }),
-  number: numberField,
-  heldOn: z.iso.date({ error: "Saisissez la date du scrutin." }),
-  result: z.enum(voteResults, { error: "Choisissez le résultat du scrutin." }),
-  officialUrl: officialUrlField,
-  groupVotes: z.array(groupVoteField),
-});
+// Blank when the scrutin is linked to no amendment.
+const amendmentIdField = z
+  .string()
+  .nullable()
+  .transform((id) => id?.trim() || null)
+  .pipe(z.uuid().nullable());
+
+// A scrutin with every group vote, as the form sends it on a creation and on an edit. Only a
+// scrutin on an amendment keeps the amendment it was linked to.
+export const voteSchema = z
+  .object({
+    subject: z.enum(voteSubjects, { error: "Choisissez l’objet du scrutin." }),
+    number: numberField,
+    heldOn: z.iso.date({ error: "Saisissez la date du scrutin." }),
+    result: z.enum(voteResults, { error: "Choisissez le résultat du scrutin." }),
+    officialUrl: officialUrlField,
+    amendmentId: amendmentIdField.default(null),
+    groupVotes: z.array(groupVoteField),
+  })
+  .transform((vote) => (vote.subject === "amendment" ? vote : { ...vote, amendmentId: null }));
 
 // The majority position is the one with the most votes among for, against and abstention,
 // a tie included; members who did not vote may outnumber it. A group whose majority did
