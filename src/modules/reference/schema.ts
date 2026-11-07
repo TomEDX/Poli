@@ -1,9 +1,12 @@
 import { date, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { publicationStatuses } from "./publication-status";
+import { sourceKinds } from "./source-kinds";
 
 // Shared by every publishable content table: only published content reaches the public.
 export const publicationStatus = pgEnum("publication_status", publicationStatuses);
+
+export const sourceKind = pgEnum("source_kind", sourceKinds);
 
 export const topics = pgTable("topics", {
   id: uuid().primaryKey().defaultRandom(),
@@ -127,3 +130,18 @@ export const parliamentaryGroupParties = pgTable(
   },
   (table) => [unique("parliamentary_group_parties_group_id_party_id_unique").on(table.groupId, table.partyId)],
 ).enableRLS();
+
+// Not publishable: the Sources page lists every source, as soon as it is entered.
+export const sources = pgTable("sources", {
+  id: uuid().primaryKey().defaultRandom(),
+  title: text().notNull(),
+  organization: text().notNull(),
+  url: text().notNull(),
+  consultedOn: date().notNull(),
+  kind: sourceKind().notNull(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+}).enableRLS();
