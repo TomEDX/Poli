@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0](https://github.com/TomEDX/Poli/compare/poli-v0.4.1...poli-v0.5.0) (2026-11-07)
+
+
+### Features
+
+* add a one-click local sign-in as a test editor ([#33](https://github.com/TomEDX/Poli/issues/33)) ([76958a8](https://github.com/TomEDX/Poli/commit/76958a884b6739a8b1d819eb8899002debb20c17))
+* let editors manage parties and candidacies ([#34](https://github.com/TomEDX/Poli/issues/34)) ([e48eccf](https://github.com/TomEDX/Poli/commit/e48eccff8ac29b618d5de9b01e59b942ed2e9d91))
+* let editors manage sources and publish the Sources page with a spreadsheet export ([#37](https://github.com/TomEDX/Poli/issues/37)) ([f7aff21](https://github.com/TomEDX/Poli/commit/f7aff2183d8e827bbe658fddaa30606749a174f0))
+* seed the legislature and let editors manage its parliamentary groups ([#36](https://github.com/TomEDX/Poli/issues/36)) ([ac763f4](https://github.com/TomEDX/Poli/commit/ac763f451df311839601cf8b3b7904c2c39b444f))
+
 ## [0.4.1](https://github.com/TomEDX/Poli/compare/poli-v0.4.0...poli-v0.4.1) (2026-11-06)
 
 
