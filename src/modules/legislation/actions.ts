@@ -7,7 +7,7 @@ import { editorWrite } from "@/modules/editors/editor-write";
 import { amendmentNumberTakenMessage, authorGroupOutsideLegislatureMessage } from "./amendment-messages";
 import { amendmentSchema } from "./amendment-validation";
 import { createAmendment, removeAmendment, saveAmendment } from "./amendments";
-import { noSubtopicMessage, numberTakenMessage } from "./text-messages";
+import { noSubtopicMessage, textNumberTakenMessage } from "./text-messages";
 import { createText, removeText, saveText } from "./texts";
 import { newTextSchema, textChangesSchema } from "./validation";
 import {
@@ -25,7 +25,7 @@ export const createTextAction = editorWrite({
   input: newTextSchema,
   run: createText,
   messages: {
-    "number-taken": (input) => numberTakenMessage(input.number),
+    "number-taken": (input) => textNumberTakenMessage(input.number),
     "no-subtopic": noSubtopicMessage,
   },
 });
@@ -35,7 +35,7 @@ export const saveTextAction = editorWrite({
   input: textChangesSchema,
   run: saveText,
   messages: {
-    "number-taken": (_id, changes) => numberTakenMessage(changes.number),
+    "number-taken": (_id, changes) => textNumberTakenMessage(changes.number),
     "no-subtopic": noSubtopicMessage,
   },
 });
