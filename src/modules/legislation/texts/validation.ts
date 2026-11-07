@@ -15,6 +15,7 @@ const natureField = z.enum(textNatures, { error: "Choisissez la nature du texte.
 const officialTitleField = z
   .string()
   .trim()
+  .overwrite((title) => title.replace(/\s{2,}/g, " "))
   .min(1, "Saisissez le titre officiel.")
   .max(OFFICIAL_TITLE_MAX_LENGTH, `Le titre officiel dépasse ${OFFICIAL_TITLE_MAX_LENGTH} caractères.`);
 
