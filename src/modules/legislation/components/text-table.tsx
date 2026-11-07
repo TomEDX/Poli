@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronRight, Plus, ScrollText } from "lucide-react";
+import { ChevronRight, Plus, ScrollText, Vote } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -77,6 +78,9 @@ export function TextTable({ texts, topicTree }: { texts: Text[]; topicTree: Topi
                 <TableHead className="hidden h-11 px-4 text-muted-foreground lg:table-cell">Texte</TableHead>
                 <TableHead className="hidden h-11 px-4 text-muted-foreground md:table-cell">Déposé le</TableHead>
                 <TableHead className="h-11 px-4 text-right text-muted-foreground">En ligne</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Scrutins</span>
+                </TableHead>
                 <TableHead className="w-10">
                   <span className="sr-only">Ouvrir</span>
                 </TableHead>
@@ -154,6 +158,16 @@ function TextRow({ text, openRef, onOpen }: TextRowProps) {
       <TableCell className="hidden px-4 py-3.5 whitespace-nowrap tabular-nums md:table-cell">{filedOn}</TableCell>
       <TableCell className="px-4 py-3.5 text-right" onClick={(event) => event.stopPropagation()}>
         <PublishedSwitch text={text} />
+      </TableCell>
+      <TableCell className="w-0 py-3.5 pr-0 pl-2" onClick={(event) => event.stopPropagation()}>
+        <Link
+          href={`/admin/texts/${text.id}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          aria-label={`Scrutins du ${reference.toLowerCase()}`}
+        >
+          <Vote data-icon="inline-start" aria-hidden />
+          <span className="hidden sm:inline">Scrutins</span>
+        </Link>
       </TableCell>
       <TableCell className="w-10 pr-4 pl-0">
         <ChevronRight aria-hidden className="size-4 text-muted-foreground" />

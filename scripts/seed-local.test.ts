@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
 import { createText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
+import { getPublishedVotes } from "@/modules/legislation/votes";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
 import { createParty, getParties } from "@/modules/reference/parties";
@@ -68,6 +69,7 @@ describe("local seed", () => {
       parliamentaryGroups: false,
       sources: true,
       texts: true,
+      votes: true,
     });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
@@ -117,5 +119,17 @@ describe("local seed", () => {
 
     expect(await seedLocalDatabase(db.$client)).toMatchObject({ texts: false });
     expect(await getTexts()).toMatchObject([{ officialTitle: "Texte de test" }]);
+  });
+
+  it("adds a scrutin on the whole of a published text, with a vote for every group, counted or not", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ votes: true });
+
+    const groups = await getParliamentaryGroups();
+    const votes = (await Promise.all((await getPublishedTexts()).map((text) => getPublishedVotes(text.id)))).flat();
+    expect(votes).toMatchObject([{ subject: "whole_text" }]);
+    const [vote] = votes;
+    expect(vote.groupVotes.map((groupVote) => groupVote.group.id)).toEqual(groups.map((group) => group.id));
+    expect(vote.groupVotes.some((groupVote) => groupVote.counts === null)).toBe(true);
+    expect(vote.groupVotes.some((groupVote) => groupVote.counts !== null)).toBe(true);
   });
 });

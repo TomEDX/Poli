@@ -3,6 +3,7 @@
 import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, ScrollText, Vote } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 import {
   Sidebar,
@@ -42,7 +43,6 @@ const menuGroups: { label: string; sections: Section[] }[] = [
 ];
 
 export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
-  const pathname = usePathname();
   // On phones the menu is a drawer: it closes once a link is followed.
   const { setOpenMobile } = useSidebar();
 
@@ -62,24 +62,11 @@ export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {group.sections.map((section) => {
-                  const active = pathname === section.href || pathname.startsWith(`${section.href}/`);
-                  return (
-                    <SidebarMenuItem key={section.href}>
-                      <SidebarMenuButton
-                        tooltip={section.label}
-                        isActive={active}
-                        onClick={() => setOpenMobile(false)}
-                        render={<Link href={section.href} aria-current={active ? "page" : undefined} />}
-                      >
-                        <section.icon />
-                        <span>{section.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
+              {/* Below a route with an id, the path is only known at request time: the links are
+                  prerendered without the active one, which streams in. */}
+              <Suspense fallback={<SectionLinks sections={group.sections} pathname={null} />}>
+                <ActiveSectionLinks sections={group.sections} />
+              </Suspense>
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
@@ -87,6 +74,35 @@ export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
       <SidebarFooter>{footer}</SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+function ActiveSectionLinks({ sections }: { sections: Section[] }) {
+  return <SectionLinks sections={sections} pathname={usePathname()} />;
+}
+
+function SectionLinks({ sections, pathname }: { sections: Section[]; pathname: string | null }) {
+  const { setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      {sections.map((section) => {
+        const active = pathname !== null && (pathname === section.href || pathname.startsWith(`${section.href}/`));
+        return (
+          <SidebarMenuItem key={section.href}>
+            <SidebarMenuButton
+              tooltip={section.label}
+              isActive={active}
+              onClick={() => setOpenMobile(false)}
+              render={<Link href={section.href} aria-current={active ? "page" : undefined} />}
+            >
+              <section.icon />
+              <span>{section.label}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
   );
 }
 

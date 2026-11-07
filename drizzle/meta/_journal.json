@@ -57,6 +57,13 @@
       "when": 1794056638917,
       "tag": "0007_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794057424293,
+      "tag": "0008_votes",
+      "breakpoints": true
     }
   ]
 }

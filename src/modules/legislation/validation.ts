@@ -28,8 +28,8 @@ const officialTitleField = z
 
 const filedOnField = z.iso.date({ error: "Saisissez la date de dépôt." });
 
-// Optional: a blank link means the text has no official page yet.
-const officialUrlField = z
+// Optional: a blank link means there is no official page yet.
+export const officialUrlField = z
   .string()
   .nullable()
   .transform((url) => url?.trim() || null)

@@ -35,8 +35,31 @@ type SeedText = {
   status: "draft" | "published";
 };
 
+// textNumber and groupAbbreviation name seeded rows; a vote on a missing text or group is skipped.
+type SeedVote = {
+  textNumber: number;
+  subject: "whole_text" | "article" | "amendment" | "motion";
+  number: number;
+  heldOn: string;
+  result: "adopted" | "rejected";
+  officialUrl: string | null;
+  groupVotes: {
+    groupAbbreviation: string;
+    position: "for" | "against" | "abstention" | "non_voting";
+    // For, against, abstention, non-voting; null when only the majority position is known.
+    counts: [number, number, number, number] | null;
+  }[];
+};
+
 // Which sections were written; a section that already had rows is skipped.
-type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean; sources: boolean; texts: boolean };
+type SeedResult = {
+  topics: boolean;
+  parties: boolean;
+  parliamentaryGroups: boolean;
+  sources: boolean;
+  texts: boolean;
+  votes: boolean;
+};
 
 const topicTree: SeedTopic[] = [
   {
@@ -240,6 +263,25 @@ const textList: SeedText[] = [
   },
 ];
 
+// A fictional scrutin, matching the fictional source on scrutin n° 412.
+const voteList: SeedVote[] = [
+  {
+    textNumber: 105,
+    subject: "whole_text",
+    number: 412,
+    heldOn: "2026-09-30",
+    result: "adopted",
+    officialUrl: "https://assemblee.example.org/scrutins/412",
+    groupVotes: [
+      { groupAbbreviation: "HET", position: "for", counts: [98, 0, 2, 1] },
+      { groupAbbreviation: "ECS", position: "for", counts: [30, 3, 4, 0] },
+      { groupAbbreviation: "ACP", position: "abstention", counts: null },
+      { groupAbbreviation: "LIB", position: "against", counts: [5, 40, 2, 0] },
+      { groupAbbreviation: "NII", position: "against", counts: null },
+    ],
+  },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
@@ -250,6 +292,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       parliamentaryGroups: await seedParliamentaryGroups(tx),
       sources: await seedSources(tx),
       texts: await seedTexts(tx),
+      votes: await seedVotes(tx),
     };
   });
 }
@@ -274,6 +317,7 @@ if (import.meta.main) {
   );
   console.log(seeded.sources ? "Sources seeded." : "Local database already has sources: skipped.");
   console.log(seeded.texts ? "Texts seeded." : "Local database already has texts: skipped.");
+  console.log(seeded.votes ? "Scrutins seeded." : "Local database already has scrutins: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -355,9 +399,30 @@ async function seedTexts(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
+async function seedVotes(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "votes")) return false;
+  for (const { textNumber, groupVotes, ...vote } of voteList) {
+    const [created] = await tx<{ id: string }[]>`
+      insert into votes (text_id, subject, number, held_on, result, official_url)
+      select id, ${vote.subject}, ${vote.number}, ${vote.heldOn}, ${vote.result}, ${vote.officialUrl}
+      from texts where number = ${textNumber}
+      returning id`;
+    if (!created) continue;
+    for (const { groupAbbreviation, position, counts } of groupVotes) {
+      const [inFavour, against, abstention, nonVoting] = counts ?? [null, null, null, null];
+      await tx`
+        insert into group_votes
+          (vote_id, group_id, position, for_count, against_count, abstention_count, non_voting_count)
+        select ${created.id}, id, ${position}, ${inFavour}, ${against}, ${abstention}, ${nonVoting}
+        from parliamentary_groups where abbreviation = ${groupAbbreviation}`;
+    }
+  }
+  return true;
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
-  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts",
+  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts" | "votes",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;

@@ -7,7 +7,9 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditorialSummary } from "@/modules/legislation/components/editorial-summary";
 import { TextHeader } from "@/modules/legislation/components/text-header";
+import { FinalVoteResult, TextVotes } from "@/modules/legislation/components/text-votes";
 import { getPublishedText } from "@/modules/legislation/texts";
+import { getPublishedVotes } from "@/modules/legislation/votes";
 
 export const metadata: Metadata = { title: "Texte · Poli." };
 
@@ -32,13 +34,15 @@ export default function TextPage({ params }: PageProps<"/textes/[id]">) {
 
 async function PublishedTextPage({ params }: Pick<PageProps<"/textes/[id]">, "params">) {
   const { id } = await params;
-  const text = await cachedText(id);
+  const [text, votes] = await Promise.all([cachedText(id), cachedVotes(id)]);
   if (!text) notFound();
 
   return (
     <article className="flex flex-col gap-8">
       <TextHeader text={text} />
+      <FinalVoteResult votes={votes} />
       <EditorialSummary summary={text.summary} />
+      <TextVotes votes={votes} />
     </article>
   );
 }
@@ -47,6 +51,11 @@ async function PublishedTextPage({ params }: Pick<PageProps<"/textes/[id]">, "pa
 async function cachedText(id: string) {
   "use cache";
   return getPublishedText(id);
+}
+
+async function cachedVotes(textId: string) {
+  "use cache";
+  return getPublishedVotes(textId);
 }
 
 function TextSkeleton() {

@@ -29,7 +29,7 @@ export type SaveParliamentaryGroupResult = WriteOutcome<Taken | "not-found">;
 
 export type MoveParliamentaryGroupResult = WriteOutcome<"not-found">;
 
-export type RemoveParliamentaryGroupResult = WriteOutcome<"not-found">;
+export type RemoveParliamentaryGroupResult = WriteOutcome<"in-use" | "not-found">;
 
 type Taken = "name-taken" | "abbreviation-taken";
 
@@ -149,12 +149,18 @@ export async function moveParliamentaryGroup(id: string, direction: Direction): 
   });
 }
 
+// Refused while the group has voted in a scrutin, which would lose its vote.
 export async function removeParliamentaryGroup(id: string): Promise<RemoveParliamentaryGroupResult> {
-  const [deleted] = await db
-    .delete(parliamentaryGroups)
-    .where(eq(parliamentaryGroups.id, id))
-    .returning({ id: parliamentaryGroups.id });
-  return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+  try {
+    const [deleted] = await db
+      .delete(parliamentaryGroups)
+      .where(eq(parliamentaryGroups.id, id))
+      .returning({ id: parliamentaryGroups.id });
+    return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+  } catch (error) {
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
+  }
 }
 
 // One transaction, and only the given fields are written, so a save never brings back a
