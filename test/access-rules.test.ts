@@ -2,7 +2,9 @@ import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { createText } from "@/modules/legislation/texts";
 import { topics } from "@/modules/reference/schema";
+import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
 // The roles Supabase gives to a client that is not signed in (anon) or signed
 // in through Supabase Auth (authenticated). The app itself connects as postgres.
@@ -84,5 +86,29 @@ describe("database access rules", () => {
                  (select count(*) from topics where created_at < now() - interval '1 hour')::int as changed`,
     );
     expect(rows[0]).toEqual({ topics: 1, editors: 1, changed: 0 });
+  });
+
+  it("let clients read published texts and their subtopics, never a draft", async () => {
+    const topic = await createTopic({ name: "Santé", slug: "sante" });
+    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+    const text = {
+      nature: "member_bill" as const,
+      officialTitle: "Proposition de loi",
+      filedOn: "2026-10-03",
+      officialUrl: null,
+      summary: "Résumé",
+      subtopicIds: [subtopic.id],
+    };
+    await createText({ ...text, number: 1, status: "published" });
+    await createText({ ...text, number: 2 });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select number from texts"), role).toEqual([{ number: 1 }]);
+      expect(
+        await asRole(role, "select t.number from text_subtopics ts join texts t on t.id = ts.text_id"),
+        role,
+      ).toEqual([{ number: 1 }]);
+    }
   });
 });

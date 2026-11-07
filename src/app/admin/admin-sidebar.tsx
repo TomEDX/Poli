@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, Vote } from "lucide-react";
+import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, ScrollText, Vote } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -24,12 +24,21 @@ type Section = { href: string; label: string; icon: LucideIcon };
 
 // Each content section adds its entry here as it is built. Icons are what the collapsed
 // menu shows: the tree for the topic tree, the ballot box for candidacies, the Assemblée
-// for its groups, the open book for sources.
-const referenceSections: Section[] = [
-  { href: "/admin/topics", label: "Thématiques", icon: ListTree },
-  { href: "/admin/parties", label: "Partis et candidatures", icon: Vote },
-  { href: "/admin/parliamentary-groups", label: "Groupes parlementaires", icon: Landmark },
-  { href: "/admin/sources", label: "Sources", icon: BookOpen },
+// for its groups, the open book for sources, the scroll for texts.
+const menuGroups: { label: string; sections: Section[] }[] = [
+  {
+    label: "Référentiel",
+    sections: [
+      { href: "/admin/topics", label: "Thématiques", icon: ListTree },
+      { href: "/admin/parties", label: "Partis et candidatures", icon: Vote },
+      { href: "/admin/parliamentary-groups", label: "Groupes parlementaires", icon: Landmark },
+      { href: "/admin/sources", label: "Sources", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Législatif",
+    sections: [{ href: "/admin/texts", label: "Textes", icon: ScrollText }],
+  },
 ];
 
 export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
@@ -49,29 +58,31 @@ export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Référentiel</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {referenceSections.map((section) => {
-                const active = pathname === section.href || pathname.startsWith(`${section.href}/`);
-                return (
-                  <SidebarMenuItem key={section.href}>
-                    <SidebarMenuButton
-                      tooltip={section.label}
-                      isActive={active}
-                      onClick={() => setOpenMobile(false)}
-                      render={<Link href={section.href} aria-current={active ? "page" : undefined} />}
-                    >
-                      <section.icon />
-                      <span>{section.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.sections.map((section) => {
+                  const active = pathname === section.href || pathname.startsWith(`${section.href}/`);
+                  return (
+                    <SidebarMenuItem key={section.href}>
+                      <SidebarMenuButton
+                        tooltip={section.label}
+                        isActive={active}
+                        onClick={() => setOpenMobile(false)}
+                        render={<Link href={section.href} aria-current={active ? "page" : undefined} />}
+                      >
+                        <section.icon />
+                        <span>{section.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter>{footer}</SidebarFooter>
       <SidebarRail />

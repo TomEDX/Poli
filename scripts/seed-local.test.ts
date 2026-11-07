@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { createText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
 import { createParty, getParties } from "@/modules/reference/parties";
@@ -61,7 +62,13 @@ describe("local seed", () => {
   it("leaves the groups of a database that already has some untouched", async () => {
     await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
 
-    expect(await seedLocalDatabase(db.$client)).toEqual({ topics: true, parties: true, parliamentaryGroups: false, sources: true });
+    expect(await seedLocalDatabase(db.$client)).toEqual({
+      topics: true,
+      parties: true,
+      parliamentaryGroups: false,
+      sources: true,
+      texts: true,
+    });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
 
@@ -83,5 +90,32 @@ describe("local seed", () => {
 
     expect(await seedLocalDatabase(db.$client)).toMatchObject({ sources: false });
     expect(await getSources()).toMatchObject([{ title: "Source de test" }]);
+  });
+
+  it("adds texts of both natures, drafts and published ones, filed under the seeded subtopics", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ texts: true });
+
+    const texts = await getTexts();
+    expect(new Set(texts.map((text) => text.nature))).toEqual(new Set(["government_bill", "member_bill"]));
+    expect(texts.some((text) => text.status === "draft")).toBe(true);
+    expect(texts.some((text) => text.officialUrl === null)).toBe(true);
+    const published = await getPublishedTexts();
+    expect(published.length).toBeGreaterThan(2);
+    expect(published.every((text) => text.subtopics.length > 0)).toBe(true);
+  });
+
+  it("leaves the texts of a database that already has some untouched", async () => {
+    await createText({
+      nature: "member_bill",
+      number: 1,
+      officialTitle: "Texte de test",
+      filedOn: "2026-11-01",
+      officialUrl: null,
+      summary: "Résumé de test",
+      subtopicIds: [],
+    });
+
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ texts: false });
+    expect(await getTexts()).toMatchObject([{ officialTitle: "Texte de test" }]);
   });
 });

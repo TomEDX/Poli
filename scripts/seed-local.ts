@@ -23,8 +23,20 @@ type SeedSource = {
   kind: "program" | "vote" | "official_text" | "other";
 };
 
+// subtopicSlugs names seeded subtopics; one missing from the database is skipped.
+type SeedText = {
+  nature: "government_bill" | "member_bill";
+  number: number;
+  officialTitle: string;
+  filedOn: string;
+  officialUrl: string | null;
+  summary: string;
+  subtopicSlugs: string[];
+  status: "draft" | "published";
+};
+
 // Which sections were written; a section that already had rows is skipped.
-type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean; sources: boolean };
+type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean; sources: boolean; texts: boolean };
 
 const topicTree: SeedTopic[] = [
   {
@@ -171,6 +183,63 @@ const sourceList: SeedSource[] = [
   },
 ];
 
+// Fictional texts on example.org, so that no real text is shown during development.
+const textList: SeedText[] = [
+  {
+    nature: "government_bill",
+    number: 105,
+    officialTitle: "Projet de loi relatif à l'accélération de la production d'énergies renouvelables",
+    filedOn: "2026-09-12",
+    officialUrl: "https://assemblee.example.org/textes/105",
+    summary:
+      "Le texte raccourcit les délais d'autorisation des éoliennes et des panneaux solaires, et oblige les grands parkings à se couvrir d'ombrières photovoltaïques.",
+    subtopicSlugs: ["energie", "climat"],
+    status: "published",
+  },
+  {
+    nature: "member_bill",
+    number: 230,
+    officialTitle: "Proposition de loi visant à garantir un rendez-vous de prévention à chaque âge de la vie",
+    filedOn: "2026-10-03",
+    officialUrl: "https://assemblee.example.org/textes/230",
+    summary:
+      "Le texte crée trois bilans de prévention gratuits, à 25, 45 et 65 ans, pris en charge à 100 % par l'Assurance maladie.",
+    subtopicSlugs: ["prevention", "medecine-de-ville"],
+    status: "published",
+  },
+  {
+    nature: "government_bill",
+    number: 87,
+    officialTitle: "Projet de loi de programmation pour la justice 2027-2031",
+    filedOn: "2026-06-24",
+    officialUrl: null,
+    summary:
+      "Le texte fixe le budget de la justice pour cinq ans et prévoit la construction de nouvelles places de prison.",
+    subtopicSlugs: ["justice", "prisons"],
+    status: "published",
+  },
+  {
+    nature: "member_bill",
+    number: 312,
+    officialTitle: "Proposition de loi visant à encadrer les loyers dans les zones tendues",
+    filedOn: "2026-10-28",
+    officialUrl: "https://assemblee.example.org/textes/312",
+    summary: "Le texte étend l'encadrement des loyers à toutes les communes où le logement manque.",
+    subtopicSlugs: ["logement"],
+    status: "draft",
+  },
+  {
+    nature: "member_bill",
+    number: 298,
+    officialTitle: "Proposition de loi relative au référendum d'initiative citoyenne",
+    filedOn: "2026-10-15",
+    officialUrl: null,
+    summary: "Le texte permet à un million d'électeurs de demander un référendum sur une proposition de loi.",
+    subtopicSlugs: [],
+    status: "draft",
+  },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
@@ -180,6 +249,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       parties: await seedParties(tx),
       parliamentaryGroups: await seedParliamentaryGroups(tx),
       sources: await seedSources(tx),
+      texts: await seedTexts(tx),
     };
   });
 }
@@ -203,6 +273,7 @@ if (import.meta.main) {
       : "Local database already has parliamentary groups: skipped.",
   );
   console.log(seeded.sources ? "Sources seeded." : "Local database already has sources: skipped.");
+  console.log(seeded.texts ? "Texts seeded." : "Local database already has texts: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -264,9 +335,29 @@ async function seedSources(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
+// The texts join the legislature inserted by the migrations.
+async function seedTexts(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "texts")) return false;
+  const [{ id: legislatureId }] = await tx<{ id: string }[]>`
+    select id from legislatures order by number desc limit 1`;
+  for (const text of textList) {
+    const [{ id }] = await tx<{ id: string }[]>`
+      insert into texts (legislature_id, nature, number, official_title, filed_on, official_url, summary, status)
+      values (${legislatureId}, ${text.nature}, ${text.number}, ${text.officialTitle}, ${text.filedOn},
+              ${text.officialUrl}, ${text.summary}, ${text.status})
+      returning id`;
+    if (text.subtopicSlugs.length > 0) {
+      await tx`
+        insert into text_subtopics (text_id, subtopic_id)
+        select ${id}, id from subtopics where slug in ${tx(text.subtopicSlugs)}`;
+    }
+  }
+  return true;
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
-  table: "topics" | "parties" | "parliamentary_groups" | "sources",
+  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;

@@ -8,11 +8,18 @@ export default function HomePage() {
         Comprendre les programmes de l&apos;élection présidentielle et l&apos;activité
         parlementaire, sans orienter son choix.
       </p>
-      <p>
-        <Link href="/sources" className="underline underline-offset-4">
-          Nos sources
-        </Link>
-      </p>
+      <ul className="flex flex-col gap-2">
+        <li>
+          <Link href="/textes" className="underline underline-offset-4">
+            Les textes examinés à l&apos;Assemblée
+          </Link>
+        </li>
+        <li>
+          <Link href="/sources" className="underline underline-offset-4">
+            Nos sources
+          </Link>
+        </li>
+      </ul>
     </main>
   );
 }
