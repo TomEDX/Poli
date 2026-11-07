@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
+import { removeParliamentaryGroupAction } from "@/modules/reference/actions";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 
 import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "./actions";
@@ -101,6 +102,18 @@ describe("amendment actions", () => {
       message: "Choisissez le sort de l’amendement.",
     });
     expect(await getAmendments(textId)).toMatchObject([{ number: 12, status: "draft" }]);
+  });
+
+  it("keep the group of an amendment's author, with a reason that covers it", async () => {
+    const textId = await draftTextId();
+    const group = await createParliamentaryGroup({ name: "Groupe GAU", abbreviation: "GAU", partyIds: [] });
+    if (!group.ok) throw new Error("Could not create the group");
+    await createAmendmentAction(textId, { ...form, authorGroupId: group.id });
+
+    expect(await removeParliamentaryGroupAction(group.id)).toEqual({
+      ok: false,
+      message: "Ce groupe a voté dans un scrutin ou est celui de l’auteur d’un amendement : il ne peut plus être supprimé.",
+    });
   });
 });
 
