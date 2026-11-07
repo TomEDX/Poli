@@ -3,12 +3,27 @@ import Link from "next/link";
 import { formatFiledOn, textReference } from "../text-labels";
 import type { PublishedTextSummary } from "../texts";
 
-// The public list of texts; each entry leads to the page of its text.
-export function PublishedTextList({ texts }: { texts: PublishedTextSummary[] }) {
-  if (texts.length === 0) {
-    return <p className="text-muted-foreground">Aucun texte n’est encore publié.</p>;
-  }
+// The public list of texts; each entry leads to the page of its text. The count is a status,
+// so screen readers announce it when the filters change the list.
+export function PublishedTextList({ texts, narrowed }: { texts: PublishedTextSummary[]; narrowed: boolean }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p role="status" className="text-sm text-muted-foreground">
+        {count(texts.length, narrowed)}
+      </p>
+      {texts.length > 0 && <TextEntries texts={texts} />}
+    </div>
+  );
+}
 
+function count(found: number, narrowed: boolean): string {
+  if (found === 0) {
+    return narrowed ? "Aucun texte publié ne correspond à ces filtres." : "Aucun texte n’est encore publié.";
+  }
+  return found === 1 ? "1 texte" : `${found} textes`;
+}
+
+function TextEntries({ texts }: { texts: PublishedTextSummary[] }) {
   return (
     <ul className="flex flex-col divide-y overflow-hidden rounded-xl border">
       {texts.map((text) => (

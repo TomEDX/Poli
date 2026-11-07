@@ -5,6 +5,7 @@ import { createSubtopic, createTopic, getTopicTree, removeNode } from "@/modules
 import {
   createText,
   getPublishedText,
+  getPublishedTextTopics,
   getPublishedTexts,
   getTexts,
   type NewText,
@@ -43,6 +44,17 @@ describe("published texts", () => {
     await textId({ ...energyBill, number: 3, filedOn: "2025-11-15", subtopicIds: [energy], status: "published" });
 
     expect((await getPublishedTexts()).map((text) => text.number)).toEqual([2, 3, 1]);
+  });
+
+  it("can be listed from the earliest filed", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    await textId({ ...energyBill, number: 1, filedOn: "2025-01-20", subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 2, filedOn: "2026-03-02", subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 4, filedOn: "2025-11-15", subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 3, filedOn: "2025-11-15", subtopicIds: [energy], status: "published" });
+
+    expect((await getPublishedTexts({ order: "oldest" })).map((text) => text.number)).toEqual([1, 3, 4, 2]);
+    expect((await getPublishedTexts({ order: "newest" })).map((text) => text.number)).toEqual([2, 4, 3, 1]);
   });
 
   it("list only the texts published, with what the list shows", async () => {
@@ -85,6 +97,86 @@ describe("published texts", () => {
     expect(await getPublishedText(draft)).toBeNull();
     expect(await getPublishedText("00000000-0000-4000-8000-000000000000")).toBeNull();
     expect(await getPublishedText("projet-de-loi-105")).toBeNull();
+  });
+});
+
+describe("filtering published texts", () => {
+  it("keeps the texts filed under a subtopic of the topic", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const [ecology] = await getTopicTree();
+    const climate = await createSubtopic(ecology.id, { name: "Climat", slug: "climat" });
+    if (!climate.ok) throw new Error("Could not create Climat");
+    const schools = await subtopicId("Éducation", "École");
+    await textId({ ...energyBill, number: 1, filedOn: "2026-01-10", subtopicIds: [energy], status: "published" });
+    await textId({
+      ...energyBill,
+      number: 2,
+      filedOn: "2026-02-10",
+      subtopicIds: [schools, climate.id],
+      status: "published",
+    });
+    await textId({ ...energyBill, number: 3, subtopicIds: [schools], status: "published" });
+    await textId({ ...energyBill, number: 4, subtopicIds: [energy] });
+
+    expect((await getPublishedTexts({ topicId: ecology.id })).map((text) => text.number)).toEqual([2, 1]);
+  });
+
+  it("keeps the texts filed under the subtopic, leaving out its sibling subtopics", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const [ecology] = await getTopicTree();
+    const climate = await createSubtopic(ecology.id, { name: "Climat", slug: "climat" });
+    if (!climate.ok) throw new Error("Could not create Climat");
+    await textId({ ...energyBill, number: 1, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 2, subtopicIds: [climate.id, energy], status: "published" });
+    await textId({ ...energyBill, number: 3, subtopicIds: [climate.id], status: "published" });
+
+    expect((await getPublishedTexts({ subtopicId: climate.id })).map((text) => text.number)).toEqual([3, 2]);
+  });
+
+  it("keeps the texts of the nature, and only those matching every filter given", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const [ecology] = await getTopicTree();
+    const schools = await subtopicId("Éducation", "École");
+    await textId({ ...energyBill, number: 1, nature: "member_bill", subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 2, nature: "member_bill", subtopicIds: [schools], status: "published" });
+    await textId({ ...energyBill, number: 3, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 4, nature: "member_bill", subtopicIds: [energy] });
+
+    expect((await getPublishedTexts({ nature: "member_bill" })).map((text) => text.number)).toEqual([2, 1]);
+    expect(
+      (await getPublishedTexts({ nature: "member_bill", topicId: ecology.id })).map((text) => text.number),
+    ).toEqual([1]);
+  });
+
+  it("offers only the topics and subtopics that have a published text, in the order of the tree", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const [ecology] = await getTopicTree();
+    const climate = await createSubtopic(ecology.id, { name: "Climat", slug: "climat" });
+    const water = await createSubtopic(ecology.id, { name: "Eau", slug: "eau" });
+    if (!climate.ok || !water.ok) throw new Error("Could not create the subtopics");
+    const schools = await subtopicId("Éducation", "École");
+    const hospitals = await subtopicId("Santé", "Hôpital");
+    await textId({ ...energyBill, number: 1, subtopicIds: [water.id, energy], status: "published" });
+    await textId({ ...energyBill, number: 2, subtopicIds: [hospitals], status: "published" });
+    await textId({ ...energyBill, number: 3, subtopicIds: [schools, climate.id] });
+
+    expect(await getPublishedTextTopics()).toEqual([
+      {
+        id: ecology.id,
+        name: "Écologie",
+        slug: "écologie",
+        subtopics: [
+          { id: energy, name: "Énergie", slug: "énergie" },
+          { id: water.id, name: "Eau", slug: "eau" },
+        ],
+      },
+      {
+        id: expect.any(String),
+        name: "Santé",
+        slug: "santé",
+        subtopics: [{ id: hospitals, name: "Hôpital", slug: "hôpital" }],
+      },
+    ]);
   });
 });
 
