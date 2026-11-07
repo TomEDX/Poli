@@ -12,8 +12,11 @@ type SeedParty = {
   candidacy?: { candidateName: string | null; status: "draft" | "published" };
 };
 
+// partyAbbreviations names seeded parties; one missing from the database is skipped.
+type SeedGroup = { name: string; abbreviation: string; partyAbbreviations: string[] };
+
 // Which sections were written; a section that already had rows is skipped.
-type SeedResult = { topics: boolean; parties: boolean };
+type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean };
 
 const topicTree: SeedTopic[] = [
   {
@@ -112,11 +115,24 @@ const partyList: SeedParty[] = [
   { name: "Parti des libertés", abbreviation: "PDL" },
 ];
 
+// Fictional groups, listed in their official order.
+const groupList: SeedGroup[] = [
+  { name: "Horizon et territoires", abbreviation: "HET", partyAbbreviations: ["PDH", "UDT"] },
+  { name: "Écologie solidaire", abbreviation: "ECS", partyAbbreviations: ["MES"] },
+  { name: "Alliance citoyenne et progrès", abbreviation: "ACP", partyAbbreviations: ["AC", "CPS"] },
+  { name: "Libertés", abbreviation: "LIB", partyAbbreviations: ["PDL"] },
+  { name: "Non-inscrits indépendants", abbreviation: "NII", partyAbbreviations: [] },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
   return client.begin(async (tx) => {
-    return { topics: await seedTopics(tx), parties: await seedParties(tx) };
+    return {
+      topics: await seedTopics(tx),
+      parties: await seedParties(tx),
+      parliamentaryGroups: await seedParliamentaryGroups(tx),
+    };
   });
 }
 
@@ -133,6 +149,11 @@ if (import.meta.main) {
   await client.end();
   console.log(seeded.topics ? "Topic tree seeded." : "Local database already has topics: skipped.");
   console.log(seeded.parties ? "Parties and candidacies seeded." : "Local database already has parties: skipped.");
+  console.log(
+    seeded.parliamentaryGroups
+      ? "Parliamentary groups seeded."
+      : "Local database already has parliamentary groups: skipped.",
+  );
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -165,7 +186,29 @@ async function seedParties(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
-async function hasRows(tx: postgres.TransactionSql, table: "topics" | "parties"): Promise<boolean> {
+// The groups join the legislature inserted by the migrations.
+async function seedParliamentaryGroups(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "parliamentary_groups")) return false;
+  const [{ id: legislatureId }] = await tx<{ id: string }[]>`
+    select id from legislatures order by number desc limit 1`;
+  for (const [index, group] of groupList.entries()) {
+    const [{ id }] = await tx<{ id: string }[]>`
+      insert into parliamentary_groups (legislature_id, name, abbreviation, position)
+      values (${legislatureId}, ${group.name}, ${group.abbreviation}, ${index + 1})
+      returning id`;
+    if (group.partyAbbreviations.length > 0) {
+      await tx`
+        insert into parliamentary_group_parties (group_id, party_id)
+        select ${id}, id from parties where abbreviation in ${tx(group.partyAbbreviations)}`;
+    }
+  }
+  return true;
+}
+
+async function hasRows(
+  tx: postgres.TransactionSql,
+  table: "topics" | "parties" | "parliamentary_groups",
+): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;
 }
