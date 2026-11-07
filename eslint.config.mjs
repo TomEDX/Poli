@@ -35,6 +35,13 @@ const layerBoundaries = [
   },
 ];
 
+const functionExpression = "[init.type=/^(ArrowFunctionExpression|FunctionExpression)$/]";
+
+const topLevelFunctionSelectors = [
+  `Program > VariableDeclaration > VariableDeclarator${functionExpression}`,
+  `Program > ExportNamedDeclaration > VariableDeclaration > VariableDeclarator${functionExpression}`,
+];
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -43,6 +50,21 @@ export default defineConfig([
       "import/no-restricted-paths": [
         "error",
         { zones: [...moduleBoundaries, ...layerBoundaries] },
+      ],
+    },
+  },
+  {
+    // The mechanical part of the file layout in AGENTS.md: a helper at the top of a file is a
+    // function declaration, so it can sit below its callers, and a constant is defined before the
+    // code that reads it at load time. Closures inside components and tests stay free.
+    rules: {
+      "no-use-before-define": ["error", { functions: false, classes: false }],
+      "no-restricted-syntax": [
+        "error",
+        ...topLevelFunctionSelectors.map((selector) => ({
+          selector,
+          message: "Write a function declaration, so it can sit below its callers (AGENTS.md).",
+        })),
       ],
     },
   },

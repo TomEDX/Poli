@@ -2,13 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { planQueue, type ReadyIssue } from "./queue.ts";
 
-const issue = (number: number, blockedBy: number[] = []): ReadyIssue => ({
-  number,
-  title: `Ticket ${number}`,
-  url: `https://example.org/${number}`,
-  blockedBy,
-});
-
 describe("planQueue", () => {
   it("starts a ticket whose blockers are all closed", () => {
     expect(planQueue([issue(5)], [], 2)).toEqual([{ action: "start", issue: 5, job: "-", note: "Ticket 5" }]);
@@ -44,3 +37,7 @@ describe("planQueue", () => {
     expect(row.action).toBe("skip");
   });
 });
+
+function issue(number: number, blockedBy: number[] = []): ReadyIssue {
+  return { number, title: `Ticket ${number}`, url: `https://example.org/${number}`, blockedBy };
+}

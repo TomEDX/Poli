@@ -5,9 +5,6 @@ import { db } from "@/lib/db";
 
 import { createSubtopic, createTopic, editNode, getTopicTree, moveNode, removeNode } from "./queries";
 
-const topic = (id: string) => ({ level: "topic" as const, id });
-const subtopic = (id: string) => ({ level: "subtopic" as const, id });
-
 async function topicNames() {
   return (await getTopicTree()).map((topic) => topic.name);
 }
@@ -206,3 +203,11 @@ describe("deletion", () => {
     });
   });
 });
+
+function topic(id: string) {
+  return { level: "topic" as const, id };
+}
+
+function subtopic(id: string) {
+  return { level: "subtopic" as const, id };
+}
