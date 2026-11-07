@@ -9,8 +9,11 @@ import {
   createTopicAction,
   editNodeAction,
   removePartyAction,
+  saveParliamentaryGroupAction,
   savePartyAction,
+  createParliamentaryGroupAction,
 } from "./actions";
+import { getParliamentaryGroups } from "./parliamentary-groups";
 import { getParties } from "./parties";
 import { getTopicTree } from "./topics";
 
@@ -36,6 +39,37 @@ describe("topic tree actions", () => {
       ok: false,
       message: "L'identifiant « hopital » est déjà pris par une autre sous-thématique de cette thématique.",
     });
+  });
+});
+
+describe("parliamentary group actions", () => {
+  beforeEach(async () => {
+    await db.insert(editors).values({ email: "editrice@example.fr" });
+  });
+
+  it("name the name or the abbreviation already taken by another group", async () => {
+    await createParliamentaryGroupAction({ name: "Horizon démocrate", abbreviation: "HD" });
+    await createParliamentaryGroupAction({ name: "Union et alliés", abbreviation: "UA" });
+    const [, union] = await getParliamentaryGroups();
+
+    expect(await createParliamentaryGroupAction({ name: " Horizon démocrate ", abbreviation: "HDE" })).toEqual({
+      ok: false,
+      message: "Le nom « Horizon démocrate » est déjà pris par un autre groupe parlementaire.",
+    });
+    expect(await saveParliamentaryGroupAction(union.id, { abbreviation: " HD " })).toEqual({
+      ok: false,
+      message: "Le sigle « HD » est déjà pris par un autre groupe parlementaire.",
+    });
+  });
+
+  it("link a group to the parties picked, each once", async () => {
+    await createPartyAction({ name: "Union des territoires", abbreviation: "UDT" });
+    const [union] = await getParties();
+
+    expect(
+      await createParliamentaryGroupAction({ name: "Union et alliés", abbreviation: "UA", partyIds: [union.id, union.id] }),
+    ).toEqual({ ok: true });
+    expect(await getParliamentaryGroups()).toMatchObject([{ abbreviation: "UA", parties: [{ id: union.id }] }]);
   });
 });
 

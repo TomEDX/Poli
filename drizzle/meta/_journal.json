@@ -36,6 +36,13 @@
       "when": 1794009641643,
       "tag": "0004_parties_candidacies",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794052684099,
+      "tag": "0005_legislatures_parliamentary_groups",
+      "breakpoints": true
     }
   ]
 }

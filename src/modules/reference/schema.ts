@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { date, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { publicationStatuses } from "./publication-status";
 
@@ -68,4 +68,62 @@ export const candidacies = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [unique("candidacies_party_id_unique").on(table.partyId)],
+).enableRLS();
+
+// One row, inserted by the migration that creates the table (ADR 0005): groups and texts
+// belong to a legislature so that another one can be added without migrating them.
+export const legislatures = pgTable("legislatures", {
+  id: uuid().primaryKey().defaultRandom(),
+  number: integer().notNull().unique(),
+  startedOn: date().notNull(),
+  // Null while the legislature is running.
+  endedOn: date(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+}).enableRLS();
+
+// position is the official order of the Assemblée, which every public list follows.
+export const parliamentaryGroups = pgTable(
+  "parliamentary_groups",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    legislatureId: uuid()
+      .notNull()
+      .references(() => legislatures.id, { onDelete: "restrict" }),
+    name: text().notNull(),
+    abbreviation: text().notNull(),
+    position: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique("parliamentary_groups_legislature_id_name_unique").on(table.legislatureId, table.name),
+    unique("parliamentary_groups_legislature_id_abbreviation_unique").on(table.legislatureId, table.abbreviation),
+  ],
+).enableRLS();
+
+// Optional links: deleting a group or a party only removes its links.
+export const parliamentaryGroupParties = pgTable(
+  "parliamentary_group_parties",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    groupId: uuid()
+      .notNull()
+      .references(() => parliamentaryGroups.id, { onDelete: "cascade" }),
+    partyId: uuid()
+      .notNull()
+      .references(() => parties.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [unique("parliamentary_group_parties_group_id_party_id_unique").on(table.groupId, table.partyId)],
 ).enableRLS();
