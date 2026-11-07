@@ -1,5 +1,7 @@
 // Supabase Auth error codes the sign-in flow reacts to.
 export enum AuthErrorCode {
+  // Creating an account that already exists, as the local test editor does on every sign-in.
+  EMAIL_EXISTS = "email_exists",
   // Sign-ups are closed, so an address without an account gets one of these.
   OTP_DISABLED = "otp_disabled",
   SIGNUP_DISABLED = "signup_disabled",

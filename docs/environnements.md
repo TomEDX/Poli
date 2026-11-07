@@ -42,7 +42,7 @@ Les secrets vivent dans des environnements GitHub, chacun lisible seulement depu
 
 Les adresses se trouvent dans Supabase : projet → **Connect** → onglet **Direct**. GitHub Actions utilise le *Session pooler*, car ses machines n'ont que l'IPv4 ; l'app utilise le *Transaction pooler*, adapté aux connexions courtes de Vercel.
 
-L'identifiant du projet est dans **Project Settings → General**, la clé *publishable* dans **Project Settings → API Keys**. Elle peut être publique ; la clé secrète (`sb_secret_…`) n'est utilisée nulle part.
+L'identifiant du projet est dans **Project Settings → General**, la clé *publishable* dans **Project Settings → API Keys**. Elle peut être publique ; la clé secrète (`sb_secret_…`) des projets develop et prod n'est utilisée nulle part. Seule la clé secrète par défaut du Supabase local sert, au bouton de connexion de test.
 
 Pour changer un secret GitHub : `gh secret set <NOM> --env <environnement> --repo TomEDX/Poli`, puis coller la valeur. Le jeton de release-please expire : le renouveler avant sa date d'expiration de la même façon.
 
@@ -74,7 +74,9 @@ Les e-mails partent du service intégré de Supabase, avec le modèle par défau
 
 Pour retirer un éditeur, supprimer sa ligne de `editors` (il perd l'accès à l'administration) puis son compte dans **Authentication → Users**.
 
-En local, même procédure dans le studio (http://127.0.0.1:54323) ; les e-mails arrivent dans Mailpit (http://127.0.0.1:54324), sans invitation.
+En local, même procédure dans le studio (http://127.0.0.1:54323) ; les e-mails arrivent dans Mailpit (http://127.0.0.1:54324), sans invitation. Pour simplement accéder à l'administration, le bouton « Se connecter comme éditeur de test » de `/sign-in` suffit (voir le README).
+
+`SUPABASE_SECRET_KEY` ne sert qu'à ce bouton : `pnpm dev` l'écrit dans `.env.development.local`. Ne jamais la définir sur Vercel ni dans GitHub Actions.
 
 ## Réglages du dépôt
 

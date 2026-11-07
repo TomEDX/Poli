@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "supabase start && drizzle-kit migrate && node scripts/seed-local.ts && next dev",
+    "dev": "supabase start && drizzle-kit migrate && node scripts/seed-local.ts && node scripts/write-dev-env.ts && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
