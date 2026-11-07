@@ -24,6 +24,16 @@ const abbreviationField = z
   .min(1, "Saisissez un sigle.")
   .max(ABBREVIATION_MAX_LENGTH, `Le sigle dépasse ${ABBREVIATION_MAX_LENGTH} caractères.`);
 
+// A blank candidate name means no candidate is declared yet.
+const candidateNameField = z
+  .string()
+  .trim()
+  .max(NAME_MAX_LENGTH, `Le nom dépasse ${NAME_MAX_LENGTH} caractères.`)
+  .refine((name) => name === "" || slugify(name) !== "", "Le nom doit contenir au moins une lettre.")
+  .transform((name) => (name === "" ? null : name));
+
+export const candidacyStatusSchema = z.enum(publicationStatuses);
+
 export const topicNodeSchema = z.object({ level: z.enum(["topic", "subtopic"]), id: z.uuid() });
 
 export const directionSchema = z.enum(["up", "down"]);
@@ -38,23 +48,19 @@ export const topicChangesSchema = z
   .object({ name: nameField.optional(), slug: slugField.optional() })
   .refine((changes) => changes.name !== undefined || changes.slug !== undefined, "Saisissez un nom ou un identifiant.");
 
-export const newPartySchema = z.object({ name: nameField, abbreviation: abbreviationField });
+export const candidacySchema = z.object({ candidateName: candidateNameField });
+
+export const newCandidacySchema = candidacySchema.extend({ status: candidacyStatusSchema.default("draft") });
+
+export const newPartySchema = z.object({
+  name: nameField,
+  abbreviation: abbreviationField,
+  candidacy: newCandidacySchema.nullable().default(null),
+});
 
 export const partyChangesSchema = z
   .object({ name: nameField.optional(), abbreviation: abbreviationField.optional() })
   .refine((changes) => changes.name !== undefined || changes.abbreviation !== undefined, "Saisissez un nom ou un sigle.");
-
-// A blank candidate name means no candidate is declared yet.
-export const candidacySchema = z.object({
-  candidateName: z
-    .string()
-    .trim()
-    .max(NAME_MAX_LENGTH, `Le nom dépasse ${NAME_MAX_LENGTH} caractères.`)
-    .refine((name) => name === "" || slugify(name) !== "", "Le nom doit contenir au moins une lettre.")
-    .transform((name) => (name === "" ? null : name)),
-});
-
-export const candidacyStatusSchema = z.enum(publicationStatuses);
 
 export function slugify(text: string): string {
   return text

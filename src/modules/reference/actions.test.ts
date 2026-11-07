@@ -73,6 +73,22 @@ describe("party and candidacy actions", () => {
     expect((await getParties())[0].candidacy).toMatchObject({ label: "Camille Martin (PDH)" });
   });
 
+  it("create a party with its candidacy, a blank candidate meaning none declared yet", async () => {
+    expect(
+      await createPartyAction({
+        name: "Parti de l'Horizon",
+        abbreviation: "PDH",
+        candidacy: { candidateName: "  ", status: "published" },
+      }),
+    ).toEqual({ ok: true });
+
+    expect((await getParties())[0].candidacy).toMatchObject({
+      candidateName: null,
+      status: "published",
+      label: "Parti de l'Horizon",
+    });
+  });
+
   it("explain why a party with a candidacy cannot be deleted", async () => {
     await createPartyAction({ name: "Parti de l'Horizon", abbreviation: "PDH" });
     const [horizon] = await getParties();

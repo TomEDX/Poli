@@ -12,6 +12,7 @@ import {
   candidacySchema,
   candidacyStatusSchema,
   directionSchema,
+  newCandidacySchema,
   newPartySchema,
   newTopicSchema,
   partyChangesSchema,
@@ -76,7 +77,7 @@ export const removePartyAction = editorWrite({
 
 export const createCandidacyAction = editorWrite({
   args: [z.uuid()],
-  input: candidacySchema,
+  input: newCandidacySchema,
   run: createCandidacy,
   messages: { "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page." },
 });

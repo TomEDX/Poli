@@ -10,6 +10,9 @@ import { candidacies, parties } from "./schema";
 
 export type CandidacyInput = { candidateName: string | null };
 
+// A new candidacy is a draft unless it is published right away.
+export type NewCandidacy = CandidacyInput & { status?: PublicationStatus };
+
 export type PublishedCandidacy = {
   id: string;
   label: string;
@@ -36,7 +39,7 @@ export async function getPublishedCandidacies(): Promise<PublishedCandidacy[]> {
   return rows.map((row) => ({ id: row.id, label: candidacyLabel(row), candidateName: row.candidateName, party: row.party }));
 }
 
-export async function createCandidacy(partyId: string, input: CandidacyInput): Promise<CreateCandidacyResult> {
+export async function createCandidacy(partyId: string, input: NewCandidacy): Promise<CreateCandidacyResult> {
   try {
     const [created] = await db.insert(candidacies).values({ ...input, partyId }).returning({ id: candidacies.id });
     return { ok: true, id: created.id };

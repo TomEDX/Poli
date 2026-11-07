@@ -10,6 +10,11 @@ import { candidacies, parties } from "./schema";
 
 export type PartyInput = { name: string; abbreviation: string };
 
+// A party can be created with its candidacy, so that the editor enters both at once.
+export type NewParty = PartyInput & {
+  candidacy?: { candidateName: string | null; status: PublicationStatus } | null;
+};
+
 export type PartyChanges = Partial<PartyInput>;
 
 export type Party = PartyInput & {
@@ -49,10 +54,13 @@ export async function getParties(): Promise<Party[]> {
   }));
 }
 
-export async function createParty(input: PartyInput): Promise<CreatePartyResult> {
+export async function createParty({ candidacy, ...party }: NewParty): Promise<CreatePartyResult> {
   try {
-    const [created] = await db.insert(parties).values(input).returning({ id: parties.id });
-    return { ok: true, id: created.id };
+    return await db.transaction(async (tx) => {
+      const [created] = await tx.insert(parties).values(party).returning({ id: parties.id });
+      if (candidacy) await tx.insert(candidacies).values({ ...candidacy, partyId: created.id });
+      return { ok: true as const, id: created.id };
+    });
   } catch (error) {
     return { ok: false, reason: takenReason(error) };
   }

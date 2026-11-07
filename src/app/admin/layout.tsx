@@ -4,15 +4,13 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentEditor } from "@/modules/editors/authorization";
-import { SignOutButton } from "@/modules/editors/components/sign-out-button";
 
-import { AdminBreadcrumb, AdminSidebar } from "./admin-navigation";
+import { AdminSidebar, SignedInEditor } from "./admin-sidebar";
 
 export const metadata: Metadata = {
   title: "Administration · Poli.",
@@ -33,17 +31,18 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           >
             Aller au contenu
           </a>
-          <AdminSidebar />
+          <AdminSidebar
+            footer={
+              <Suspense fallback={null}>
+                <EditorFooter />
+              </Suspense>
+            }
+          />
           <SidebarInset>
-            <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-1 data-vertical:h-4 data-vertical:self-center" />
-              <AdminBreadcrumb />
-              <div className="ml-auto">
-                <SignOutButton />
-              </div>
+            <header className="flex h-12 shrink-0 items-center border-b px-3">
+              <SidebarTrigger />
             </header>
-            <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-6 outline-none md:px-6">
+            <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-8 outline-none md:px-8">
               <Suspense fallback={<ContentSkeleton />}>
                 <EditorsOnly>{children}</EditorsOnly>
               </Suspense>
@@ -61,12 +60,17 @@ async function EditorsOnly({ children }: { children: React.ReactNode }) {
   return children;
 }
 
+async function EditorFooter() {
+  const editor = await getCurrentEditor();
+  return editor ? <SignedInEditor email={editor.email} /> : null;
+}
+
 function ContentSkeleton() {
   return (
-    <div aria-busy className="flex max-w-5xl flex-col gap-4">
+    <div aria-busy className="flex max-w-4xl flex-col gap-8">
       <span className="sr-only">Chargement…</span>
       <Skeleton className="h-8 w-64" />
-      <Skeleton className="h-48 w-full" />
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }

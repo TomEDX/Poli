@@ -15,25 +15,13 @@ type InlineInputProps = {
   initial: string;
   placeholder?: string;
   field?: Field;
-  maxLength?: number;
-  // Lets the editor save an emptied field, such as a candidate name taken back.
-  allowEmpty?: boolean;
   onSave: (value: string) => Promise<ActionResult>;
   // restoreFocus is true when the field was left with Enter or Escape, false on a click elsewhere.
   onClose: (restoreFocus: boolean) => void;
 };
 
 // Enter or leaving the field saves, Escape cancels. On error the field stays open with the message.
-export function InlineInput({
-  label,
-  initial,
-  placeholder,
-  field = "name",
-  maxLength = field === "name" ? NAME_MAX_LENGTH : undefined,
-  allowEmpty = false,
-  onSave,
-  onClose,
-}: InlineInputProps) {
+export function InlineInput({ label, initial, placeholder, field = "name", onSave, onClose }: InlineInputProps) {
   const [value, setValue] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -49,7 +37,7 @@ export function InlineInput({
   const commit = (restoreFocus: boolean) => {
     if (closed.current || pending) return;
     const trimmed = value.trim();
-    if ((trimmed === "" && !allowEmpty) || trimmed === initial) return close(restoreFocus);
+    if (trimmed === "" || trimmed === initial) return close(restoreFocus);
     startTransition(async () => {
       const result = await onSave(trimmed);
       if (result.ok) close(restoreFocus);
@@ -66,7 +54,7 @@ export function InlineInput({
         className={cn("h-9 md:h-7", field === "slug" && "font-mono md:text-xs")}
         value={value}
         placeholder={placeholder}
-        maxLength={maxLength}
+        maxLength={field === "name" ? NAME_MAX_LENGTH : undefined}
         enterKeyHint="done"
         autoCapitalize={field === "slug" ? "none" : undefined}
         readOnly={pending}

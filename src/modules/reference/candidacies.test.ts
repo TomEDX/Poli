@@ -54,6 +54,33 @@ describe("a candidacy", () => {
       reason: "party-has-candidacy",
     });
   });
+
+  it("can be created already published", async () => {
+    const horizon = await partyId("Parti de l'Horizon", "PDH");
+    await createCandidacy(horizon, { candidateName: null, status: "published" });
+
+    expect(await getPublishedCandidacies()).toMatchObject([{ label: "Parti de l'Horizon" }]);
+  });
+
+  it("is created with its party in one step", async () => {
+    const result = await createParty({
+      name: "Parti de l'Horizon",
+      abbreviation: "PDH",
+      candidacy: { candidateName: "Camille Martin", status: "published" },
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(await getPublishedCandidacies()).toMatchObject([{ label: "Camille Martin (PDH)" }]);
+  });
+
+  it("is not created when its party is refused", async () => {
+    await partyId("Parti de l'Horizon", "PDH");
+
+    expect(
+      await createParty({ name: "Horizon", abbreviation: "PDH", candidacy: { candidateName: null, status: "draft" } }),
+    ).toEqual({ ok: false, reason: "abbreviation-taken" });
+    expect(await labels()).toEqual([undefined]);
+  });
 });
 
 describe("published candidacies", () => {

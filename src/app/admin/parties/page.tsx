@@ -21,7 +21,7 @@ async function EditableParties() {
 
 function PartiesSkeleton() {
   return (
-    <div aria-busy className="flex max-w-5xl flex-col gap-4">
+    <div aria-busy className="flex max-w-4xl flex-col gap-8">
       <span className="sr-only">Chargement des partis…</span>
       <Skeleton className="h-8 w-72" />
       <Skeleton className="h-64 w-full" />
