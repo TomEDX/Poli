@@ -255,7 +255,10 @@ function Deletion({ source, onRemoved, onRemovingSource }: DeletionProps) {
       <FieldSeparator />
       <FieldSet>
         <FieldLegend>Suppression</FieldLegend>
-        <FieldDescription>La source disparaît de la page Sources. La suppression est définitive.</FieldDescription>
+        <FieldDescription>
+          La source disparaît de la page Sources. Une source qui étaye un contenu ne peut pas être supprimée. La
+          suppression est définitive.
+        </FieldDescription>
         <div>
           <Button type="button" variant="destructive" disabled={pending} onClick={() => setConfirming(true)}>
             Supprimer la source

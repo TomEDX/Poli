@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import type { Source } from "@/modules/reference/sources";
 
 import { amendmentReference } from "../amendment-labels";
 import type { Amendment } from "../amendments";
@@ -15,9 +16,15 @@ import { formatHeldOn, voteReference } from "../vote-labels";
 import type { Vote } from "../votes";
 import { VoteSheet } from "./vote-sheet";
 
-type VoteTableProps = { textId: string; votes: Vote[]; groups: ParliamentaryGroup[]; amendments: Amendment[] };
+type VoteTableProps = {
+  textId: string;
+  votes: Vote[];
+  groups: ParliamentaryGroup[];
+  amendments: Amendment[];
+  sources: Source[];
+};
 
-export function VoteTable({ textId, votes, groups, amendments }: VoteTableProps) {
+export function VoteTable({ textId, votes, groups, amendments, sources }: VoteTableProps) {
   // The sheet keeps the scrutin it shows while it closes; null means a new scrutin.
   const [sheet, setSheet] = useState<{ open: boolean; voteId: string | null }>({ open: false, voteId: null });
   const newVoteButton = useRef<HTMLButtonElement>(null);
@@ -117,6 +124,7 @@ export function VoteTable({ textId, votes, groups, amendments }: VoteTableProps)
         vote={shown}
         groups={groups}
         amendments={amendments}
+        sources={sources}
         open={sheet.open}
         onOpenChange={(isOpen) => setSheet((current) => ({ ...current, open: isOpen }))}
         returnFocus={() => (shown ? openButtons.current.get(shown.id) : newVoteButton.current) ?? newVoteButton.current}

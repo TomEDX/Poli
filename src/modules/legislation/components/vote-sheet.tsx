@@ -29,7 +29,9 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
+import { SourcePicker } from "@/modules/reference/components/source-picker";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import type { Source } from "@/modules/reference/sources";
 import { URL_MAX_LENGTH } from "@/modules/reference/validation";
 
 import { createVoteAction, removeVoteAction, saveVoteAction } from "../actions";
@@ -48,6 +50,8 @@ type VoteSheetProps = {
   groups: ParliamentaryGroup[];
   // The amendments of the text, which a scrutin on an amendment can be linked to.
   amendments: Amendment[];
+  // Every source the scrutin can be linked to.
+  sources: Source[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Where the focus goes once the sheet closes: the row or button that opened it.
@@ -73,7 +77,7 @@ const countFields: { key: keyof GroupCounts; label: string }[] = [
 
 const blankCounts: CountsRow = { for: "", against: "", abstention: "", nonVoting: "" };
 
-export function VoteSheet({ textId, vote, groups, amendments, open, onOpenChange, returnFocus }: VoteSheetProps) {
+export function VoteSheet({ textId, vote, groups, amendments, sources, open, onOpenChange, returnFocus }: VoteSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-2xl" finalFocus={() => returnFocus() ?? true}>
@@ -90,6 +94,7 @@ export function VoteSheet({ textId, vote, groups, amendments, open, onOpenChange
           vote={vote}
           groups={groups}
           amendments={amendments}
+          sources={sources}
           onDone={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -102,10 +107,11 @@ type VoteFormProps = {
   vote: Vote | null;
   groups: ParliamentaryGroup[];
   amendments: Amendment[];
+  sources: Source[];
   onDone: () => void;
 };
 
-function VoteForm({ textId, vote, groups, amendments, onDone }: VoteFormProps) {
+function VoteForm({ textId, vote, groups, amendments, sources, onDone }: VoteFormProps) {
   const [values, setValues] = useState<Record<TypedField, string>>(() => ({
     subject: vote?.subject ?? "",
     amendmentId: vote?.amendmentId ?? "",
@@ -115,6 +121,7 @@ function VoteForm({ textId, vote, groups, amendments, onDone }: VoteFormProps) {
     officialUrl: vote?.officialUrl ?? "",
   }));
   const [rows, setRows] = useState<Record<string, GroupRow>>(() => initialRows(vote, groups));
+  const [sourceIds, setSourceIds] = useState<ReadonlySet<string>>(() => new Set(vote?.sourceIds ?? []));
   const [errors, setErrors] = useState<Errors>({});
   const [pending, startTransition] = useTransition();
   const formId = useId();
@@ -141,6 +148,7 @@ function VoteForm({ textId, vote, groups, amendments, onDone }: VoteFormProps) {
     const parsed = voteSchema.safeParse({
       ...values,
       groupVotes: groups.map((group) => ({ groupId: group.id, ...rows[group.id] })),
+      sourceIds: [...sourceIds],
     });
     if (!parsed.success) {
       const next: Errors = {};
@@ -283,6 +291,8 @@ function VoteForm({ textId, vote, groups, amendments, onDone }: VoteFormProps) {
             </div>
           )}
         </FieldSet>
+
+        <SourcePicker sources={sources} selected={sourceIds} onChange={setSourceIds} content="le scrutin" />
 
         {errors.form && (
           <Alert variant="destructive">

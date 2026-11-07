@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { numberField, officialUrlField, optionalIdField } from "./form-fields";
+import { numberField, officialUrlField, optionalIdField, sourceIdsField } from "./form-fields";
 import { completeCounts, type GroupCounts } from "./group-counts";
 import { groupPositions, voteResults, voteSubjects } from "./vote-kinds";
 import type { GroupVoteInput } from "./votes";
@@ -43,6 +43,8 @@ export const voteSchema = z
     officialUrl: officialUrlField,
     amendmentId: optionalIdField.default(null),
     groupVotes: z.array(groupVoteField),
+    // Left out, the scrutin keeps its sources, so a save that does not send them erases none.
+    sourceIds: sourceIdsField.optional(),
   })
   .transform((vote) => (vote.subject === "amendment" ? vote : { ...vote, amendmentId: null }));
 

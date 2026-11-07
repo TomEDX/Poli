@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
 import { createAmendment } from "@/modules/legislation/amendments";
-import { createText } from "@/modules/legislation/texts";
+import { createText, saveText } from "@/modules/legislation/texts";
 import { createVote } from "@/modules/legislation/votes";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 import { topics } from "@/modules/reference/schema";
+import { createSource } from "@/modules/reference/sources";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
 // The roles Supabase gives to a client that is not signed in (anon) or signed
@@ -194,6 +195,43 @@ describe("database access rules", () => {
         await asRole(role, "select v.number from group_votes gv join votes v on v.id = gv.vote_id"),
         role,
       ).toEqual([{ number: 100 }]);
+    }
+  });
+
+  it("let clients read the sources links of what they can read, never those of a draft", async () => {
+    const groupId = await testGroupId();
+    const { published, draft } = await publishedAndDraftTextIds();
+    const { id: sourceId } = await createSource({
+      title: "Source",
+      organization: "Assemblée nationale",
+      url: "https://assemblee.example.org",
+      consultedOn: "2026-10-01",
+      kind: "other",
+    });
+    await saveText(published, { sourceIds: [sourceId] });
+    await saveText(draft, { sourceIds: [sourceId] });
+    const shown = await createAmendment(published, { ...amendment, number: 10, status: "published", sourceIds: [sourceId] });
+    const hidden = await createAmendment(published, { ...amendment, number: 11, status: "draft", sourceIds: [sourceId] });
+    if (!shown.ok || !hidden.ok) throw new Error("Could not create the amendments");
+    const vote = {
+      subject: "amendment" as const,
+      heldOn: "2026-10-20",
+      result: "rejected" as const,
+      officialUrl: null,
+      groupVotes: [{ groupId, position: "against" as const, counts: null }],
+      sourceIds: [sourceId],
+    };
+    const shownVote = await createVote(published, { ...vote, number: 100, amendmentId: shown.id });
+    await createVote(published, { ...vote, number: 110, amendmentId: hidden.id });
+    await createVote(draft, { ...vote, subject: "whole_text", number: 200, amendmentId: null });
+    if (!shownVote.ok) throw new Error("Could not create the scrutin");
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select text_id from text_sources"), role).toEqual([{ text_id: published }]);
+      expect(await asRole(role, "select amendment_id from amendment_sources"), role).toEqual([
+        { amendment_id: shown.id },
+      ]);
+      expect(await asRole(role, "select vote_id from vote_sources"), role).toEqual([{ vote_id: shownVote.id }]);
     }
   });
 });

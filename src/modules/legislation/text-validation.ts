@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
 
-import { numberField, officialUrlField, summaryField } from "./form-fields";
+import { numberField, officialUrlField, sourceIdsField, summaryField } from "./form-fields";
 import { textNatures } from "./text-natures";
 
 export const OFFICIAL_TITLE_MAX_LENGTH = 500;
@@ -32,10 +32,12 @@ export const newTextSchema = z.object({
   officialUrl: officialUrlField,
   summary: summaryField,
   subtopicIds: subtopicIdsField.default([]),
+  sourceIds: sourceIdsField.default([]),
   status: statusField.default("draft"),
 });
 
-// On an edit, only the fields that changed are sent; subtopicIds replaces every subtopic.
+// On an edit, only the fields that changed are sent; subtopicIds and sourceIds replace
+// every subtopic and every source.
 export const textChangesSchema = z
   .object({
     nature: natureField.optional(),
@@ -45,6 +47,7 @@ export const textChangesSchema = z
     officialUrl: officialUrlField.optional(),
     summary: summaryField.optional(),
     subtopicIds: subtopicIdsField.optional(),
+    sourceIds: sourceIdsField.optional(),
     status: statusField.optional(),
   })
   .refine((changes) => Object.values(changes).some((value) => value !== undefined), "Aucune modification à enregistrer.");

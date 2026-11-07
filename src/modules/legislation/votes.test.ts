@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { previousLegislatureGroupId } from "../../../test/previous-legislature";
 import { createParliamentaryGroup, removeParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import { createSource, removeSource } from "@/modules/reference/sources";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
 import { createAmendment, getAmendments, removeAmendment } from "./amendments";
@@ -75,6 +76,7 @@ describe("a scrutin on a published text", () => {
           { group: { id: centre, name: "Groupe CEN", abbreviation: "CEN" }, position: "abstention", counts: null },
           { group: { id: right, name: "Groupe DRO", abbreviation: "DRO" }, position: "against", counts: null },
         ],
+        sources: [],
       },
     ]);
   });
@@ -205,7 +207,7 @@ describe("scrutins in the administration", () => {
     ] as const;
     const created = await createVote(textId, { ...finalVote, groupVotes: [groupVotes[1], groupVotes[0]] });
 
-    expect(await getVotes(textId)).toEqual([{ ...finalVote, id: created.ok && created.id, groupVotes }]);
+    expect(await getVotes(textId)).toEqual([{ ...finalVote, id: created.ok && created.id, groupVotes, sourceIds: [] }]);
   });
 
   it("are saved again with every group vote in one write", async () => {
@@ -232,11 +234,11 @@ describe("scrutins in the administration", () => {
       ],
     };
     expect(await saveVote(created.id, edited)).toEqual({ ok: true });
-    expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id }]);
+    expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id, sourceIds: [] }]);
 
     const twice: VoteInput = { ...edited, result: "adopted", groupVotes: [...edited.groupVotes, edited.groupVotes[2]] };
     expect(await saveVote(created.id, twice)).toEqual({ ok: false, reason: "group-voted-twice" });
-    expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id }]);
+    expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id, sourceIds: [] }]);
   });
 
   it("are deleted, and a scrutin deleted meanwhile is reported", async () => {
@@ -342,6 +344,70 @@ describe("a parliamentary group", () => {
 
     expect(await removeParliamentaryGroup(left)).toEqual({ ok: false, reason: "in-use" });
     expect(await getPublishedVotes(textId)).toMatchObject([{ groupVotes: [{ group: { id: left } }] }]);
+  });
+});
+
+const scrutinPage = {
+  title: "Scrutin n° 412",
+  organization: "Assemblée nationale",
+  url: "https://assemblee.example.org/scrutins/412",
+  consultedOn: "2026-10-01",
+  kind: "vote",
+} as const;
+
+describe("the sources of a scrutin", () => {
+  it("are linked and unlinked by the editors, and read with the scrutin", async () => {
+    const textId = await publishedTextId();
+    const [left] = await groupIds("GAU");
+    const { id: sourceId } = await createSource(scrutinPage);
+    const vote: VoteInput = { ...finalVote, groupVotes: [{ groupId: left, position: "for", counts: null }] };
+    const created = await createVote(textId, { ...vote, sourceIds: [sourceId] });
+    if (!created.ok) throw new Error("Could not create the scrutin");
+
+    expect(await getVotes(textId)).toMatchObject([{ id: created.id, sourceIds: [sourceId] }]);
+    expect(await getPublishedVotes(textId)).toMatchObject([
+      {
+        id: created.id,
+        sources: [
+          {
+            id: sourceId,
+            title: "Scrutin n° 412",
+            organization: "Assemblée nationale",
+            url: "https://assemblee.example.org/scrutins/412",
+          },
+        ],
+      },
+    ]);
+
+    expect(await saveVote(created.id, { ...vote, sourceIds: [] })).toEqual({ ok: true });
+    expect(await getVotes(textId)).toMatchObject([{ sourceIds: [] }]);
+    expect(await getPublishedVotes(textId)).toMatchObject([{ sources: [] }]);
+  });
+
+  it("report a source deleted meanwhile, and write nothing", async () => {
+    const textId = await publishedTextId();
+    const [left] = await groupIds("GAU");
+    const gone = "00000000-0000-4000-8000-000000000000";
+    const vote: VoteInput = { ...finalVote, groupVotes: [{ groupId: left, position: "for", counts: null }] };
+
+    expect(await createVote(textId, { ...vote, sourceIds: [gone] })).toEqual({ ok: false, reason: "not-found" });
+    expect(await getVotes(textId)).toEqual([]);
+  });
+});
+
+describe("a source", () => {
+  it("cannot be deleted while it backs a scrutin", async () => {
+    const textId = await publishedTextId();
+    const [left] = await groupIds("GAU");
+    const { id: sourceId } = await createSource(scrutinPage);
+    await createVote(textId, {
+      ...finalVote,
+      groupVotes: [{ groupId: left, position: "for", counts: null }],
+      sourceIds: [sourceId],
+    });
+
+    expect(await removeSource(sourceId)).toEqual({ ok: false, reason: "in-use" });
+    expect(await getPublishedVotes(textId)).toMatchObject([{ sources: [{ id: sourceId }] }]);
   });
 });
 

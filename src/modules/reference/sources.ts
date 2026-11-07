@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
 import type { SourceKind } from "./source-kinds";
+import { foreignKeyViolation, postgresError } from "./postgres-errors";
 import { sources } from "./schema";
 
 export type SourceInput = {
@@ -17,11 +18,26 @@ export type SourceInput = {
 
 export type Source = SourceInput & { id: string };
 
+// What other modules show of a source next to the content it backs.
+export type SourceSummary = { id: string; title: string; organization: string; url: string };
+
 export type SourceChanges = Partial<SourceInput>;
 
 export type CreateSourceResult = { ok: true; id: string };
 
 export type SourceResult = WriteOutcome<"not-found">;
+
+export type RemoveSourceResult = WriteOutcome<"in-use" | "not-found">;
+
+export const sourceSummaryColumns = {
+  id: sources.id,
+  title: sources.title,
+  organization: sources.organization,
+  url: sources.url,
+};
+
+// The order of the Sources page, so that sources read in the same order everywhere.
+export const sourceOrder = [asc(sources.organization), asc(sources.title)];
 
 export async function getSources(): Promise<Source[]> {
   return db
@@ -34,7 +50,7 @@ export async function getSources(): Promise<Source[]> {
       kind: sources.kind,
     })
     .from(sources)
-    .orderBy(asc(sources.organization), asc(sources.title));
+    .orderBy(...sourceOrder);
 }
 
 export async function createSource(input: SourceInput): Promise<CreateSourceResult> {
@@ -48,7 +64,13 @@ export async function editSource(id: string, changes: SourceChanges): Promise<So
   return edited ? { ok: true } : { ok: false, reason: "not-found" };
 }
 
-export async function removeSource(id: string): Promise<SourceResult> {
-  const [deleted] = await db.delete(sources).where(eq(sources.id, id)).returning({ id: sources.id });
-  return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+// Refused while the source backs a content, which would lose the trace of where it comes from.
+export async function removeSource(id: string): Promise<RemoveSourceResult> {
+  try {
+    const [deleted] = await db.delete(sources).where(eq(sources.id, id)).returning({ id: sources.id });
+    return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+  } catch (error) {
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
+  }
 }

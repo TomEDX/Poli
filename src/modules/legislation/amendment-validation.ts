@@ -3,7 +3,7 @@ import { z } from "zod";
 import { publicationStatuses } from "@/modules/reference/publication-status";
 
 import { amendmentFates, amendmentOpinions } from "./amendment-kinds";
-import { numberField, optionalIdField, summaryField } from "./form-fields";
+import { numberField, optionalIdField, sourceIdsField, summaryField } from "./form-fields";
 
 export const AUTHOR_LABEL_MAX_LENGTH = 200;
 
@@ -39,5 +39,7 @@ export const amendmentSchema = z.object({
   governmentOpinion: opinionField.default("none"),
   committeeOpinion: opinionField.default("none"),
   status: z.enum(publicationStatuses).default("draft"),
+  // Left out, the amendment keeps its sources, so a save that does not send them erases none.
+  sourceIds: sourceIdsField.optional(),
 });
 

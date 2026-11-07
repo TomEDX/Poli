@@ -23,7 +23,7 @@ type SeedSource = {
   kind: "program" | "vote" | "official_text" | "other";
 };
 
-// subtopicSlugs names seeded subtopics; one missing from the database is skipped.
+// subtopicSlugs and sourceUrls name seeded subtopics and sources; one missing from the database is skipped.
 type SeedText = {
   nature: "government_bill" | "member_bill";
   number: number;
@@ -32,10 +32,11 @@ type SeedText = {
   officialUrl: string | null;
   summary: string;
   subtopicSlugs: string[];
+  sourceUrls?: string[];
   status: "draft" | "published";
 };
 
-// textNumber and groupAbbreviation name seeded rows; a vote on a missing text or group is skipped.
+// textNumber, groupAbbreviation and sourceUrls name seeded rows; a vote on a missing text or group is skipped.
 type SeedVote = {
   textNumber: number;
   subject: "whole_text" | "article" | "amendment" | "motion";
@@ -49,6 +50,7 @@ type SeedVote = {
     // For, against, abstention, non-voting; null when only the majority position is known.
     counts: [number, number, number, number] | null;
   }[];
+  sourceUrls?: string[];
 };
 
 // textNumber and groupAbbreviation name seeded rows; an amendment of a missing text is skipped.
@@ -234,6 +236,7 @@ const textList: SeedText[] = [
     summary:
       "Le texte raccourcit les délais d'autorisation des éoliennes et des panneaux solaires, et oblige les grands parkings à se couvrir d'ombrières photovoltaïques.",
     subtopicSlugs: ["energie", "climat"],
+    sourceUrls: ["https://assemblee.example.org/textes/105"],
     status: "published",
   },
   {
@@ -296,6 +299,7 @@ const voteList: SeedVote[] = [
       { groupAbbreviation: "LIB", position: "against", counts: [5, 40, 2, 0] },
       { groupAbbreviation: "NII", position: "against", counts: null },
     ],
+    sourceUrls: ["https://assemblee.example.org/scrutins/412"],
   },
 ];
 
@@ -471,13 +475,14 @@ async function seedTexts(tx: postgres.TransactionSql): Promise<boolean> {
         insert into text_subtopics (text_id, subtopic_id)
         select ${id}, id from subtopics where slug in ${tx(text.subtopicSlugs)}`;
     }
+    await seedSourceLinks(tx, "text", id, text.sourceUrls);
   }
   return true;
 }
 
 async function seedVotes(tx: postgres.TransactionSql): Promise<boolean> {
   if (await hasRows(tx, "votes")) return false;
-  for (const { textNumber, groupVotes, ...vote } of voteList) {
+  for (const { textNumber, groupVotes, sourceUrls, ...vote } of voteList) {
     const [created] = await tx<{ id: string }[]>`
       insert into votes (text_id, subject, number, held_on, result, official_url)
       select id, ${vote.subject}, ${vote.number}, ${vote.heldOn}, ${vote.result}, ${vote.officialUrl}
@@ -485,6 +490,7 @@ async function seedVotes(tx: postgres.TransactionSql): Promise<boolean> {
       returning id`;
     if (!created) continue;
     await seedGroupVotes(tx, created.id, groupVotes);
+    await seedSourceLinks(tx, "vote", created.id, sourceUrls);
   }
   return true;
 }
@@ -521,6 +527,18 @@ async function seedGroupVotes(tx: postgres.TransactionSql, voteId: string, group
       select ${voteId}, id, ${position}, ${inFavour}, ${against}, ${abstention}, ${nonVoting}
       from parliamentary_groups where abbreviation = ${groupAbbreviation}`;
   }
+}
+
+async function seedSourceLinks(
+  tx: postgres.TransactionSql,
+  content: "text" | "vote",
+  contentId: string,
+  sourceUrls: string[] = [],
+) {
+  if (sourceUrls.length === 0) return;
+  await tx`
+    insert into ${tx(`${content}_sources`)} (${tx(`${content}_id`)}, source_id)
+    select ${contentId}, id from sources where url in ${tx(sourceUrls)}`;
 }
 
 async function hasRows(

@@ -1,5 +1,7 @@
 import { useId } from "react";
 
+import { SourceLinks } from "@/modules/reference/components/source-links";
+
 import { amendmentFateLabels, amendmentOpinionLabels, type AmendmentOpinion, wasVotedOn } from "../amendment-kinds";
 import { amendmentReference } from "../amendment-labels";
 import type { PublishedAmendment } from "../amendments";
@@ -84,6 +86,7 @@ function AmendmentCard({ amendment }: { amendment: PublishedAmendment }) {
           </p>
           {vote.officialUrl && <OfficialVoteLink href={vote.officialUrl} />}
           <GroupVoteList groupVotes={vote.groupVotes} />
+          <SourceLinks sources={vote.sources} />
         </div>
       ) : (
         wasVotedOn(amendment.fate) && (
@@ -92,6 +95,8 @@ function AmendmentCard({ amendment }: { amendment: PublishedAmendment }) {
           </p>
         )
       )}
+
+      <SourceLinks sources={amendment.sources} />
     </article>
   );
 }

@@ -6,7 +6,9 @@ import type { WriteOutcome } from "@/modules/editors/editor-write";
 import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { subtopics, topics } from "@/modules/reference/schema";
+import type { SourceSummary } from "@/modules/reference/sources";
 
+import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { textSubtopics, texts } from "./schema";
 import type { TextNature } from "./text-natures";
 import { Refused, refusalOf } from "./write-refusals";
@@ -20,12 +22,15 @@ export type TextInput = {
   officialUrl: string | null;
   summary: string;
   subtopicIds: string[];
+  // None on a creation without it.
+  sourceIds?: string[];
 };
 
 // A new text is a draft unless it is published right away.
 export type NewText = TextInput & { status?: PublicationStatus };
 
-// Only the given fields change; subtopicIds, when given, replaces every subtopic of the text.
+// Only the given fields change; subtopicIds or sourceIds, when given, replaces every
+// subtopic or source of the text.
 export type TextChanges = Partial<TextInput & { status: PublicationStatus }>;
 
 export type TextSubtopic = { id: string; name: string; topic: { id: string; name: string } };
@@ -39,7 +44,11 @@ export type PublishedTextSummary = {
   subtopics: TextSubtopic[];
 };
 
-export type PublishedText = PublishedTextSummary & { officialUrl: string | null; summary: string };
+export type PublishedText = PublishedTextSummary & {
+  officialUrl: string | null;
+  summary: string;
+  sources: SourceSummary[];
+};
 
 // By filing date.
 export type TextOrder = "newest" | "oldest";
@@ -52,7 +61,7 @@ export type TextFilters = { topicId?: string; subtopicId?: string; nature?: Text
 export type TextTopic = { id: string; name: string; slug: string; subtopics: { id: string; name: string; slug: string }[] };
 
 // What the administration lists and edits, drafts included.
-export type EditableText = TextInput & { id: string; status: PublicationStatus };
+export type EditableText = Required<TextInput> & { id: string; status: PublicationStatus };
 
 export type CreateTextResult = { ok: true; id: string } | { ok: false; reason: TextRefusal };
 
@@ -123,24 +132,24 @@ export async function getPublishedText(id: string): Promise<PublishedText | null
     .from(texts)
     .where(and(eq(texts.id, id), eq(texts.status, "published")));
   if (!row) return null;
-  const subtopicsByText = await subtopicsOf([id]);
-  return { ...row, subtopics: subtopicsByText.get(id) ?? [] };
+  const [subtopicsByText, sourcesByText] = await Promise.all([subtopicsOf([id]), sourcesOf("text", [id])]);
+  return { ...row, subtopics: subtopicsByText.get(id) ?? [], sources: sourcesByText.get(id) ?? [] };
 }
 
 export async function getTexts(): Promise<EditableText[]> {
   const rows = await db.select(editableColumns).from(texts).orderBy(...filingOrder);
-  return withSubtopicIds(rows);
+  return withLinkIds(rows);
 }
 
 // A draft too; null for a text that does not exist. The id comes from the URL, so anything
 // but a uuid is a text that does not exist.
 export async function getText(id: string): Promise<EditableText | null> {
   if (!z.uuid().safeParse(id).success) return null;
-  const [text] = await withSubtopicIds(await db.select(editableColumns).from(texts).where(eq(texts.id, id)));
+  const [text] = await withLinkIds(await db.select(editableColumns).from(texts).where(eq(texts.id, id)));
   return text ?? null;
 }
 
-export async function createText({ subtopicIds, ...text }: NewText): Promise<CreateTextResult> {
+export async function createText({ subtopicIds, sourceIds = [], ...text }: NewText): Promise<CreateTextResult> {
   if (text.status === "published" && subtopicIds.length === 0) return { ok: false, reason: "no-subtopic" };
   const legislature = await getCurrentLegislature();
   try {
@@ -152,6 +161,7 @@ export async function createText({ subtopicIds, ...text }: NewText): Promise<Cre
       if (subtopicIds.length > 0) {
         await tx.insert(textSubtopics).values(subtopicIds.map((subtopicId) => ({ textId: created.id, subtopicId })));
       }
+      await replaceSources(tx, "text", created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -159,9 +169,9 @@ export async function createText({ subtopicIds, ...text }: NewText): Promise<Cre
   }
 }
 
-// One transaction: the text and its subtopics are written together or not at all, and a
-// published text is checked to keep a subtopic once everything is written.
-export async function saveText(id: string, { subtopicIds, ...text }: TextChanges): Promise<SaveTextResult> {
+// One transaction: the text, its subtopics and its sources are written together or not at
+// all, and a published text is checked to keep a subtopic once everything is written.
+export async function saveText(id: string, { subtopicIds, sourceIds, ...text }: TextChanges): Promise<SaveTextResult> {
   try {
     await db.transaction(async (tx) => {
       // Locks the text, so that two saves at once cannot leave it published without a subtopic.
@@ -176,6 +186,7 @@ export async function saveText(id: string, { subtopicIds, ...text }: TextChanges
           await tx.insert(textSubtopics).values(subtopicIds.map((subtopicId) => ({ textId: id, subtopicId })));
         }
       }
+      if (sourceIds !== undefined) await replaceSources(tx, "text", id, sourceIds);
       if (found.status !== "published") return;
       const [{ subtopicCount }] = await tx
         .select({ subtopicCount: count() })
@@ -221,11 +232,15 @@ function filterConditions({ topicId, subtopicId, nature }: TextFilters): SQL[] {
   return conditions;
 }
 
-async function withSubtopicIds<Row extends { id: string }>(rows: Row[]): Promise<(Row & { subtopicIds: string[] })[]> {
-  const subtopicsByText = await subtopicsOf(rows.map((row) => row.id));
+async function withLinkIds<Row extends { id: string }>(
+  rows: Row[],
+): Promise<(Row & { subtopicIds: string[]; sourceIds: string[] })[]> {
+  const ids = rows.map((row) => row.id);
+  const [subtopicsByText, sourceIdsByText] = await Promise.all([subtopicsOf(ids), sourceIdsOf("text", ids)]);
   return rows.map((row) => ({
     ...row,
     subtopicIds: (subtopicsByText.get(row.id) ?? []).map((subtopic) => subtopic.id),
+    sourceIds: sourceIdsByText.get(row.id) ?? [],
   }));
 }
 

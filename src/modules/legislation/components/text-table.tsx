@@ -9,6 +9,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
+import type { Source } from "@/modules/reference/sources";
 import type { TopicTree } from "@/modules/reference/topics";
 
 import { saveTextAction } from "../actions";
@@ -16,7 +17,9 @@ import { formatFiledOn, textReference } from "../text-labels";
 import type { EditableText } from "../texts";
 import { TextSheet } from "./text-sheet";
 
-export function TextTable({ texts, topicTree }: { texts: EditableText[]; topicTree: TopicTree }) {
+type TextTableProps = { texts: EditableText[]; topicTree: TopicTree; sources: Source[] };
+
+export function TextTable({ texts, topicTree, sources }: TextTableProps) {
   // The sheet keeps the text it shows while it closes; null means a new text.
   const [sheet, setSheet] = useState<{ open: boolean; textId: string | null }>({ open: false, textId: null });
   const newTextButton = useRef<HTMLButtonElement>(null);
@@ -106,6 +109,7 @@ export function TextTable({ texts, topicTree }: { texts: EditableText[]; topicTr
       <TextSheet
         text={shown}
         topicTree={topicTree}
+        sources={sources}
         open={sheet.open}
         onOpenChange={(isOpen) => setSheet((current) => ({ ...current, open: isOpen }))}
         returnFocus={() => (shown ? openButtons.current.get(shown.id) : newTextButton.current) ?? null}

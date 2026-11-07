@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import type { Source } from "@/modules/reference/sources";
 
 import { saveAmendmentAction } from "../actions";
 import { amendmentFateLabels, wasVotedOn } from "../amendment-kinds";
@@ -17,9 +18,14 @@ import type { Amendment } from "../amendments";
 import { voteReference } from "../vote-labels";
 import { AmendmentSheet } from "./amendment-sheet";
 
-type AmendmentTableProps = { textId: string; amendments: Amendment[]; groups: ParliamentaryGroup[] };
+type AmendmentTableProps = {
+  textId: string;
+  amendments: Amendment[];
+  groups: ParliamentaryGroup[];
+  sources: Source[];
+};
 
-export function AmendmentTable({ textId, amendments, groups }: AmendmentTableProps) {
+export function AmendmentTable({ textId, amendments, groups, sources }: AmendmentTableProps) {
   // The sheet keeps the amendment it shows while it closes; null means a new amendment.
   const [sheet, setSheet] = useState<{ open: boolean; amendmentId: string | null }>({ open: false, amendmentId: null });
   const newAmendmentButton = useRef<HTMLButtonElement>(null);
@@ -120,6 +126,7 @@ export function AmendmentTable({ textId, amendments, groups }: AmendmentTablePro
         textId={textId}
         amendment={shown}
         groups={groups}
+        sources={sources}
         open={sheet.open}
         onOpenChange={(isOpen) => setSheet((current) => ({ ...current, open: isOpen }))}
         returnFocus={() =>

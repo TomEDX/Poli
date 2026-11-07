@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextTable } from "@/modules/legislation/components/text-table";
 import { getTexts } from "@/modules/legislation/texts";
+import { getSources } from "@/modules/reference/sources";
 import { getTopicTree } from "@/modules/reference/topics";
 
 export const metadata: Metadata = { title: "Textes · Administration · Poli." };
@@ -17,8 +18,8 @@ export default function AdminTextsPage() {
 }
 
 async function EditableTexts() {
-  const [texts, topicTree] = await Promise.all([getTexts(), getTopicTree()]);
-  return <TextTable texts={texts} topicTree={topicTree} />;
+  const [texts, topicTree, sources] = await Promise.all([getTexts(), getTopicTree(), getSources()]);
+  return <TextTable texts={texts} topicTree={topicTree} sources={sources} />;
 }
 
 function TextsSkeleton() {

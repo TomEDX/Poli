@@ -9,7 +9,9 @@ import {
   type ParliamentaryGroupSummary,
 } from "@/modules/reference/parliamentary-groups";
 import { parliamentaryGroups } from "@/modules/reference/schema";
+import type { SourceSummary } from "@/modules/reference/sources";
 
+import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { completeCounts, type GroupCounts } from "./group-counts";
 import { amendments, groupVotes, texts, votes } from "./schema";
 import type { GroupPosition, VoteResult, VoteSubject } from "./vote-kinds";
@@ -29,6 +31,8 @@ export type VoteInput = {
   amendmentId: string | null;
   // One for every group of the current legislature, and for no other group.
   groupVotes: GroupVoteInput[];
+  // When given, replaces every source of the scrutin; none on a creation without it.
+  sourceIds?: string[];
 };
 
 export type PublishedGroupVote = {
@@ -37,10 +41,14 @@ export type PublishedGroupVote = {
   counts: GroupCounts | null;
 };
 
-export type PublishedVote = Omit<VoteInput, "groupVotes"> & { id: string; groupVotes: PublishedGroupVote[] };
+export type PublishedVote = Omit<VoteInput, "groupVotes" | "sourceIds"> & {
+  id: string;
+  groupVotes: PublishedGroupVote[];
+  sources: SourceSummary[];
+};
 
 // What the administration lists and edits, whether the text is published or not.
-export type Vote = VoteInput & { id: string };
+export type Vote = Required<VoteInput> & { id: string };
 
 export type CreateVoteResult = { ok: true; id: string } | { ok: false; reason: VoteRefusal };
 
@@ -101,8 +109,13 @@ export async function getPublishedVotes(textId: string): Promise<PublishedVote[]
       ),
     )
     .orderBy(...voteOrder);
-  const groupVotesByVote = await groupVotesOf(rows.map((row) => row.id));
-  return rows.map((row) => ({ ...row, groupVotes: groupVotesByVote.get(row.id) ?? [] }));
+  const ids = rows.map((row) => row.id);
+  const [groupVotesByVote, sourcesByVote] = await Promise.all([groupVotesOf(ids), sourcesOf("vote", ids)]);
+  return rows.map((row) => ({
+    ...row,
+    groupVotes: groupVotesByVote.get(row.id) ?? [],
+    sources: sourcesByVote.get(row.id) ?? [],
+  }));
 }
 
 export async function getVotes(textId: string): Promise<Vote[]> {
@@ -111,17 +124,19 @@ export async function getVotes(textId: string): Promise<Vote[]> {
     .from(votes)
     .where(eq(votes.textId, textId))
     .orderBy(...voteOrder);
-  const groupVotesByVote = await groupVotesOf(rows.map((row) => row.id));
+  const ids = rows.map((row) => row.id);
+  const [groupVotesByVote, sourceIdsByVote] = await Promise.all([groupVotesOf(ids), sourceIdsOf("vote", ids)]);
   return rows.map((row) => ({
     ...row,
     groupVotes: (groupVotesByVote.get(row.id) ?? []).map(({ group, ...groupVote }) => ({ groupId: group.id, ...groupVote })),
+    sourceIds: sourceIdsByVote.get(row.id) ?? [],
   }));
 }
 
-// One transaction: the scrutin and every group vote are written together or not at all.
+// One transaction: the scrutin, every group vote and its sources are written together or not at all.
 export async function createVote(
   textId: string,
-  { groupVotes: groupVoteInputs, ...vote }: VoteInput,
+  { groupVotes: groupVoteInputs, sourceIds = [], ...vote }: VoteInput,
 ): Promise<CreateVoteResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -136,6 +151,7 @@ export async function createVote(
           .insert(groupVotes)
           .values(groupVoteInputs.map((groupVote) => groupVoteRow(created.id, groupVote)));
       }
+      await replaceSources(tx, "vote", created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -143,10 +159,10 @@ export async function createVote(
   }
 }
 
-// One transaction: the scrutin is rewritten and its group votes replaced, all or nothing.
+// One transaction: the scrutin is rewritten and its group votes and sources replaced, all or nothing.
 export async function saveVote(
   id: string,
-  { groupVotes: groupVoteInputs, ...vote }: VoteInput,
+  { groupVotes: groupVoteInputs, sourceIds, ...vote }: VoteInput,
 ): Promise<SaveVoteResult> {
   try {
     await db.transaction(async (tx) => {
@@ -158,6 +174,7 @@ export async function saveVote(
       if (groupVoteInputs.length > 0) {
         await tx.insert(groupVotes).values(groupVoteInputs.map((groupVote) => groupVoteRow(id, groupVote)));
       }
+      if (sourceIds !== undefined) await replaceSources(tx, "vote", id, sourceIds);
     });
     return { ok: true };
   } catch (error) {

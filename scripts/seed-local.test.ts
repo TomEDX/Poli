@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
 import { getPublishedAmendments } from "@/modules/legislation/amendments";
-import { createText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
+import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
 import { getPublishedVotes } from "@/modules/legislation/votes";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
@@ -134,6 +134,16 @@ describe("local seed", () => {
     expect(vote.groupVotes.map((groupVote) => groupVote.group.id)).toEqual(groups.map((group) => group.id));
     expect(vote.groupVotes.some((groupVote) => groupVote.counts === null)).toBe(true);
     expect(vote.groupVotes.some((groupVote) => groupVote.counts !== null)).toBe(true);
+  });
+
+  it("links a published text and its scrutin to seeded sources, and leaves other texts without", async () => {
+    await seedLocalDatabase(db.$client);
+
+    const texts = await Promise.all((await getPublishedTexts()).map((text) => getPublishedText(text.id)));
+    expect(texts.some((text) => text && text.sources.length > 0)).toBe(true);
+    expect(texts.some((text) => text && text.sources.length === 0)).toBe(true);
+    const votes = (await Promise.all(texts.map((text) => (text ? getPublishedVotes(text.id) : [])))).flat();
+    expect(votes.some((vote) => vote.sources.length > 0)).toBe(true);
   });
 
   it("adds published amendments to a published text, one with a public scrutin, one voted by show of hands", async () => {

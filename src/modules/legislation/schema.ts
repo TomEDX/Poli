@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { check, date, integer, pgEnum, pgPolicy, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
-import { legislatures, parliamentaryGroups, publicationStatus, subtopics } from "@/modules/reference/schema";
+import { legislatures, parliamentaryGroups, publicationStatus, sources, subtopics } from "@/modules/reference/schema";
 
 import { amendmentFates, amendmentOpinions } from "./amendment-kinds";
 import { textNatures } from "./text-natures";
@@ -181,6 +181,91 @@ export const groupVotes = pgTable(
           and ${table.abstentionCount} >= 0 and ${table.nonVotingCount} >= 0`,
     ),
     pgPolicy("group_votes_public_read_published", {
+      for: "select",
+      to: ["anon", "authenticated"],
+      using: sql`exists (select 1 from votes join texts on texts.id = votes.text_id
+                         left join amendments on amendments.id = votes.amendment_id
+                         where votes.id = ${table.voteId} and texts.status = 'published'
+                           and (votes.amendment_id is null or amendments.status = 'published'))`,
+    }),
+  ],
+).enableRLS();
+
+// Sources are optional: no content needs one to be published. A source cannot be deleted
+// while it backs a content, which would lose the trace of where the content comes from.
+export const textSources = pgTable(
+  "text_sources",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    textId: uuid()
+      .notNull()
+      .references(() => texts.id, { onDelete: "cascade" }),
+    sourceId: uuid()
+      .notNull()
+      .references(() => sources.id, { onDelete: "restrict" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique("text_sources_text_id_source_id_unique").on(table.textId, table.sourceId),
+    pgPolicy("text_sources_public_read_published", {
+      for: "select",
+      to: ["anon", "authenticated"],
+      using: sql`exists (select 1 from texts where texts.id = ${table.textId} and texts.status = 'published')`,
+    }),
+  ],
+).enableRLS();
+
+export const amendmentSources = pgTable(
+  "amendment_sources",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    amendmentId: uuid()
+      .notNull()
+      .references(() => amendments.id, { onDelete: "cascade" }),
+    sourceId: uuid()
+      .notNull()
+      .references(() => sources.id, { onDelete: "restrict" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique("amendment_sources_amendment_id_source_id_unique").on(table.amendmentId, table.sourceId),
+    pgPolicy("amendment_sources_public_read_published", {
+      for: "select",
+      to: ["anon", "authenticated"],
+      using: sql`exists (select 1 from amendments join texts on texts.id = amendments.text_id
+                         where amendments.id = ${table.amendmentId}
+                           and amendments.status = 'published' and texts.status = 'published')`,
+    }),
+  ],
+).enableRLS();
+
+export const voteSources = pgTable(
+  "vote_sources",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    voteId: uuid()
+      .notNull()
+      .references(() => votes.id, { onDelete: "cascade" }),
+    sourceId: uuid()
+      .notNull()
+      .references(() => sources.id, { onDelete: "restrict" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique("vote_sources_vote_id_source_id_unique").on(table.voteId, table.sourceId),
+    pgPolicy("vote_sources_public_read_published", {
       for: "select",
       to: ["anon", "authenticated"],
       using: sql`exists (select 1 from votes join texts on texts.id = votes.text_id
