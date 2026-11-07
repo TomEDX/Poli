@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
+import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
 import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { parliamentaryGroups } from "@/modules/reference/schema";
@@ -40,7 +41,7 @@ export type SaveAmendmentResult = WriteOutcome<AmendmentRefusal>;
 
 export type RemoveAmendmentResult = WriteOutcome<"not-found">;
 
-type AmendmentRefusal = "number-taken" | "not-found";
+type AmendmentRefusal = "number-taken" | "group-outside-legislature" | "not-found";
 
 const amendmentColumns = {
   id: amendments.id,
@@ -98,6 +99,7 @@ export async function getAmendments(textId: string): Promise<Amendment[]> {
 }
 
 export async function createAmendment(textId: string, amendment: AmendmentInput): Promise<CreateAmendmentResult> {
+  if (await isOutsideLegislature(amendment.authorGroupId)) return { ok: false, reason: "group-outside-legislature" };
   try {
     const [created] = await db
       .insert(amendments)
@@ -110,6 +112,7 @@ export async function createAmendment(textId: string, amendment: AmendmentInput)
 }
 
 export async function saveAmendment(id: string, amendment: AmendmentInput): Promise<SaveAmendmentResult> {
+  if (await isOutsideLegislature(amendment.authorGroupId)) return { ok: false, reason: "group-outside-legislature" };
   try {
     const [found] = await db
       .update(amendments)
@@ -125,6 +128,19 @@ export async function saveAmendment(id: string, amendment: AmendmentInput): Prom
 export async function removeAmendment(id: string): Promise<RemoveAmendmentResult> {
   const [deleted] = await db.delete(amendments).where(eq(amendments.id, id)).returning({ id: amendments.id });
   return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+}
+
+// A group that does not exist is left to the foreign key, which reports it as deleted meanwhile.
+async function isOutsideLegislature(groupId: string | null): Promise<boolean> {
+  if (!groupId) return false;
+  const [legislature, [group]] = await Promise.all([
+    getCurrentLegislature(),
+    db
+      .select({ legislatureId: parliamentaryGroups.legislatureId })
+      .from(parliamentaryGroups)
+      .where(eq(parliamentaryGroups.id, groupId)),
+  ]);
+  return group !== undefined && group.legislatureId !== legislature.id;
 }
 
 // Rethrows anything the editor cannot act on.

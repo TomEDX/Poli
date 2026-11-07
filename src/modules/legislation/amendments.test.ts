@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { previousLegislatureGroupId } from "../../../test/previous-legislature";
 import { createParliamentaryGroup, removeParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
@@ -166,6 +167,18 @@ describe("amendments in the administration", () => {
     expect(await getAmendments(textId)).toEqual([]);
   });
 
+  it("refuse an author's group of another legislature", async () => {
+    const textId = await publishedTextId();
+    const former = await previousLegislatureGroupId("ANC");
+    const created = await createAmendment(textId, { ...amendment, authorGroupId: null, status: "draft" });
+    if (!created.ok) throw new Error("Could not create the amendment");
+    const input = { ...amendment, number: 13, authorGroupId: former, status: "draft" } as const;
+
+    expect(await createAmendment(textId, input)).toEqual({ ok: false, reason: "group-outside-legislature" });
+    expect(await saveAmendment(created.id, input)).toEqual({ ok: false, reason: "group-outside-legislature" });
+    expect(await getAmendments(textId)).toMatchObject([{ number: 12, authorGroupId: null }]);
+  });
+
   it("are saved again as a whole, which publishes them or takes them offline", async () => {
     const textId = await publishedTextId();
     const left = await groupId("GAU");
@@ -224,7 +237,7 @@ describe("amendments in the administration", () => {
       result: "rejected",
       officialUrl: null,
       amendmentId: linked.id,
-      groupVotes: [],
+      groupVotes: [{ groupId: left, position: "against", counts: null }],
     });
 
     expect(await getAmendments(textId)).toMatchObject([

@@ -1,8 +1,9 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
+import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
 import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 
@@ -24,6 +25,7 @@ export type VoteInput = {
   officialUrl: string | null;
   // The amendment of the same text this scrutin voted on; only for a scrutin on an amendment.
   amendmentId: string | null;
+  // One for every group of the current legislature, and for no other group.
   groupVotes: GroupVoteInput[];
 };
 
@@ -44,7 +46,13 @@ export type SaveVoteResult = WriteOutcome<VoteRefusal>;
 
 export type RemoveVoteResult = WriteOutcome<"not-found">;
 
-type VoteRefusal = "number-taken" | "group-voted-twice" | "amendment-voted-twice" | "not-found";
+type VoteRefusal =
+  | "number-taken"
+  | "group-voted-twice"
+  | "missing-group-vote"
+  | "group-outside-legislature"
+  | "amendment-voted-twice"
+  | "not-found";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -106,6 +114,7 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
         .values({ ...vote, textId })
         .returning({ id: votes.id });
       await checkAmendmentOfText(tx, vote.amendmentId, textId);
+      await checkGroupsOfLegislature(tx, cast);
       if (cast.length > 0) {
         await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(created.id, groupVote)));
       }
@@ -123,6 +132,7 @@ export async function saveVote(id: string, { groupVotes: cast, ...vote }: VoteIn
       const [found] = await tx.update(votes).set(vote).where(eq(votes.id, id)).returning({ textId: votes.textId });
       if (!found) throw new Refused("not-found");
       await checkAmendmentOfText(tx, vote.amendmentId, found.textId);
+      await checkGroupsOfLegislature(tx, cast);
       await tx.delete(groupVotes).where(eq(groupVotes.voteId, id));
       if (cast.length > 0) await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(id, groupVote)));
     });
@@ -147,6 +157,19 @@ async function checkAmendmentOfText(tx: Transaction, amendmentId: string | null,
     .from(amendments)
     .where(and(eq(amendments.id, amendmentId), eq(amendments.textId, textId)));
   if (!found) throw new Refused("not-found");
+}
+
+// A group given twice is left to the unique constraint, and a group deleted meanwhile to the
+// foreign key.
+async function checkGroupsOfLegislature(tx: Transaction, groupVoteInputs: GroupVoteInput[]) {
+  const legislature = await getCurrentLegislature();
+  const given = new Set(groupVoteInputs.map((groupVote) => groupVote.groupId));
+  const groups = await tx
+    .select({ id: parliamentaryGroups.id, legislatureId: parliamentaryGroups.legislatureId })
+    .from(parliamentaryGroups)
+    .where(or(eq(parliamentaryGroups.legislatureId, legislature.id), inArray(parliamentaryGroups.id, [...given])));
+  if (groups.some((group) => group.legislatureId !== legislature.id)) throw new Refused("group-outside-legislature");
+  if (groups.some((group) => !given.has(group.id))) throw new Refused("missing-group-vote");
 }
 
 // The group votes of each scrutin, groups in the official order.

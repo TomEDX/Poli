@@ -145,6 +145,13 @@ describe("scrutin actions", () => {
       ok: false,
       message: "Choisissez le résultat du scrutin.",
     });
+
+    await groupId("DRO");
+    expect(await saveVoteAction(vote.id, { ...form, groupVotes: [once] })).toEqual({
+      ok: false,
+      message:
+        "Saisissez la position de chaque groupe de la législature en cours : rechargez la page pour voir la liste à jour.",
+    });
   });
 
   it("link a scrutin on an amendment to it, never another kind of scrutin, and only once", async () => {

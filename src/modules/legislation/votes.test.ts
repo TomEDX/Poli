@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { previousLegislatureGroupId } from "../../../test/previous-legislature";
 import { createParliamentaryGroup, removeParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
@@ -103,6 +104,43 @@ describe("a scrutin on a published text", () => {
 });
 
 describe("entering a scrutin", () => {
+  it("takes the vote of every group of the current legislature, and refuses a list missing one", async () => {
+    const textId = await publishedTextId();
+    const [left, right] = await groupIds("GAU", "DRO");
+    const partial: VoteInput = { ...finalVote, groupVotes: [{ groupId: left, position: "for", counts: null }] };
+
+    expect(await createVote(textId, partial)).toEqual({ ok: false, reason: "missing-group-vote" });
+    expect(await getVotes(textId)).toEqual([]);
+
+    const created = await createVote(textId, {
+      ...finalVote,
+      groupVotes: [
+        { groupId: left, position: "for", counts: null },
+        { groupId: right, position: "against", counts: null },
+      ],
+    });
+    if (!created.ok) throw new Error("Could not create the scrutin");
+    expect(await saveVote(created.id, partial)).toEqual({ ok: false, reason: "missing-group-vote" });
+    expect(await getVotes(textId)).toMatchObject([{ groupVotes: [{ groupId: left }, { groupId: right }] }]);
+  });
+
+  it("refuses the vote of a group of another legislature", async () => {
+    const textId = await publishedTextId();
+    const [left] = await groupIds("GAU");
+    const former = await previousLegislatureGroupId("ANC");
+
+    expect(
+      await createVote(textId, {
+        ...finalVote,
+        groupVotes: [
+          { groupId: left, position: "for", counts: null },
+          { groupId: former, position: "against", counts: null },
+        ],
+      }),
+    ).toEqual({ ok: false, reason: "group-outside-legislature" });
+    expect(await getVotes(textId)).toEqual([]);
+  });
+
   it("takes one vote per group: a group given twice is refused and nothing is written", async () => {
     const textId = await publishedTextId();
     const [left, right] = await groupIds("GAU", "DRO");
@@ -164,6 +202,7 @@ describe("scrutins in the administration", () => {
       ...finalVote,
       groupVotes: [
         { groupId: left, position: "for", counts: null },
+        { groupId: centre, position: "for", counts: null },
         { groupId: right, position: "against", counts: null },
       ],
     });
@@ -174,6 +213,7 @@ describe("scrutins in the administration", () => {
       result: "rejected",
       officialUrl: null,
       groupVotes: [
+        { groupId: left, position: "against", counts: null },
         { groupId: centre, position: "abstention", counts: { for: 0, against: 1, abstention: 12, nonVoting: 1 } },
         { groupId: right, position: "for", counts: null },
       ],
@@ -181,7 +221,7 @@ describe("scrutins in the administration", () => {
     expect(await saveVote(created.id, edited)).toEqual({ ok: true });
     expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id }]);
 
-    const twice: VoteInput = { ...edited, result: "adopted", groupVotes: [...edited.groupVotes, edited.groupVotes[1]] };
+    const twice: VoteInput = { ...edited, result: "adopted", groupVotes: [...edited.groupVotes, edited.groupVotes[2]] };
     expect(await saveVote(created.id, twice)).toEqual({ ok: false, reason: "group-voted-twice" });
     expect(await getVotes(textId)).toEqual([{ ...edited, id: created.id }]);
   });
