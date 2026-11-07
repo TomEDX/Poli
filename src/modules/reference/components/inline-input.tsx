@@ -19,7 +19,8 @@ type InlineInputProps = {
   // Lets the editor save an emptied field, such as a candidate name taken back.
   allowEmpty?: boolean;
   onSave: (value: string) => Promise<ActionResult>;
-  onClose: () => void;
+  // restoreFocus is true when the field was left with Enter or Escape, false on a click elsewhere.
+  onClose: (restoreFocus: boolean) => void;
 };
 
 // Enter or leaving the field saves, Escape cancels. On error the field stays open with the message.
@@ -40,18 +41,18 @@ export function InlineInput({
   const closed = useRef(false);
   const errorId = useId();
 
-  const close = () => {
+  const close = (restoreFocus: boolean) => {
     closed.current = true;
-    onClose();
+    onClose(restoreFocus);
   };
 
-  const commit = () => {
+  const commit = (restoreFocus: boolean) => {
     if (closed.current || pending) return;
     const trimmed = value.trim();
-    if ((trimmed === "" && !allowEmpty) || trimmed === initial) return close();
+    if ((trimmed === "" && !allowEmpty) || trimmed === initial) return close(restoreFocus);
     startTransition(async () => {
       const result = await onSave(trimmed);
-      if (result.ok) close();
+      if (result.ok) close(restoreFocus);
       else setError(result.message);
     });
   };
@@ -73,13 +74,13 @@ export function InlineInput({
         aria-invalid={error !== null}
         aria-describedby={error ? errorId : undefined}
         onChange={(event) => setValue(event.target.value)}
-        onBlur={commit}
+        onBlur={() => commit(false)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
-            commit();
+            commit(true);
           }
-          if (event.key === "Escape") close();
+          if (event.key === "Escape") close(true);
         }}
       />
       {error && (

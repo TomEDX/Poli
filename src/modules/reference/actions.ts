@@ -5,7 +5,8 @@ import { z } from "zod";
 import { editorWrite } from "@/modules/editors/editor-write";
 
 import { createCandidacy, editCandidacy, removeCandidacy, setCandidacyStatus } from "./candidacies";
-import { createParty, editParty, type PartyChanges, removeParty } from "./parties";
+import { createParty, editParty, removeParty } from "./parties";
+import { abbreviationTakenMessage, partyNameTakenMessage } from "./party-messages";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics";
 import {
   candidacySchema,
@@ -106,12 +107,4 @@ function inUseMessage(node: TopicNode) {
   return node.level === "topic"
     ? "Une de ses sous-thématiques est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de supprimer la thématique."
     : "Cette sous-thématique est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de la supprimer.";
-}
-
-function partyNameTakenMessage(party: PartyChanges) {
-  return `Le nom « ${party.name} » est déjà pris par un autre parti.`;
-}
-
-function abbreviationTakenMessage(party: PartyChanges) {
-  return `Le sigle « ${party.abbreviation} » est déjà pris par un autre parti.`;
 }

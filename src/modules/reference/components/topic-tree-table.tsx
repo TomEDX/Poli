@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,9 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Editing>(null);
   const [adding, setAdding] = useState<Adding>(null);
+  // Where the focus goes back once a new item's field is left with the keyboard.
+  const [refocusAdd, setRefocusAdd] = useState<Adding>(null);
+  const newTopicButton = useRef<HTMLButtonElement>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -54,11 +57,8 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <p className="text-sm text-muted-foreground">Administration</p>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">Thématiques</h1>
-        </div>
-        <Button onClick={() => setAdding("topic")}>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-balance">Thématiques</h1>
+        <Button ref={newTopicButton} onClick={() => setAdding("topic")}>
           <Plus /> Nouvelle thématique
         </Button>
       </div>
@@ -145,9 +145,12 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                     <div className="max-w-sm">
                       <InlineInput
                         label={`Nouvelle sous-thématique de « ${topic.name} »`}
-                        placeholder="Nom de la sous-thématique, puis Entrée"
+                        placeholder="Nom de la sous-thématique, puis Entrée…"
                         initial=""
-                        onClose={() => setAdding(null)}
+                        onClose={(restoreFocus) => {
+                          setAdding(null);
+                          setRefocusAdd(restoreFocus ? topic.id : null);
+                        }}
                         onSave={(name) => createSubtopicAction(topic.id, { name, slug: "" })}
                       />
                     </div>
@@ -156,6 +159,7 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
                       variant="ghost"
                       size="xs"
                       className="h-8 text-muted-foreground md:h-6"
+                      autoFocus={refocusAdd === topic.id}
                       onClick={() => setAdding(topic.id)}
                     >
                       <Plus /> Ajouter une sous-thématique
@@ -171,9 +175,12 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
               <div className="max-w-sm">
                 <InlineInput
                   label="Nouvelle thématique"
-                  placeholder="Nom de la thématique, puis Entrée"
+                  placeholder="Nom de la thématique, puis Entrée…"
                   initial=""
-                  onClose={() => setAdding(null)}
+                  onClose={(restoreFocus) => {
+                    setAdding(null);
+                    if (restoreFocus) newTopicButton.current?.focus();
+                  }}
                   onSave={(name) => createTopicAction({ name, slug: "" })}
                 />
               </div>
@@ -182,9 +189,8 @@ export function TopicTreeTable({ tree }: { tree: TopicTree }) {
         </ul>
       </div>
       <p className="text-xs text-muted-foreground">
-        <span className="hidden md:inline">Double-cliquez sur un nom ou un identifiant pour le modifier. </span>
-        <span className="md:hidden">Touchez un nom ou un identifiant pour le modifier. </span>
-        Une sous-thématique utilisée par un contenu ne peut pas être supprimée.
+        Sélectionnez un nom ou un identifiant pour le modifier. Une sous-thématique utilisée par un contenu ne peut pas
+        être supprimée.
       </p>
     </div>
   );
