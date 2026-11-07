@@ -72,6 +72,13 @@ const summaryColumns = {
   filedOn: texts.filedOn,
 };
 
+const editableColumns = {
+  ...summaryColumns,
+  officialUrl: texts.officialUrl,
+  summary: texts.summary,
+  status: texts.status,
+};
+
 // The number breaks a tie within a day.
 const filingOrder = [desc(texts.filedOn), desc(texts.number)];
 const reverseFilingOrder = [asc(texts.filedOn), asc(texts.number)];
@@ -121,20 +128,16 @@ export async function getPublishedText(id: string): Promise<PublishedText | null
 }
 
 export async function getTexts(): Promise<EditableText[]> {
-  const rows = await db
-    .select({
-      ...summaryColumns,
-      officialUrl: texts.officialUrl,
-      summary: texts.summary,
-      status: texts.status,
-    })
-    .from(texts)
-    .orderBy(...filingOrder);
-  const subtopicsByText = await subtopicsOf(rows.map((row) => row.id));
-  return rows.map((row) => ({
-    ...row,
-    subtopicIds: (subtopicsByText.get(row.id) ?? []).map((subtopic) => subtopic.id),
-  }));
+  const rows = await db.select(editableColumns).from(texts).orderBy(...filingOrder);
+  return withSubtopicIds(rows);
+}
+
+// A draft too; null for a text that does not exist. The id comes from the URL, so anything
+// but a uuid is a text that does not exist.
+export async function getText(id: string): Promise<EditableText | null> {
+  if (!z.uuid().safeParse(id).success) return null;
+  const [text] = await withSubtopicIds(await db.select(editableColumns).from(texts).where(eq(texts.id, id)));
+  return text ?? null;
 }
 
 export async function createText({ subtopicIds, ...text }: NewText): Promise<CreateTextResult> {
@@ -216,6 +219,14 @@ function filterConditions({ topicId, subtopicId, nature }: TextFilters): SQL[] {
     );
   }
   return conditions;
+}
+
+async function withSubtopicIds<Row extends { id: string }>(rows: Row[]): Promise<(Row & { subtopicIds: string[] })[]> {
+  const subtopicsByText = await subtopicsOf(rows.map((row) => row.id));
+  return rows.map((row) => ({
+    ...row,
+    subtopicIds: (subtopicsByText.get(row.id) ?? []).map((subtopic) => subtopic.id),
+  }));
 }
 
 // The subtopics of each text, in the order of the topic tree.

@@ -71,11 +71,11 @@ export async function getPublishedAmendments(textId: string): Promise<PublishedA
     .where(and(eq(amendments.textId, textId), eq(amendments.status, "published"), eq(texts.status, "published")))
     .orderBy(asc(amendments.number));
   if (rows.length === 0) return [];
-  const publishedVotes = await getPublishedVotes(textId);
+  const votesByAmendment = new Map((await getPublishedVotes(textId)).map((vote) => [vote.amendmentId, vote]));
   return rows.map(({ group, ...row }) => ({
     ...row,
     authorGroup: group,
-    vote: publishedVotes.find((vote) => vote.amendmentId === row.id) ?? null,
+    vote: votesByAmendment.get(row.id) ?? null,
   }));
 }
 
@@ -91,10 +91,8 @@ export async function getAmendments(textId: string): Promise<Amendment[]> {
       .from(votes)
       .where(and(eq(votes.textId, textId), isNotNull(votes.amendmentId))),
   ]);
-  return rows.map((row) => {
-    const linkedVote = linkedVotes.find((candidate) => candidate.amendmentId === row.id);
-    return { ...row, vote: linkedVote ? { id: linkedVote.id, number: linkedVote.number } : null };
-  });
+  const votesByAmendment = new Map(linkedVotes.map(({ amendmentId, ...vote }) => [amendmentId, vote]));
+  return rows.map((row) => ({ ...row, vote: votesByAmendment.get(row.id) ?? null }));
 }
 
 export async function createAmendment(textId: string, amendment: AmendmentInput): Promise<CreateAmendmentResult> {

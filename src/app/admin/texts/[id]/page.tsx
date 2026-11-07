@@ -7,7 +7,7 @@ import { getAmendments } from "@/modules/legislation/amendments";
 import { AmendmentTable } from "@/modules/legislation/components/amendment-table";
 import { TextAdminHeader } from "@/modules/legislation/components/text-admin-header";
 import { VoteTable } from "@/modules/legislation/components/vote-table";
-import { getTexts } from "@/modules/legislation/texts";
+import { getText } from "@/modules/legislation/texts";
 import { getVotes } from "@/modules/legislation/votes";
 import { getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
 
@@ -16,15 +16,14 @@ export const metadata: Metadata = { title: "Amendements et scrutins · Administr
 export default function AdminTextPage({ params }: PageProps<"/admin/texts/[id]">) {
   return (
     <Suspense fallback={<TextSkeleton />}>
-      <EditableText params={params} />
+      <TextAdministration params={params} />
     </Suspense>
   );
 }
 
-async function EditableText({ params }: Pick<PageProps<"/admin/texts/[id]">, "params">) {
+async function TextAdministration({ params }: Pick<PageProps<"/admin/texts/[id]">, "params">) {
   const { id } = await params;
-  const [texts, groups] = await Promise.all([getTexts(), getParliamentaryGroups()]);
-  const text = texts.find((candidate) => candidate.id === id);
+  const [text, groups] = await Promise.all([getText(id), getParliamentaryGroups()]);
   if (!text) notFound();
   const [amendments, votes] = await Promise.all([getAmendments(text.id), getVotes(text.id)]);
   return (

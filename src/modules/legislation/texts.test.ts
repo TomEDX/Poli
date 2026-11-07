@@ -7,6 +7,7 @@ import {
   getPublishedText,
   getPublishedTextTopics,
   getPublishedTexts,
+  getText,
   getTexts,
   type NewText,
   removeText,
@@ -272,6 +273,16 @@ describe("texts in the administration", () => {
       { ...energyBill, id: draft, number: 230, filedOn: "2026-10-01", status: "draft", subtopicIds: [] },
       { ...energyBill, id: published, status: "published", subtopicIds: [energy] },
     ]);
+  });
+
+  it("are read one at a time, a draft too, and a text that does not exist reads as none", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const draft = await textId({ ...energyBill, subtopicIds: [energy] });
+    await textId({ ...energyBill, number: 230, subtopicIds: [] });
+
+    expect(await getText(draft)).toEqual({ ...energyBill, id: draft, status: "draft", subtopicIds: [energy] });
+    expect(await getText("00000000-0000-4000-8000-000000000000")).toBeNull();
+    expect(await getText("texte-105")).toBeNull();
   });
 });
 
