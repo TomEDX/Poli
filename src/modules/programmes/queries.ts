@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, notExists, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -6,8 +6,9 @@ import type { Direction } from "@/lib/direction";
 import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
-import { candidacies, sources, subtopics, topics } from "@/modules/reference/schema";
-import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources/queries";
+import { candidacies, subtopics, topics } from "@/modules/reference/schema";
+import { sourceLinks } from "@/modules/reference/sources/links";
+import type { SourceSummary } from "@/modules/reference/sources/queries";
 
 import { extractSources, extracts } from "./schema";
 
@@ -57,6 +58,8 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 const treeOrder = [asc(topics.position), asc(topics.createdAt), asc(subtopics.position), asc(subtopics.createdAt)];
 const programmeOrder = [...treeOrder, asc(extracts.position), asc(extracts.createdAt)];
 
+const extractSourceLinks = sourceLinks(extractSources, "extractId");
+
 /**
  * The programme of a published candidacy: its published extracts, in the order of the topic
  * tree. Empty for a draft candidacy as for one that does not exist; the id may come from a
@@ -84,7 +87,7 @@ export async function getPublishedProgramme(candidacyId: string): Promise<Publis
       ),
     )
     .orderBy(...programmeOrder);
-  const sourcesByExtract = await sourcesOf(rows.map((row) => row.id));
+  const sourcesByExtract = await extractSourceLinks.sourcesOf(rows.map((row) => row.id));
   return rows.map(({ subtopic, topic, ...row }) => ({
     ...row,
     subtopic: { ...subtopic, topic },
@@ -107,10 +110,10 @@ export async function getExtracts(candidacyId: string): Promise<EditableExtract[
     .innerJoin(topics, eq(topics.id, subtopics.topicId))
     .where(eq(extracts.candidacyId, candidacyId))
     .orderBy(...programmeOrder);
-  const sourcesByExtract = await sourcesOf(rows.map((row) => row.id));
+  const sourceIdsByExtract = await extractSourceLinks.sourceIdsOf(rows.map((row) => row.id));
   return rows.map((row) => ({
     ...row,
-    sourceIds: (sourcesByExtract.get(row.id) ?? []).map((source) => source.id),
+    sourceIds: sourceIdsByExtract.get(row.id) ?? [],
   }));
 }
 
@@ -152,7 +155,7 @@ export async function createExtract(
         .insert(extracts)
         .values({ ...extract, candidacyId, position: nextPosition(candidacyId, extract.subtopicId) })
         .returning({ id: extracts.id });
-      await replaceSources(tx, created.id, sourceIds);
+      await extractSourceLinks.replace(tx, created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -175,7 +178,7 @@ export async function saveExtract(id: string, { sourceIds, ...changes }: Extract
       const moved = changes.subtopicId !== undefined && changes.subtopicId !== found.subtopicId;
       const values = moved ? { ...changes, position: nextPosition(found.candidacyId, changes.subtopicId!) } : changes;
       if (Object.keys(values).length > 0) await tx.update(extracts).set(values).where(eq(extracts.id, id));
-      if (sourceIds !== undefined) await replaceSources(tx, id, sourceIds);
+      if (sourceIds !== undefined) await extractSourceLinks.replace(tx, id, sourceIds);
     });
     return { ok: true };
   } catch (error) {
@@ -227,25 +230,4 @@ async function lockSiblings(tx: Transaction, id: string): Promise<string[]> {
     .orderBy(asc(extracts.position), asc(extracts.createdAt))
     .for("update");
   return rows.map((row) => row.id);
-}
-
-async function replaceSources(tx: Transaction, extractId: string, sourceIds: string[]) {
-  await tx.delete(extractSources).where(eq(extractSources.extractId, extractId));
-  if (sourceIds.length > 0) {
-    await tx.insert(extractSources).values(sourceIds.map((sourceId) => ({ extractId, sourceId })));
-  }
-}
-
-// The sources of each extract, as the Sources page sorts them.
-async function sourcesOf(extractIds: string[]): Promise<Map<string, SourceSummary[]>> {
-  const byExtract = new Map<string, SourceSummary[]>();
-  if (extractIds.length === 0) return byExtract;
-  const rows = await db
-    .select({ extractId: extractSources.extractId, source: sourceSummaryColumns })
-    .from(extractSources)
-    .innerJoin(sources, eq(sources.id, extractSources.sourceId))
-    .where(inArray(extractSources.extractId, extractIds))
-    .orderBy(...sourceOrder, asc(sources.id));
-  for (const { extractId, source } of rows) byExtract.set(extractId, [...(byExtract.get(extractId) ?? []), source]);
-  return byExtract;
 }

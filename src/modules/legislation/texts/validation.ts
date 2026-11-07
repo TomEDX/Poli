@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
+import { sourceIdsField } from "@/modules/reference/sources/validation";
 
-import { numberField, officialUrlField, sourceIdsField, summaryField } from "../form-fields";
+import { numberField, officialUrlField, summaryField } from "../form-fields";
 import { textNatures } from "./vocabulary";
 
 export const OFFICIAL_TITLE_MAX_LENGTH = 500;

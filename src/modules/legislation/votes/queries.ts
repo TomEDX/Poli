@@ -11,10 +11,10 @@ import {
 } from "@/modules/reference/parliamentary-groups/queries";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
+import { sourceLinks } from "@/modules/reference/sources/links";
 
-import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
 import { completeCounts, type GroupCounts, type GroupPosition, type VoteResult, type VoteSubject } from "./vocabulary";
-import { amendments, groupVotes, texts, votes } from "../schema";
+import { amendments, groupVotes, texts, votes, voteSources } from "../schema";
 
 // counts is null when only the majority position is known.
 export type GroupVoteInput = { groupId: string; position: GroupPosition; counts: GroupCounts | null };
@@ -71,6 +71,8 @@ const takenReasons: Record<string, VoteRefusal> = {
   votes_amendment_id_unique: "amendment-voted-twice",
 };
 
+const voteSourceLinks = sourceLinks(voteSources, "voteId");
+
 const voteColumns = {
   id: votes.id,
   subject: votes.subject,
@@ -109,7 +111,7 @@ export async function getPublishedVotes(textId: string): Promise<PublishedVote[]
     )
     .orderBy(...voteOrder);
   const ids = rows.map((row) => row.id);
-  const [groupVotesByVote, sourcesByVote] = await Promise.all([groupVotesOf(ids), sourcesOf("vote", ids)]);
+  const [groupVotesByVote, sourcesByVote] = await Promise.all([groupVotesOf(ids), voteSourceLinks.sourcesOf(ids)]);
   return rows.map((row) => ({
     ...row,
     groupVotes: groupVotesByVote.get(row.id) ?? [],
@@ -124,7 +126,7 @@ export async function getVotes(textId: string): Promise<Vote[]> {
     .where(eq(votes.textId, textId))
     .orderBy(...voteOrder);
   const ids = rows.map((row) => row.id);
-  const [groupVotesByVote, sourceIdsByVote] = await Promise.all([groupVotesOf(ids), sourceIdsOf("vote", ids)]);
+  const [groupVotesByVote, sourceIdsByVote] = await Promise.all([groupVotesOf(ids), voteSourceLinks.sourceIdsOf(ids)]);
   return rows.map((row) => ({
     ...row,
     groupVotes: (groupVotesByVote.get(row.id) ?? []).map(({ group, ...groupVote }) => ({ groupId: group.id, ...groupVote })),
@@ -150,7 +152,7 @@ export async function createVote(
           .insert(groupVotes)
           .values(groupVoteInputs.map((groupVote) => groupVoteRow(created.id, groupVote)));
       }
-      await replaceSources(tx, "vote", created.id, sourceIds);
+      await voteSourceLinks.replace(tx, created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -173,7 +175,7 @@ export async function saveVote(
       if (groupVoteInputs.length > 0) {
         await tx.insert(groupVotes).values(groupVoteInputs.map((groupVote) => groupVoteRow(id, groupVote)));
       }
-      if (sourceIds !== undefined) await replaceSources(tx, "vote", id, sourceIds);
+      if (sourceIds !== undefined) await voteSourceLinks.replace(tx, id, sourceIds);
     });
     return { ok: true };
   } catch (error) {
