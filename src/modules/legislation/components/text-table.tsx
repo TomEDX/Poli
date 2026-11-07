@@ -163,7 +163,7 @@ function TextRow({ text, openRef, onOpen }: TextRowProps) {
         <Link
           href={`/admin/texts/${text.id}`}
           className={buttonVariants({ variant: "ghost", size: "sm" })}
-          aria-label={`Amendements et scrutins du ${reference.toLowerCase()}`}
+          aria-label={`Amendements et scrutins : ${reference.toLowerCase()}`}
         >
           <Vote data-icon="inline-start" aria-hidden />
           <span className="hidden sm:inline">Votes</span>

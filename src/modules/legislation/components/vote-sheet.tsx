@@ -321,8 +321,8 @@ function GroupVoteFields({ idPrefix, group, row, error, onChange }: GroupVoteFie
       <FieldLegend variant="label">
         {group.name} <span className="font-normal text-muted-foreground">({group.abbreviation})</span>
       </FieldLegend>
-      <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-auto">
+      <div className="grid gap-3">
+        <Field>
           <FieldLabel htmlFor={`${idPrefix}-position`} className="text-xs text-muted-foreground">
             Position majoritaire
           </FieldLabel>
@@ -344,25 +344,27 @@ function GroupVoteFields({ idPrefix, group, row, error, onChange }: GroupVoteFie
             ))}
           </NativeSelect>
         </Field>
-        {countFields.map(({ key, label }) => (
-          <Field key={key} className="w-auto">
-            <FieldLabel htmlFor={`${idPrefix}-${key}`} className="text-xs text-muted-foreground">
-              {label}
-            </FieldLabel>
-            <Input
-              id={`${idPrefix}-${key}`}
-              value={row.counts[key]}
-              inputMode="numeric"
-              autoComplete="off"
-              aria-invalid={invalid}
-              aria-describedby={error ? errorId : undefined}
-              className="w-20 tabular-nums"
-              onChange={(event) =>
-                onChange((current) => ({ ...current, counts: { ...current.counts, [key]: event.target.value } }))
-              }
-            />
-          </Field>
-        ))}
+        <div className="grid grid-cols-4 gap-2">
+          {countFields.map(({ key, label }) => (
+            <Field key={key} className="min-w-0 gap-1.5">
+              <FieldLabel htmlFor={`${idPrefix}-${key}`} className="text-xs text-muted-foreground">
+                {label}
+              </FieldLabel>
+              <Input
+                id={`${idPrefix}-${key}`}
+                value={row.counts[key]}
+                inputMode="numeric"
+                autoComplete="off"
+                aria-invalid={invalid}
+                aria-describedby={error ? errorId : undefined}
+                className="tabular-nums"
+                onChange={(event) =>
+                  onChange((current) => ({ ...current, counts: { ...current.counts, [key]: event.target.value } }))
+                }
+              />
+            </Field>
+          ))}
+        </div>
       </div>
       <FieldError id={errorId}>{error}</FieldError>
     </FieldSet>
