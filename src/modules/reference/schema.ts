@@ -1,4 +1,5 @@
-import { date, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { date, integer, pgEnum, pgPolicy, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { publicationStatuses } from "./publication-status";
 import { sourceKinds } from "./source-kinds";
@@ -70,7 +71,15 @@ export const candidacies = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [unique("candidacies_party_id_unique").on(table.partyId)],
+  (table) => [
+    unique("candidacies_party_id_unique").on(table.partyId),
+    // Content filed under a candidacy checks it in its own rule, which runs with the client's rights.
+    pgPolicy("candidacies_public_read_published", {
+      for: "select",
+      to: ["anon", "authenticated"],
+      using: sql`${table.status} = 'published'`,
+    }),
+  ],
 ).enableRLS();
 
 // One row, inserted by the migration that creates the table (ADR 0005): groups and texts

@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { createAmendment } from "@/modules/legislation/amendments";
 import { createText, saveText } from "@/modules/legislation/texts";
 import { createVote } from "@/modules/legislation/votes";
+import { createExtract } from "@/modules/programmes/extracts";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import { createParty, getParties } from "@/modules/reference/parties";
 import { topics } from "@/modules/reference/schema";
 import { createSource } from "@/modules/reference/sources";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
@@ -232,6 +234,37 @@ describe("database access rules", () => {
         { amendment_id: shown.id },
       ]);
       expect(await asRole(role, "select vote_id from vote_sources"), role).toEqual([{ vote_id: shownVote.id }]);
+    }
+  });
+
+  it("let clients read published extracts and their sources, never a draft nor those of a draft candidacy", async () => {
+    const topic = await createTopic({ name: "Santé", slug: "sante" });
+    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+    await createParty({ name: "Parti de test", abbreviation: "PDT", candidacy: { candidateName: null, status: "published" } });
+    await createParty({ name: "Parti en brouillon", abbreviation: "PEB", candidacy: { candidateName: null, status: "draft" } });
+    const parties = await getParties();
+    const candidacy = parties.find((party) => party.abbreviation === "PDT")!.candidacy;
+    const draftCandidacy = parties.find((party) => party.abbreviation === "PEB")!.candidacy;
+    const source = await createSource({
+      title: "Programme",
+      organization: "Parti de test",
+      url: "https://test.example.org/programme",
+      consultedOn: "2026-10-12",
+      kind: "program",
+    });
+    const extract = { subtopicId: subtopic.id, recordedOn: "2026-10-12", sourceIds: [source.id] };
+    await createExtract(candidacy!.id, { ...extract, quote: "Publié", status: "published" });
+    await createExtract(candidacy!.id, { ...extract, quote: "Brouillon", status: "draft" });
+    await createExtract(draftCandidacy!.id, { ...extract, quote: "Candidature en brouillon", status: "published" });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select count(*)::int as count from candidacies"), role).toEqual([{ count: 1 }]);
+      expect(await asRole(role, "select quote from extracts"), role).toEqual([{ quote: "Publié" }]);
+      expect(
+        await asRole(role, "select e.quote from extract_sources es join extracts e on e.id = es.extract_id"),
+        role,
+      ).toEqual([{ quote: "Publié" }]);
     }
   });
 });

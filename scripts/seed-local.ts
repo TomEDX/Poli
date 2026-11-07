@@ -69,6 +69,17 @@ type SeedAmendment = {
   vote: Omit<SeedVote, "textNumber" | "subject"> | null;
 };
 
+// partyAbbreviation, subtopicSlug and sourceUrls name seeded rows; an extract of a missing
+// candidacy or subtopic is skipped, a missing source is left out. Listed in the order of each subtopic.
+type SeedExtract = {
+  partyAbbreviation: string;
+  subtopicSlug: string;
+  quote: string;
+  recordedOn: string;
+  sourceUrls?: string[];
+  status: "draft" | "published";
+};
+
 // Which sections were written; a section that already had rows is skipped.
 type SeedResult = {
   topics: boolean;
@@ -78,6 +89,7 @@ type SeedResult = {
   texts: boolean;
   votes: boolean;
   amendments: boolean;
+  extracts: boolean;
 };
 
 const topicTree: SeedTopic[] = [
@@ -360,6 +372,64 @@ const amendmentList: SeedAmendment[] = [
   },
 ];
 
+// Fictional quotes from the fictional programmes; most subtopics are left without any, as
+// they would be while the editors are still reading.
+const extractList: SeedExtract[] = [
+  {
+    partyAbbreviation: "PDH",
+    subtopicSlug: "prevention",
+    quote: "Nous créerons trois bilans de prévention gratuits, à 25, 45 et 65 ans, remboursés à 100 %.",
+    recordedOn: "2026-10-12",
+    sourceUrls: ["https://horizon.example.org/programme"],
+    status: "published",
+  },
+  {
+    partyAbbreviation: "PDH",
+    subtopicSlug: "prevention",
+    quote: "Chaque collège aura une infirmière scolaire à temps plein.",
+    recordedOn: "2026-10-12",
+    sourceUrls: ["https://horizon.example.org/programme"],
+    status: "published",
+  },
+  {
+    partyAbbreviation: "PDH",
+    subtopicSlug: "energie",
+    quote: "Nous couvrirons de panneaux solaires tous les parkings de plus de 1 000 m² d'ici 2030.",
+    recordedOn: "2026-10-12",
+    status: "published",
+  },
+  {
+    partyAbbreviation: "PDH",
+    subtopicSlug: "retraites",
+    quote: "L'âge légal de départ restera fixé à 64 ans.",
+    recordedOn: "2026-10-12",
+    status: "draft",
+  },
+  {
+    partyAbbreviation: "UDT",
+    subtopicSlug: "prevention",
+    quote: "Un médecin de prévention sera présent dans chaque maison France services.",
+    recordedOn: "2026-10-20",
+    sourceUrls: ["https://territoires.example.org/propositions"],
+    status: "published",
+  },
+  {
+    partyAbbreviation: "UDT",
+    subtopicSlug: "collectivites-locales",
+    quote: "Les communes de moins de 3 500 habitants recevront une dotation de fonctionnement garantie pour cinq ans.",
+    recordedOn: "2026-10-20",
+    sourceUrls: ["https://territoires.example.org/propositions"],
+    status: "published",
+  },
+  {
+    partyAbbreviation: "MES",
+    subtopicSlug: "climat",
+    quote: "La France atteindra la neutralité carbone en 2045, cinq ans avant l'objectif européen.",
+    recordedOn: "2026-10-25",
+    status: "draft",
+  },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
@@ -372,6 +442,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       texts: await seedTexts(tx),
       votes: await seedVotes(tx),
       amendments: await seedAmendments(tx),
+      extracts: await seedExtracts(tx),
     };
   });
 }
@@ -398,6 +469,7 @@ if (import.meta.main) {
   console.log(seeded.texts ? "Texts seeded." : "Local database already has texts: skipped.");
   console.log(seeded.votes ? "Scrutins seeded." : "Local database already has scrutins: skipped.");
   console.log(seeded.amendments ? "Amendments seeded." : "Local database already has amendments: skipped.");
+  console.log(seeded.extracts ? "Programme extracts seeded." : "Local database already has extracts: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -531,7 +603,7 @@ async function seedGroupVotes(tx: postgres.TransactionSql, voteId: string, group
 
 async function seedSourceLinks(
   tx: postgres.TransactionSql,
-  content: "text" | "vote",
+  content: "text" | "vote" | "extract",
   contentId: string,
   sourceUrls: string[] = [],
 ) {
@@ -541,9 +613,25 @@ async function seedSourceLinks(
     select ${contentId}, id from sources where url in ${tx(sourceUrls)}`;
 }
 
+async function seedExtracts(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "extracts")) return false;
+  for (const [index, extract] of extractList.entries()) {
+    const [created] = await tx<{ id: string }[]>`
+      insert into extracts (candidacy_id, subtopic_id, quote, recorded_on, position, status)
+      select candidacies.id, subtopics.id, ${extract.quote}, ${extract.recordedOn}, ${index + 1}, ${extract.status}
+      from candidacies
+      join parties on parties.id = candidacies.party_id
+      cross join subtopics
+      where parties.abbreviation = ${extract.partyAbbreviation} and subtopics.slug = ${extract.subtopicSlug}
+      returning id`;
+    if (created) await seedSourceLinks(tx, "extract", created.id, extract.sourceUrls);
+  }
+  return true;
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
-  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts" | "votes" | "amendments",
+  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts" | "votes" | "amendments" | "extracts",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;

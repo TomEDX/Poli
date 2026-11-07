@@ -325,7 +325,7 @@ function Deletion({ party, onCandidacyRemoved, onPartyRemoved, onRemovingParty }
             <AlertDialogDescription>
               {confirm.target === "party"
                 ? "Le parti est retiré de l’administration. Cette action est définitive."
-                : "La candidature disparaît du site si elle était en ligne ; le parti est conservé. Cette action est définitive."}
+                : "La candidature et les extraits de son programme disparaissent du site ; le parti est conservé. Cette action est définitive."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, ScrollText, Vote } from "lucide-react";
+import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, ScrollText, TextQuote, Vote } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -25,7 +25,7 @@ type Section = { href: string; label: string; icon: LucideIcon };
 
 // Each content section adds its entry here as it is built. Icons are what the collapsed
 // menu shows: the tree for the topic tree, the ballot box for candidacies, the Assemblée
-// for its groups, the open book for sources, the scroll for texts.
+// for its groups, the open book for sources, the scroll for texts, the quote for programmes.
 const menuGroups: { label: string; sections: Section[] }[] = [
   {
     label: "Référentiel",
@@ -39,6 +39,10 @@ const menuGroups: { label: string; sections: Section[] }[] = [
   {
     label: "Législatif",
     sections: [{ href: "/admin/texts", label: "Textes", icon: ScrollText }],
+  },
+  {
+    label: "Programmes",
+    sections: [{ href: "/admin/programmes", label: "Extraits", icon: TextQuote }],
   },
 ];
 
