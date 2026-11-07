@@ -8,10 +8,8 @@ import type { ActionResult } from "@/modules/editors/editor-write";
 
 import type { Party } from "../parties";
 import { NewPartyForm } from "./new-party-form";
-import { PartyRow } from "./party-row";
+import { type PartyField, PartyRow } from "./party-row";
 import { partyGrid } from "./row-layout";
-
-export type PartyField = "name" | "abbreviation" | "candidateName";
 
 export function PartyTable({ parties }: { parties: Party[] }) {
   const [editing, setEditing] = useState<{ id: string; field: PartyField } | null>(null);

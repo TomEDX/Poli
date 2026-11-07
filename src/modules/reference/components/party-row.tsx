@@ -19,8 +19,9 @@ import type { Party } from "../parties";
 import { ABBREVIATION_MAX_LENGTH } from "../validation";
 import { EditableText } from "./editable-text";
 import { InlineInput } from "./inline-input";
-import type { PartyField } from "./party-table";
 import { iconButton, partyGrid } from "./row-layout";
+
+export type PartyField = "name" | "abbreviation" | "candidateName";
 
 type PartyRowProps = {
   party: Party;
@@ -31,8 +32,6 @@ type PartyRowProps = {
   onAction: (action: () => Promise<ActionResult>) => void;
 };
 
-// A party with its candidacy: name, abbreviation and candidate edited in place, the
-// candidacy published or not, and the delete buttons.
 export function PartyRow({ party, editing, onEditingChange, pending, error, onAction }: PartyRowProps) {
   const stopEditing = () => onEditingChange(null);
   const { candidacy } = party;

@@ -3,22 +3,19 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
-import type { CandidacyStatus } from "./candidacies";
 import { candidacyLabel } from "./candidacy-label";
 import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
+import type { PublicationStatus } from "./publication-status";
 import { candidacies, parties } from "./schema";
 
 export type PartyInput = { name: string; abbreviation: string };
 
 export type PartyChanges = Partial<PartyInput>;
 
-// A party with its candidacy, as the administration lists them.
 export type Party = PartyInput & {
   id: string;
-  candidacy: { id: string; candidateName: string | null; status: CandidacyStatus; label: string } | null;
+  candidacy: { id: string; candidateName: string | null; status: PublicationStatus; label: string } | null;
 };
-
-type Taken = "name-taken" | "abbreviation-taken";
 
 export type CreatePartyResult = { ok: true; id: string } | { ok: false; reason: Taken };
 
@@ -26,11 +23,14 @@ export type EditPartyResult = WriteOutcome<Taken | "not-found">;
 
 export type RemovePartyResult = WriteOutcome<"in-use" | "not-found">;
 
+type Taken = "name-taken" | "abbreviation-taken";
+
 const takenReasons: Record<string, Taken> = {
   parties_name_unique: "name-taken",
   parties_abbreviation_unique: "abbreviation-taken",
 };
 
+// Drafts included: for the administration only; public pages read getPublishedCandidacies.
 export async function getParties(): Promise<Party[]> {
   const rows = await db
     .select({

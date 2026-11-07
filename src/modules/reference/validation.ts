@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { publicationStatuses } from "./publication-status";
+
 export const NAME_MAX_LENGTH = 80;
 
 export const ABBREVIATION_MAX_LENGTH = 20;
@@ -52,7 +54,7 @@ export const candidacySchema = z.object({
     .transform((name) => (name === "" ? null : name)),
 });
 
-export const candidacyStatusSchema = z.enum(["draft", "published"]);
+export const candidacyStatusSchema = z.enum(publicationStatuses);
 
 export function slugify(text: string): string {
   return text

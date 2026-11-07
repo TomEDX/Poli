@@ -5,11 +5,9 @@ import type { WriteOutcome } from "@/modules/editors/editor-write";
 
 import { candidacyLabel } from "./candidacy-label";
 import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
+import type { PublicationStatus } from "./publication-status";
 import { candidacies, parties } from "./schema";
 
-export type CandidacyStatus = (typeof candidacies.$inferSelect)["status"];
-
-// candidateName is null until a candidate is declared.
 export type CandidacyInput = { candidateName: string | null };
 
 export type PublishedCandidacy = {
@@ -23,7 +21,6 @@ export type CreateCandidacyResult = { ok: true; id: string } | { ok: false; reas
 
 export type CandidacyResult = WriteOutcome<"not-found">;
 
-// Ordered by party name; the public pages shuffle them so that no candidacy is favoured.
 export async function getPublishedCandidacies(): Promise<PublishedCandidacy[]> {
   const rows = await db
     .select({
@@ -56,7 +53,7 @@ export async function editCandidacy(id: string, input: CandidacyInput): Promise<
   return updateCandidacy(id, input);
 }
 
-export async function setCandidacyStatus(id: string, status: CandidacyStatus): Promise<CandidacyResult> {
+export async function setCandidacyStatus(id: string, status: PublicationStatus): Promise<CandidacyResult> {
   return updateCandidacy(id, { status });
 }
 

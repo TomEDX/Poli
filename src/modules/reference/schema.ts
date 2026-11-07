@@ -1,7 +1,9 @@
 import { integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
+import { publicationStatuses } from "./publication-status";
+
 // Shared by every publishable content table: only published content reaches the public.
-export const publicationStatus = pgEnum("publication_status", ["draft", "published"]);
+export const publicationStatus = pgEnum("publication_status", publicationStatuses);
 
 export const topics = pgTable("topics", {
   id: uuid().primaryKey().defaultRandom(),
