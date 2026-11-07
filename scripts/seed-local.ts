@@ -6,6 +6,15 @@ import postgres from "postgres";
 
 type SeedTopic = { name: string; slug: string; subtopics: { name: string; slug: string }[] };
 
+type SeedParty = {
+  name: string;
+  abbreviation: string;
+  candidacy?: { candidateName: string | null; status: "draft" | "published" };
+};
+
+// Which sections were written; a section that already had rows is skipped.
+type SeedResult = { topics: boolean; parties: boolean };
+
 const topicTree: SeedTopic[] = [
   {
     name: "Économie et emploi",
@@ -93,25 +102,21 @@ const topicTree: SeedTopic[] = [
   },
 ];
 
-// Returns false without writing anything when the database already has topics,
-// so editors' local changes survive a restart.
-export async function seedLocalDatabase(client: postgres.Sql): Promise<boolean> {
-  return client.begin(async (tx) => {
-    const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from topics`;
-    if (count > 0) return false;
+// Fictional parties, so that no real party is shown or favoured during development.
+const partyList: SeedParty[] = [
+  { name: "Parti de l'Horizon", abbreviation: "PDH", candidacy: { candidateName: "Camille Martin", status: "published" } },
+  { name: "Union des territoires", abbreviation: "UDT", candidacy: { candidateName: "Louis Bernard", status: "published" } },
+  { name: "Mouvement écologie solidaire", abbreviation: "MES", candidacy: { candidateName: null, status: "published" } },
+  { name: "Alliance citoyenne", abbreviation: "AC", candidacy: { candidateName: "Hélène Rousseau", status: "draft" } },
+  { name: "Collectif progrès social", abbreviation: "CPS", candidacy: { candidateName: null, status: "draft" } },
+  { name: "Parti des libertés", abbreviation: "PDL" },
+];
 
-    for (const [topicIndex, topic] of topicTree.entries()) {
-      const [{ id }] = await tx<{ id: string }[]>`
-        insert into topics (name, slug, position)
-        values (${topic.name}, ${topic.slug}, ${topicIndex + 1})
-        returning id`;
-      for (const [subtopicIndex, subtopic] of topic.subtopics.entries()) {
-        await tx`
-          insert into subtopics (topic_id, name, slug, position)
-          values (${id}, ${subtopic.name}, ${subtopic.slug}, ${subtopicIndex + 1})`;
-      }
-    }
-    return true;
+// Each section is written only when its table is empty, so editors' local changes
+// survive a restart.
+export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
+  return client.begin(async (tx) => {
+    return { topics: await seedTopics(tx), parties: await seedParties(tx) };
   });
 }
 
@@ -126,5 +131,41 @@ if (import.meta.main) {
   const client = postgres(url, { max: 1, onnotice: () => {} });
   const seeded = await seedLocalDatabase(client);
   await client.end();
-  console.log(seeded ? "Local database seeded with a topic tree." : "Local database already has topics: seed skipped.");
+  console.log(seeded.topics ? "Topic tree seeded." : "Local database already has topics: skipped.");
+  console.log(seeded.parties ? "Parties and candidacies seeded." : "Local database already has parties: skipped.");
+}
+
+async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "topics")) return false;
+  for (const [topicIndex, topic] of topicTree.entries()) {
+    const [{ id }] = await tx<{ id: string }[]>`
+      insert into topics (name, slug, position)
+      values (${topic.name}, ${topic.slug}, ${topicIndex + 1})
+      returning id`;
+    for (const [subtopicIndex, subtopic] of topic.subtopics.entries()) {
+      await tx`
+        insert into subtopics (topic_id, name, slug, position)
+        values (${id}, ${subtopic.name}, ${subtopic.slug}, ${subtopicIndex + 1})`;
+    }
+  }
+  return true;
+}
+
+async function seedParties(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "parties")) return false;
+  for (const party of partyList) {
+    const [{ id }] = await tx<{ id: string }[]>`
+      insert into parties (name, abbreviation) values (${party.name}, ${party.abbreviation}) returning id`;
+    if (party.candidacy) {
+      await tx`
+        insert into candidacies (party_id, candidate_name, status)
+        values (${id}, ${party.candidacy.candidateName}, ${party.candidacy.status})`;
+    }
+  }
+  return true;
+}
+
+async function hasRows(tx: postgres.TransactionSql, table: "topics" | "parties"): Promise<boolean> {
+  const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
+  return count > 0;
 }

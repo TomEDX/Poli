@@ -2,6 +2,7 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 
+import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
 import { subtopics, topics } from "./schema";
 
 export type Level = "topic" | "subtopic";
@@ -32,9 +33,6 @@ export type RemoveResult = Outcome<"in-use" | "not-found">;
 
 // unchanged means nothing was written, so the public pages need no regeneration.
 type Outcome<Reason extends string> = { ok: true; unchanged?: true } | { ok: false; reason: Reason };
-
-const uniqueViolation = "23505";
-const foreignKeyViolation = "23503";
 
 export async function getTopicTree(): Promise<TopicTree> {
   const topicRows = await db
@@ -124,7 +122,7 @@ export async function removeNode(node: TopicNode): Promise<RemoveResult> {
     return deleted ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
     // On a delete, a reference that blocks it is content still filed under a subtopic.
-    if (postgresCode(error) === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
     throw error;
   }
 }
@@ -158,16 +156,10 @@ async function write(run: () => Promise<{ id: string } | undefined>): Promise<Cr
     const row = await run();
     return row ? { ok: true, id: row.id } : { ok: false, reason: "not-found" };
   } catch (error) {
-    const code = postgresCode(error);
+    const { code } = postgresError(error);
     if (code === uniqueViolation) return { ok: false, reason: "slug-taken" };
     // On a write, a missing reference means the parent topic was deleted meanwhile.
     if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
     throw error;
   }
-}
-
-// Drizzle wraps the driver error and keeps the Postgres one as its cause.
-function postgresCode(error: unknown): string | undefined {
-  const { cause, code } = error as { cause?: { code?: string }; code?: string };
-  return cause?.code ?? code;
 }

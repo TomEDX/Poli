@@ -8,5 +8,10 @@ export const slugCell = "col-start-1 row-start-2 md:col-start-2 md:row-start-1";
 
 export const actionsCell = "col-start-2 row-span-2 row-start-1 md:col-start-3 md:row-span-1";
 
+// Parties: on phones the name and the buttons share the first line, the abbreviation sits
+// under the name and the candidacy takes the full width below; from md up, four columns.
+export const partyGrid =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-2 md:grid-cols-[minmax(0,1fr)_6rem_minmax(0,1.3fr)_auto]";
+
 // Icon buttons are 32px on phones so a finger can hit them, 24px with a mouse.
 export const iconButton = "size-8 touch-manipulation md:size-6";

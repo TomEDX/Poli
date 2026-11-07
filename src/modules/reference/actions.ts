@@ -4,8 +4,19 @@ import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
 
+import { createCandidacy, editCandidacy, removeCandidacy, setCandidacyStatus } from "./candidacies";
+import { createParty, editParty, type PartyChanges, removeParty } from "./parties";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics";
-import { directionSchema, newTopicSchema, topicChangesSchema, topicNodeSchema } from "./validation";
+import {
+  candidacySchema,
+  candidacyStatusSchema,
+  directionSchema,
+  newPartySchema,
+  newTopicSchema,
+  partyChangesSchema,
+  topicChangesSchema,
+  topicNodeSchema,
+} from "./validation";
 
 export const createTopicAction = editorWrite({
   args: [],
@@ -39,6 +50,52 @@ export const removeNodeAction = editorWrite({
   messages: { "in-use": inUseMessage },
 });
 
+export const createPartyAction = editorWrite({
+  args: [],
+  input: newPartySchema,
+  run: createParty,
+  messages: { "name-taken": partyNameTakenMessage, "abbreviation-taken": abbreviationTakenMessage },
+});
+
+export const editPartyAction = editorWrite({
+  args: [z.uuid()],
+  input: partyChangesSchema,
+  run: editParty,
+  messages: {
+    "name-taken": (_id, changes) => partyNameTakenMessage(changes),
+    "abbreviation-taken": (_id, changes) => abbreviationTakenMessage(changes),
+  },
+});
+
+export const removePartyAction = editorWrite({
+  args: [z.uuid()],
+  run: removeParty,
+  messages: { "in-use": "Ce parti porte une candidature : supprimez-la avant de supprimer le parti." },
+});
+
+export const createCandidacyAction = editorWrite({
+  args: [z.uuid()],
+  input: candidacySchema,
+  run: createCandidacy,
+  messages: { "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page." },
+});
+
+export const editCandidacyAction = editorWrite({
+  args: [z.uuid()],
+  input: candidacySchema,
+  run: editCandidacy,
+});
+
+export const setCandidacyStatusAction = editorWrite({
+  args: [z.uuid(), candidacyStatusSchema],
+  run: setCandidacyStatus,
+});
+
+export const removeCandidacyAction = editorWrite({
+  args: [z.uuid()],
+  run: removeCandidacy,
+});
+
 function slugTakenMessage(level: TopicNode["level"], slug: string | undefined) {
   return level === "topic"
     ? `L'identifiant « ${slug} » est déjà pris par une autre thématique.`
@@ -49,4 +106,12 @@ function inUseMessage(node: TopicNode) {
   return node.level === "topic"
     ? "Une de ses sous-thématiques est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de supprimer la thématique."
     : "Cette sous-thématique est utilisée par du contenu : rattachez ce contenu à une autre sous-thématique avant de la supprimer.";
+}
+
+function partyNameTakenMessage(party: PartyChanges) {
+  return `Le nom « ${party.name} » est déjà pris par un autre parti.`;
+}
+
+function abbreviationTakenMessage(party: PartyChanges) {
+  return `Le sigle « ${party.abbreviation} » est déjà pris par un autre parti.`;
 }
