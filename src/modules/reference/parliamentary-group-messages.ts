@@ -8,3 +8,6 @@ export function groupNameTakenMessage(group: ParliamentaryGroupChanges) {
 export function groupAbbreviationTakenMessage(group: ParliamentaryGroupChanges) {
   return `Le sigle « ${group.abbreviation} » est déjà pris par un autre groupe parlementaire.`;
 }
+
+export const groupInUseMessage =
+  "Ce groupe a voté dans un scrutin ou est celui de l’auteur d’un amendement : il ne peut plus être supprimé.";

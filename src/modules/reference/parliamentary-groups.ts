@@ -14,12 +14,10 @@ export type ParliamentaryGroupInput = { name: string; abbreviation: string; part
 // partyIds, when given, replaces every link of the group.
 export type ParliamentaryGroupChanges = Partial<ParliamentaryGroupInput>;
 
-export type ParliamentaryGroup = {
-  id: string;
-  name: string;
-  abbreviation: string;
-  parties: PartySummary[];
-};
+// What other modules show of a group next to a vote or an amendment.
+export type ParliamentaryGroupSummary = { id: string; name: string; abbreviation: string };
+
+export type ParliamentaryGroup = ParliamentaryGroupSummary & { parties: PartySummary[] };
 
 export type PartySummary = { id: string; name: string; abbreviation: string };
 
@@ -29,9 +27,15 @@ export type SaveParliamentaryGroupResult = WriteOutcome<Taken | "not-found">;
 
 export type MoveParliamentaryGroupResult = WriteOutcome<"not-found">;
 
-export type RemoveParliamentaryGroupResult = WriteOutcome<"not-found">;
+export type RemoveParliamentaryGroupResult = WriteOutcome<"in-use" | "not-found">;
 
 type Taken = "name-taken" | "abbreviation-taken";
+
+export const groupSummaryColumns = {
+  id: parliamentaryGroups.id,
+  name: parliamentaryGroups.name,
+  abbreviation: parliamentaryGroups.abbreviation,
+};
 
 const takenReasons: Record<string, Taken> = {
   parliamentary_groups_legislature_id_name_unique: "name-taken",
@@ -50,7 +54,7 @@ class Refused extends Error {
 export async function getParliamentaryGroups(): Promise<ParliamentaryGroup[]> {
   const legislature = await getCurrentLegislature();
   const groups = await db
-    .select({ id: parliamentaryGroups.id, name: parliamentaryGroups.name, abbreviation: parliamentaryGroups.abbreviation })
+    .select(groupSummaryColumns)
     .from(parliamentaryGroups)
     .where(eq(parliamentaryGroups.legislatureId, legislature.id))
     .orderBy(asc(parliamentaryGroups.position), asc(parliamentaryGroups.createdAt));
@@ -149,12 +153,19 @@ export async function moveParliamentaryGroup(id: string, direction: Direction): 
   });
 }
 
+// Refused while the group has voted in a scrutin or is the group of an amendment's author,
+// which would lose its vote or the amendment's group.
 export async function removeParliamentaryGroup(id: string): Promise<RemoveParliamentaryGroupResult> {
-  const [deleted] = await db
-    .delete(parliamentaryGroups)
-    .where(eq(parliamentaryGroups.id, id))
-    .returning({ id: parliamentaryGroups.id });
-  return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+  try {
+    const [deleted] = await db
+      .delete(parliamentaryGroups)
+      .where(eq(parliamentaryGroups.id, id))
+      .returning({ id: parliamentaryGroups.id });
+    return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+  } catch (error) {
+    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
+    throw error;
+  }
 }
 
 // One transaction, and only the given fields are written, so a save never brings back a

@@ -1,0 +1,50 @@
+import { z } from "zod";
+
+import { publicationStatuses } from "@/modules/reference/publication-status";
+
+import { numberField, officialUrlField, summaryField } from "./form-fields";
+import { textNatures } from "./text-natures";
+
+export const OFFICIAL_TITLE_MAX_LENGTH = 500;
+
+const textNumberField = numberField({ missing: "Saisissez le numéro du texte.", label: "Le numéro" });
+
+const natureField = z.enum(textNatures, { error: "Choisissez la nature du texte." });
+
+const officialTitleField = z
+  .string()
+  .trim()
+  .min(1, "Saisissez le titre officiel.")
+  .max(OFFICIAL_TITLE_MAX_LENGTH, `Le titre officiel dépasse ${OFFICIAL_TITLE_MAX_LENGTH} caractères.`);
+
+const filedOnField = z.iso.date({ error: "Saisissez la date de dépôt." });
+
+// A subtopic picked twice is filed once.
+const subtopicIdsField = z.array(z.uuid()).transform((ids) => [...new Set(ids)]);
+
+const statusField = z.enum(publicationStatuses);
+
+export const newTextSchema = z.object({
+  nature: natureField,
+  number: textNumberField,
+  officialTitle: officialTitleField,
+  filedOn: filedOnField,
+  officialUrl: officialUrlField,
+  summary: summaryField,
+  subtopicIds: subtopicIdsField.default([]),
+  status: statusField.default("draft"),
+});
+
+// On an edit, only the fields that changed are sent; subtopicIds replaces every subtopic.
+export const textChangesSchema = z
+  .object({
+    nature: natureField.optional(),
+    number: textNumberField.optional(),
+    officialTitle: officialTitleField.optional(),
+    filedOn: filedOnField.optional(),
+    officialUrl: officialUrlField.optional(),
+    summary: summaryField.optional(),
+    subtopicIds: subtopicIdsField.optional(),
+    status: statusField.optional(),
+  })
+  .refine((changes) => Object.values(changes).some((value) => value !== undefined), "Aucune modification à enregistrer.");

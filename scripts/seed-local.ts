@@ -23,8 +23,60 @@ type SeedSource = {
   kind: "program" | "vote" | "official_text" | "other";
 };
 
+// subtopicSlugs names seeded subtopics; one missing from the database is skipped.
+type SeedText = {
+  nature: "government_bill" | "member_bill";
+  number: number;
+  officialTitle: string;
+  filedOn: string;
+  officialUrl: string | null;
+  summary: string;
+  subtopicSlugs: string[];
+  status: "draft" | "published";
+};
+
+// textNumber and groupAbbreviation name seeded rows; a vote on a missing text or group is skipped.
+type SeedVote = {
+  textNumber: number;
+  subject: "whole_text" | "article" | "amendment" | "motion";
+  number: number;
+  heldOn: string;
+  result: "adopted" | "rejected";
+  officialUrl: string | null;
+  groupVotes: {
+    groupAbbreviation: string;
+    position: "for" | "against" | "abstention" | "non_voting";
+    // For, against, abstention, non-voting; null when only the majority position is known.
+    counts: [number, number, number, number] | null;
+  }[];
+};
+
+// textNumber and groupAbbreviation name seeded rows; an amendment of a missing text is skipped.
+type SeedAmendment = {
+  textNumber: number;
+  number: number;
+  authorLabel: string;
+  groupAbbreviation: string | null;
+  cosignatories: string | null;
+  summary: string;
+  fate: "adopted" | "rejected" | "withdrawn" | "not_moved" | "fallen" | "inadmissible";
+  governmentOpinion: "favourable" | "unfavourable" | "wisdom" | "none";
+  committeeOpinion: "favourable" | "unfavourable" | "wisdom" | "none";
+  status: "draft" | "published";
+  // Null when it was voted by show of hands, or not put to the vote.
+  vote: Omit<SeedVote, "textNumber" | "subject"> | null;
+};
+
 // Which sections were written; a section that already had rows is skipped.
-type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean; sources: boolean };
+type SeedResult = {
+  topics: boolean;
+  parties: boolean;
+  parliamentaryGroups: boolean;
+  sources: boolean;
+  texts: boolean;
+  votes: boolean;
+  amendments: boolean;
+};
 
 const topicTree: SeedTopic[] = [
   {
@@ -171,6 +223,139 @@ const sourceList: SeedSource[] = [
   },
 ];
 
+// Fictional texts on example.org, so that no real text is shown during development.
+const textList: SeedText[] = [
+  {
+    nature: "government_bill",
+    number: 105,
+    officialTitle: "Projet de loi relatif à l'accélération de la production d'énergies renouvelables",
+    filedOn: "2026-09-12",
+    officialUrl: "https://assemblee.example.org/textes/105",
+    summary:
+      "Le texte raccourcit les délais d'autorisation des éoliennes et des panneaux solaires, et oblige les grands parkings à se couvrir d'ombrières photovoltaïques.",
+    subtopicSlugs: ["energie", "climat"],
+    status: "published",
+  },
+  {
+    nature: "member_bill",
+    number: 230,
+    officialTitle: "Proposition de loi visant à garantir un rendez-vous de prévention à chaque âge de la vie",
+    filedOn: "2026-10-03",
+    officialUrl: "https://assemblee.example.org/textes/230",
+    summary:
+      "Le texte crée trois bilans de prévention gratuits, à 25, 45 et 65 ans, pris en charge à 100 % par l'Assurance maladie.",
+    subtopicSlugs: ["prevention", "medecine-de-ville"],
+    status: "published",
+  },
+  {
+    nature: "government_bill",
+    number: 87,
+    officialTitle: "Projet de loi de programmation pour la justice 2027-2031",
+    filedOn: "2026-06-24",
+    officialUrl: null,
+    summary:
+      "Le texte fixe le budget de la justice pour cinq ans et prévoit la construction de nouvelles places de prison.",
+    subtopicSlugs: ["justice", "prisons"],
+    status: "published",
+  },
+  {
+    nature: "member_bill",
+    number: 312,
+    officialTitle: "Proposition de loi visant à encadrer les loyers dans les zones tendues",
+    filedOn: "2026-10-28",
+    officialUrl: "https://assemblee.example.org/textes/312",
+    summary: "Le texte étend l'encadrement des loyers à toutes les communes où le logement manque.",
+    subtopicSlugs: ["logement"],
+    status: "draft",
+  },
+  {
+    nature: "member_bill",
+    number: 298,
+    officialTitle: "Proposition de loi relative au référendum d'initiative citoyenne",
+    filedOn: "2026-10-15",
+    officialUrl: null,
+    summary: "Le texte permet à un million d'électeurs de demander un référendum sur une proposition de loi.",
+    subtopicSlugs: [],
+    status: "draft",
+  },
+];
+
+// A fictional scrutin, matching the fictional source on scrutin n° 412.
+const voteList: SeedVote[] = [
+  {
+    textNumber: 105,
+    subject: "whole_text",
+    number: 412,
+    heldOn: "2026-09-30",
+    result: "adopted",
+    officialUrl: "https://assemblee.example.org/scrutins/412",
+    groupVotes: [
+      { groupAbbreviation: "HET", position: "for", counts: [98, 0, 2, 1] },
+      { groupAbbreviation: "ECS", position: "for", counts: [30, 3, 4, 0] },
+      { groupAbbreviation: "ACP", position: "abstention", counts: null },
+      { groupAbbreviation: "LIB", position: "against", counts: [5, 40, 2, 0] },
+      { groupAbbreviation: "NII", position: "against", counts: null },
+    ],
+  },
+];
+
+// Fictional amendments on the renewable energy bill: one decided by a public scrutin, one
+// rejected by show of hands, and a draft.
+const amendmentList: SeedAmendment[] = [
+  {
+    textNumber: 105,
+    number: 12,
+    authorLabel: "Mme Claire Martin",
+    groupAbbreviation: "ECS",
+    cosignatories: "M. Paul Durand et 14 autres députés",
+    summary:
+      "L'amendement étend l'obligation d'ombrières photovoltaïques aux parkings de plus de 1 000 m², au lieu de 1 500 m².",
+    fate: "adopted",
+    governmentOpinion: "wisdom",
+    committeeOpinion: "favourable",
+    status: "published",
+    vote: {
+      number: 398,
+      heldOn: "2026-09-29",
+      result: "adopted",
+      officialUrl: "https://assemblee.example.org/scrutins/398",
+      groupVotes: [
+        { groupAbbreviation: "HET", position: "abstention", counts: [10, 12, 60, 19] },
+        { groupAbbreviation: "ECS", position: "for", counts: [36, 0, 0, 1] },
+        { groupAbbreviation: "ACP", position: "for", counts: null },
+        { groupAbbreviation: "LIB", position: "against", counts: [2, 41, 1, 3] },
+        { groupAbbreviation: "NII", position: "against", counts: null },
+      ],
+    },
+  },
+  {
+    textNumber: 105,
+    number: 47,
+    authorLabel: "M. Julien Leroy",
+    groupAbbreviation: "LIB",
+    cosignatories: null,
+    summary: "L'amendement supprime l'article qui raccourcit les délais d'autorisation des éoliennes en mer.",
+    fate: "rejected",
+    governmentOpinion: "unfavourable",
+    committeeOpinion: "unfavourable",
+    status: "published",
+    vote: null,
+  },
+  {
+    textNumber: 105,
+    number: 63,
+    authorLabel: "Le Gouvernement",
+    groupAbbreviation: null,
+    cosignatories: null,
+    summary: "L'amendement corrige une erreur de référence dans l'article 4.",
+    fate: "adopted",
+    governmentOpinion: "none",
+    committeeOpinion: "favourable",
+    status: "draft",
+    vote: null,
+  },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
@@ -180,6 +365,9 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       parties: await seedParties(tx),
       parliamentaryGroups: await seedParliamentaryGroups(tx),
       sources: await seedSources(tx),
+      texts: await seedTexts(tx),
+      votes: await seedVotes(tx),
+      amendments: await seedAmendments(tx),
     };
   });
 }
@@ -203,6 +391,9 @@ if (import.meta.main) {
       : "Local database already has parliamentary groups: skipped.",
   );
   console.log(seeded.sources ? "Sources seeded." : "Local database already has sources: skipped.");
+  console.log(seeded.texts ? "Texts seeded." : "Local database already has texts: skipped.");
+  console.log(seeded.votes ? "Scrutins seeded." : "Local database already has scrutins: skipped.");
+  console.log(seeded.amendments ? "Amendments seeded." : "Local database already has amendments: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -264,9 +455,77 @@ async function seedSources(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
+// The texts join the legislature inserted by the migrations.
+async function seedTexts(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "texts")) return false;
+  const [{ id: legislatureId }] = await tx<{ id: string }[]>`
+    select id from legislatures order by number desc limit 1`;
+  for (const text of textList) {
+    const [{ id }] = await tx<{ id: string }[]>`
+      insert into texts (legislature_id, nature, number, official_title, filed_on, official_url, summary, status)
+      values (${legislatureId}, ${text.nature}, ${text.number}, ${text.officialTitle}, ${text.filedOn},
+              ${text.officialUrl}, ${text.summary}, ${text.status})
+      returning id`;
+    if (text.subtopicSlugs.length > 0) {
+      await tx`
+        insert into text_subtopics (text_id, subtopic_id)
+        select ${id}, id from subtopics where slug in ${tx(text.subtopicSlugs)}`;
+    }
+  }
+  return true;
+}
+
+async function seedVotes(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "votes")) return false;
+  for (const { textNumber, groupVotes, ...vote } of voteList) {
+    const [created] = await tx<{ id: string }[]>`
+      insert into votes (text_id, subject, number, held_on, result, official_url)
+      select id, ${vote.subject}, ${vote.number}, ${vote.heldOn}, ${vote.result}, ${vote.officialUrl}
+      from texts where number = ${textNumber}
+      returning id`;
+    if (!created) continue;
+    await seedGroupVotes(tx, created.id, groupVotes);
+  }
+  return true;
+}
+
+async function seedAmendments(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "amendments")) return false;
+  for (const { textNumber, groupAbbreviation, vote, ...amendment } of amendmentList) {
+    const [created] = await tx<{ id: string; textId: string }[]>`
+      insert into amendments (text_id, number, author_label, author_group_id, cosignatories, summary, fate,
+                              government_opinion, committee_opinion, status)
+      select id, ${amendment.number}, ${amendment.authorLabel},
+             (select id from parliamentary_groups where abbreviation = ${groupAbbreviation}),
+             ${amendment.cosignatories}, ${amendment.summary}, ${amendment.fate},
+             ${amendment.governmentOpinion}, ${amendment.committeeOpinion}, ${amendment.status}
+      from texts where number = ${textNumber}
+      returning id, text_id as "textId"`;
+    if (!created || !vote) continue;
+    const [scrutin] = await tx<{ id: string }[]>`
+      insert into votes (text_id, subject, number, held_on, result, official_url, amendment_id)
+      values (${created.textId}, 'amendment', ${vote.number}, ${vote.heldOn}, ${vote.result}, ${vote.officialUrl},
+              ${created.id})
+      returning id`;
+    await seedGroupVotes(tx, scrutin.id, vote.groupVotes);
+  }
+  return true;
+}
+
+async function seedGroupVotes(tx: postgres.TransactionSql, voteId: string, groupVotes: SeedVote["groupVotes"]) {
+  for (const { groupAbbreviation, position, counts } of groupVotes) {
+    const [inFavour, against, abstention, nonVoting] = counts ?? [null, null, null, null];
+    await tx`
+      insert into group_votes
+        (vote_id, group_id, position, for_count, against_count, abstention_count, non_voting_count)
+      select ${voteId}, id, ${position}, ${inFavour}, ${against}, ${abstention}, ${nonVoting}
+      from parliamentary_groups where abbreviation = ${groupAbbreviation}`;
+  }
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
-  table: "topics" | "parties" | "parliamentary_groups" | "sources",
+  table: "topics" | "parties" | "parliamentary_groups" | "sources" | "texts" | "votes" | "amendments",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;

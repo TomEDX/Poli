@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
+import { getPublishedAmendments } from "@/modules/legislation/amendments";
+import { createText, getPublishedTexts, getTexts } from "@/modules/legislation/texts";
+import { getPublishedVotes } from "@/modules/legislation/votes";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
 import { createParty, getParties } from "@/modules/reference/parties";
@@ -61,7 +64,15 @@ describe("local seed", () => {
   it("leaves the groups of a database that already has some untouched", async () => {
     await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
 
-    expect(await seedLocalDatabase(db.$client)).toEqual({ topics: true, parties: true, parliamentaryGroups: false, sources: true });
+    expect(await seedLocalDatabase(db.$client)).toEqual({
+      topics: true,
+      parties: true,
+      parliamentaryGroups: false,
+      sources: true,
+      texts: true,
+      votes: true,
+      amendments: true,
+    });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
 
@@ -83,5 +94,57 @@ describe("local seed", () => {
 
     expect(await seedLocalDatabase(db.$client)).toMatchObject({ sources: false });
     expect(await getSources()).toMatchObject([{ title: "Source de test" }]);
+  });
+
+  it("adds texts of both natures, drafts and published ones, filed under the seeded subtopics", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ texts: true });
+
+    const texts = await getTexts();
+    expect(new Set(texts.map((text) => text.nature))).toEqual(new Set(["government_bill", "member_bill"]));
+    expect(texts.some((text) => text.status === "draft")).toBe(true);
+    expect(texts.some((text) => text.officialUrl === null)).toBe(true);
+    const published = await getPublishedTexts();
+    expect(published.length).toBeGreaterThan(2);
+    expect(published.every((text) => text.subtopics.length > 0)).toBe(true);
+  });
+
+  it("leaves the texts of a database that already has some untouched", async () => {
+    await createText({
+      nature: "member_bill",
+      number: 1,
+      officialTitle: "Texte de test",
+      filedOn: "2026-11-01",
+      officialUrl: null,
+      summary: "Résumé de test",
+      subtopicIds: [],
+    });
+
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ texts: false });
+    expect(await getTexts()).toMatchObject([{ officialTitle: "Texte de test" }]);
+  });
+
+  it("adds a scrutin on the whole of a published text, with a vote for every group, counted or not", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ votes: true });
+
+    const groups = await getParliamentaryGroups();
+    const votes = (await Promise.all((await getPublishedTexts()).map((text) => getPublishedVotes(text.id)))).flat();
+    const finalVotes = votes.filter((vote) => vote.subject === "whole_text");
+    expect(finalVotes).toHaveLength(1);
+    const [vote] = finalVotes;
+    expect(vote.groupVotes.map((groupVote) => groupVote.group.id)).toEqual(groups.map((group) => group.id));
+    expect(vote.groupVotes.some((groupVote) => groupVote.counts === null)).toBe(true);
+    expect(vote.groupVotes.some((groupVote) => groupVote.counts !== null)).toBe(true);
+  });
+
+  it("adds published amendments to a published text, one with a public scrutin, one voted by show of hands", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ amendments: true });
+
+    const texts = await getPublishedTexts();
+    const amendments = (await Promise.all(texts.map((text) => getPublishedAmendments(text.id)))).flat();
+    expect(amendments.some((amendment) => amendment.vote !== null && amendment.vote.groupVotes.length > 0)).toBe(true);
+    expect(
+      amendments.some((amendment) => amendment.vote === null && ["adopted", "rejected"].includes(amendment.fate)),
+    ).toBe(true);
+    expect(amendments.some((amendment) => amendment.authorGroup !== null)).toBe(true);
   });
 });

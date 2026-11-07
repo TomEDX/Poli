@@ -5,7 +5,7 @@ import { z } from "zod";
 import { editorWrite } from "@/modules/editors/editor-write";
 
 import { removeCandidacy, setCandidacyStatus } from "./candidacies";
-import { groupAbbreviationTakenMessage, groupNameTakenMessage } from "./parliamentary-group-messages";
+import { groupAbbreviationTakenMessage, groupInUseMessage, groupNameTakenMessage } from "./parliamentary-group-messages";
 import {
   createParliamentaryGroup,
   moveParliamentaryGroup,
@@ -121,6 +121,7 @@ export const moveParliamentaryGroupAction = editorWrite({
 export const removeParliamentaryGroupAction = editorWrite({
   args: [z.uuid()],
   run: removeParliamentaryGroup,
+  messages: { "in-use": groupInUseMessage },
 });
 
 export const createSourceAction = editorWrite({

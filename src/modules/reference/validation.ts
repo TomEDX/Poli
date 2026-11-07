@@ -51,8 +51,8 @@ const organizationField = z
   .min(1, "Saisissez l'organisme.")
   .max(ORGANIZATION_MAX_LENGTH, `L'organisme dépasse ${ORGANIZATION_MAX_LENGTH} caractères.`);
 
-// Only web links: the Sources page turns them into links, so no javascript: or other scheme.
-const sourceUrlField = z
+// Only web links: public pages turn them into links, so no javascript: or other scheme.
+export const webUrlField = z
   .string()
   .trim()
   .max(URL_MAX_LENGTH, `Le lien dépasse ${URL_MAX_LENGTH} caractères.`)
@@ -124,7 +124,7 @@ export const parliamentaryGroupChangesSchema = z
 export const newSourceSchema = z.object({
   title: sourceTitleField,
   organization: organizationField,
-  url: sourceUrlField,
+  url: webUrlField,
   consultedOn: consultedOnField,
   kind: sourceKindField,
 });
