@@ -5,11 +5,11 @@ import { z } from "zod";
 import { editorWrite } from "@/modules/editors/editor-write";
 
 import { amendmentNumberTakenMessage, authorGroupOutsideLegislatureMessage } from "./amendment-messages";
-import { amendmentSchema } from "./amendment-validation";
-import { createAmendment, removeAmendment, saveAmendment } from "./amendments";
+import { amendmentSchema } from "./amendments/validation";
+import { createAmendment, removeAmendment, saveAmendment } from "./amendments/queries";
 import { noSubtopicMessage, textNumberTakenMessage } from "./text-messages";
-import { createText, removeText, saveText } from "./texts";
-import { newTextSchema, textChangesSchema } from "./text-validation";
+import { createText, removeText, saveText } from "./texts/queries";
+import { newTextSchema, textChangesSchema } from "./texts/validation";
 import {
   amendmentVotedTwiceMessage,
   groupVotedTwiceMessage,
@@ -17,8 +17,8 @@ import {
   voteGroupOutsideLegislatureMessage,
   voteNumberTakenMessage,
 } from "./vote-messages";
-import { voteSchema } from "./vote-validation";
-import { createVote, removeVote, saveVote } from "./votes";
+import { voteSchema } from "./votes/validation";
+import { createVote, removeVote, saveVote } from "./votes/queries";
 
 export const createTextAction = editorWrite({
   args: [],

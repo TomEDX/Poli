@@ -2,15 +2,15 @@ import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { createAmendment } from "@/modules/legislation/amendments";
-import { createText, saveText } from "@/modules/legislation/texts";
-import { createVote } from "@/modules/legislation/votes";
+import { createAmendment } from "@/modules/legislation/amendments/queries";
+import { createText, saveText } from "@/modules/legislation/texts/queries";
+import { createVote } from "@/modules/legislation/votes/queries";
 import { createExtract } from "@/modules/programmes/extracts";
-import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
-import { createParty, getParties } from "@/modules/reference/parties";
+import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
+import { createParty, getParties } from "@/modules/reference/parties/queries";
 import { topics } from "@/modules/reference/schema";
-import { createSource } from "@/modules/reference/sources";
-import { createSubtopic, createTopic } from "@/modules/reference/topics";
+import { createSource } from "@/modules/reference/sources/queries";
+import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
 // The roles Supabase gives to a client that is not signed in (anon) or signed
 // in through Supabase Auth (authenticated). The app itself connects as postgres.

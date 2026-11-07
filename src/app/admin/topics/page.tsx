@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { TopicTreeTable } from "@/modules/reference/components/topic-tree-table";
-import { getTopicTree } from "@/modules/reference/topics";
+import { TopicTreeTable } from "@/modules/reference/topics/components/topic-tree-table";
+import { getTopicTree } from "@/modules/reference/topics/queries";
 
 export const metadata: Metadata = { title: "Thématiques · Administration · Poli." };
 

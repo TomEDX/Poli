@@ -16,10 +16,10 @@ import {
   savePartyAction,
   createParliamentaryGroupAction,
 } from "./actions";
-import { getParliamentaryGroups } from "./parliamentary-groups";
-import { getParties } from "./parties";
-import { getSources } from "./sources";
-import { getTopicTree } from "./topics";
+import { getParliamentaryGroups } from "./parliamentary-groups/queries";
+import { getParties } from "./parties/queries";
+import { getSources } from "./sources/queries";
+import { getTopicTree } from "./topics/queries";
 
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => "editrice@example.fr") }));
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { setCandidacyStatus } from "@/modules/reference/candidacies";
-import { createParty, getParties } from "@/modules/reference/parties";
-import { createSource, removeSource } from "@/modules/reference/sources";
-import { createSubtopic, createTopic } from "@/modules/reference/topics";
+import { setCandidacyStatus } from "@/modules/reference/parties/candidacies";
+import { createParty, getParties } from "@/modules/reference/parties/queries";
+import { createSource, removeSource } from "@/modules/reference/sources/queries";
+import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
 import {
   createExtract,

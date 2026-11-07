@@ -1,4 +1,4 @@
-import type { PartyChanges } from "./parties";
+import type { PartyChanges } from "./parties/queries";
 
 // Shared by the Server Actions and the new party form, which shows each one under its field.
 export function partyNameTakenMessage(party: PartyChanges) {

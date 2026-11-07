@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAmendments } from "@/modules/legislation/amendments";
-import { AmendmentTable } from "@/modules/legislation/components/amendment-table";
-import { TextAdminHeader } from "@/modules/legislation/components/text-admin-header";
-import { VoteTable } from "@/modules/legislation/components/vote-table";
-import { getText } from "@/modules/legislation/texts";
-import { getVotes } from "@/modules/legislation/votes";
-import { getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
-import { getSources } from "@/modules/reference/sources";
+import { getAmendments } from "@/modules/legislation/amendments/queries";
+import { AmendmentTable } from "@/modules/legislation/amendments/components/amendment-table";
+import { TextAdminHeader } from "@/modules/legislation/texts/components/text-admin-header";
+import { VoteTable } from "@/modules/legislation/votes/components/vote-table";
+import { getText } from "@/modules/legislation/texts/queries";
+import { getVotes } from "@/modules/legislation/votes/queries";
+import { getParliamentaryGroups } from "@/modules/reference/parliamentary-groups/queries";
+import { getSources } from "@/modules/reference/sources/queries";
 
 export const metadata: Metadata = { title: "Amendements et scrutins · Administration · Poli." };
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { PartyTable } from "@/modules/reference/components/party-table";
-import { getParties } from "@/modules/reference/parties";
+import { PartyTable } from "@/modules/reference/parties/components/party-table";
+import { getParties } from "@/modules/reference/parties/queries";
 
 export const metadata: Metadata = { title: "Partis et candidatures · Administration · Poli." };
 

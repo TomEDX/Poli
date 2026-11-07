@@ -1,4 +1,4 @@
-import type { ParliamentaryGroupChanges } from "./parliamentary-groups";
+import type { ParliamentaryGroupChanges } from "./parliamentary-groups/queries";
 
 // Shared by the Server Actions and the group form, which shows each one under its field.
 export function groupNameTakenMessage(group: ParliamentaryGroupChanges) {

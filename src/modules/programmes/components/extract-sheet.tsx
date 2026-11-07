@@ -32,10 +32,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { SourcePicker } from "@/modules/reference/components/source-picker";
+import { SourcePicker } from "@/modules/reference/sources/components/source-picker";
 import { todayInParis } from "@/modules/reference/source-dates";
-import type { Source } from "@/modules/reference/sources";
-import type { TopicTree } from "@/modules/reference/topics";
+import type { Source } from "@/modules/reference/sources/queries";
+import type { TopicTree } from "@/modules/reference/topics/queries";
 
 import { createExtractAction, removeExtractAction, saveExtractAction } from "../actions";
 import type { EditableExtract, ExtractChanges } from "../extracts";

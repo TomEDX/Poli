@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { SourceTable } from "@/modules/reference/components/source-table";
-import { getSources } from "@/modules/reference/sources";
+import { SourceTable } from "@/modules/reference/sources/components/source-table";
+import { getSources } from "@/modules/reference/sources/queries";
 
 export const metadata: Metadata = { title: "Sources · Administration · Poli." };
 

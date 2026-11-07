@@ -9,9 +9,9 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import type { Direction } from "@/lib/direction";
-import type { Party } from "@/modules/reference/parties";
-import type { Source } from "@/modules/reference/sources";
-import type { TopicTree } from "@/modules/reference/topics";
+import type { Party } from "@/modules/reference/parties/queries";
+import type { Source } from "@/modules/reference/sources/queries";
+import type { TopicTree } from "@/modules/reference/topics/queries";
 
 import { moveExtractAction, saveExtractAction } from "../actions";
 import { formatRecordedOn } from "../extract-labels";

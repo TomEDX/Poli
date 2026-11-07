@@ -2,7 +2,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { sources } from "@/modules/reference/schema";
-import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources";
+import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources/queries";
 
 import { amendmentSources, textSources, voteSources } from "./schema";
 

@@ -7,7 +7,7 @@ import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { candidacies, sources, subtopics, topics } from "@/modules/reference/schema";
-import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources";
+import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources/queries";
 
 import { extractSources, extracts } from "./schema";
 

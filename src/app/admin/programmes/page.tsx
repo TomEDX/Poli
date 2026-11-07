@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { CandidacyProgrammeList } from "@/modules/programmes/components/candidacy-programme-list";
-import { getParties } from "@/modules/reference/parties";
+import { getParties } from "@/modules/reference/parties/queries";
 
 export const metadata: Metadata = { title: "Programmes · Administration · Poli." };
 
