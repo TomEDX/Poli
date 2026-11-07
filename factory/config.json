@@ -1,0 +1,20 @@
+{
+  "repository": "TomEDX/Poli",
+  "baseBranch": "develop",
+  "queueLabel": "ready-for-agent",
+  "concurrency": 2,
+  "maxRounds": 3,
+  "worktreesDir": "/private/tmp/poli-jobs",
+  "envFiles": [".env", ".env.local", ".env.development.local"],
+  "project": { "owner": "TomEDX", "number": 2 },
+  "ports": { "base": 3100, "step": 10 },
+  "protectedPaths": ["factory/**", ".agents/**"],
+  "alwaysReviewers": ["code"],
+  "pathReviewers": {
+    "ui": ["src/app/**", "src/components/**", "src/modules/*/components/**"],
+    "ux": ["src/app/**", "src/components/**", "src/modules/*/components/**"],
+    "security": ["drizzle/**", "**/schema.ts", "**/actions.ts", "test/access-rules*"]
+  },
+  "riskByReviewer": { "security": "Élevé", "ui": "Moyen", "ux": "Moyen" },
+  "screenshotsBranch": "factory-screenshots"
+}
