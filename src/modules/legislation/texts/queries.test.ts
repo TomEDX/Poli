@@ -4,6 +4,7 @@ import { createSource, type SourceInput } from "@/modules/reference/sources/quer
 import { createSubtopic, createTopic, getTopicTree, removeNode } from "@/modules/reference/topics/queries";
 
 import {
+  countPublishedTexts,
   createText,
   getPublishedText,
   getPublishedTextTopics,
@@ -60,6 +61,19 @@ const impactStudy = {
 } as const;
 
 describe("published texts", () => {
+  it("are counted without the drafts", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    expect(await countPublishedTexts()).toBe(0);
+
+    await textId({ ...energyBill, number: 1, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 2, subtopicIds: [energy] });
+    expect(await countPublishedTexts()).toBe(1);
+
+    await textId({ ...energyBill, number: 3, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 4, subtopicIds: [energy], status: "published" });
+    expect(await countPublishedTexts()).toBe(3);
+  });
+
   it("are listed from the most recently filed", async () => {
     const energy = await subtopicId("Écologie", "Énergie");
     await textId({ ...energyBill, number: 1, filedOn: "2025-01-20", subtopicIds: [energy], status: "published" });

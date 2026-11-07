@@ -14,6 +14,12 @@ export const noSubtopicMessage = "Rattachez le texte à au moins une sous-théma
 
 const longDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "UTC" });
 
+// What the home page says about the published texts: "3 textes examinés".
+export function publishedTextCountLabel(published: number): string {
+  if (published === 0) return "Aucun texte publié pour l'instant";
+  return published === 1 ? "1 texte examiné" : `${published} textes examinés`;
+}
+
 // How the Assemblée names a text: "Projet de loi n° 105".
 export function textReference({ nature, number }: { nature: TextNature; number: number }): string {
   return `${textNatureLabels[nature]} n°\u00a0${number}`;
