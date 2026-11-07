@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
+import type { Direction } from "@/lib/direction";
 import type { Party } from "@/modules/reference/parties";
 import type { Source } from "@/modules/reference/sources";
-import type { Direction, TopicTree } from "@/modules/reference/topics";
+import type { TopicTree } from "@/modules/reference/topics";
 
 import { moveExtractAction, saveExtractAction } from "../actions";
 import { formatRecordedOn } from "../extract-labels";

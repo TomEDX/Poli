@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
+import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import {
   getCurrentLegislature,
@@ -15,7 +16,6 @@ import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { completeCounts, type GroupCounts } from "./group-counts";
 import { amendments, groupVotes, texts, votes } from "./schema";
 import type { GroupPosition, VoteResult, VoteSubject } from "./vote-kinds";
-import { Refused, refusalOf } from "./write-refusals";
 
 // counts is null when only the majority position is known.
 export type GroupVoteInput = { groupId: string; position: GroupPosition; counts: GroupCounts | null };
@@ -155,7 +155,7 @@ export async function createVote(
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, takenReasons) };
+    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
   }
 }
 
@@ -178,7 +178,7 @@ export async function saveVote(
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: refusalOf(error, takenReasons) };
+    return { ok: false, reason: refusalOf(error, { taken: takenReasons, foreignKey: "not-found" }) };
   }
 }
 

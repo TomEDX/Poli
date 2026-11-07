@@ -2,12 +2,12 @@ import { and, asc, eq, inArray, notExists, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
+import type { Direction } from "@/lib/direction";
+import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
-import { foreignKeyViolation, postgresError } from "@/modules/reference/postgres-errors";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { candidacies, sources, subtopics, topics } from "@/modules/reference/schema";
 import { sourceOrder, sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources";
-import type { Direction } from "@/modules/reference/topics";
 
 import { extractSources, extracts } from "./schema";
 
@@ -51,9 +51,6 @@ export type MoveExtractResult = WriteOutcome<"not-found">;
 export type RemoveExtractResult = WriteOutcome<"not-found">;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-// Thrown inside a transaction to roll it back.
-class NotFound extends Error {}
 
 // The order of the topic tree, then the order the editors gave within each subtopic.
 // The same tie-breaks as the topic tree, so the programme and the missing subtopics agree.
@@ -159,7 +156,8 @@ export async function createExtract(
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: missingReason(error) };
+    // A subtopic or source picked in the form was deleted meanwhile.
+    return { ok: false, reason: refusalOf(error, { foreignKey: "not-found" }) };
   }
 }
 
@@ -173,7 +171,7 @@ export async function saveExtract(id: string, { sourceIds, ...changes }: Extract
         .from(extracts)
         .where(eq(extracts.id, id))
         .for("update");
-      if (!found) throw new NotFound();
+      if (!found) throw new Refused("not-found");
       const moved = changes.subtopicId !== undefined && changes.subtopicId !== found.subtopicId;
       const values = moved ? { ...changes, position: nextPosition(found.candidacyId, changes.subtopicId!) } : changes;
       if (Object.keys(values).length > 0) await tx.update(extracts).set(values).where(eq(extracts.id, id));
@@ -181,7 +179,8 @@ export async function saveExtract(id: string, { sourceIds, ...changes }: Extract
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: missingReason(error) };
+    // The extract, or a subtopic or source picked in the form, was deleted meanwhile.
+    return { ok: false, reason: refusalOf(error, { foreignKey: "not-found" }) };
   }
 }
 
@@ -235,13 +234,6 @@ async function replaceSources(tx: Transaction, extractId: string, sourceIds: str
   if (sourceIds.length > 0) {
     await tx.insert(extractSources).values(sourceIds.map((sourceId) => ({ extractId, sourceId })));
   }
-}
-
-// The extract, or a subtopic or source picked in the form, was deleted meanwhile.
-// Rethrows anything the editor cannot act on.
-function missingReason(error: unknown): "not-found" {
-  if (error instanceof NotFound || postgresError(error).code === foreignKeyViolation) return "not-found";
-  throw error;
 }
 
 // The sources of each extract, as the Sources page sorts them.

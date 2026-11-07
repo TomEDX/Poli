@@ -1,10 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
+import { Refused, refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
 import { candidacyLabel } from "./candidacy-label";
-import { foreignKeyViolation, postgresError, uniqueViolation } from "./postgres-errors";
 import type { PublicationStatus } from "./publication-status";
 import { candidacies, parties } from "./schema";
 
@@ -44,12 +44,10 @@ const takenReasons: Record<string, Taken> = {
   parties_abbreviation_unique: "abbreviation-taken",
 };
 
-// Thrown inside a transaction to roll it back with the reason the editor will read.
-class Refused extends Error {
-  constructor(readonly reason: "not-found") {
-    super(reason);
-  }
-}
+const saveTakenReasons: Record<string, Taken | "party-has-candidacy"> = {
+  ...takenReasons,
+  candidacies_party_id_unique: "party-has-candidacy",
+};
 
 // Drafts included: for the administration only; public pages read getPublishedCandidacies.
 export async function getParties(): Promise<Party[]> {
@@ -78,7 +76,7 @@ export async function createParty({ candidacy, ...party }: NewParty): Promise<Cr
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: takenReason(error) };
+    return { ok: false, reason: refusalOf(error, { taken: takenReasons }) };
   }
 }
 
@@ -103,14 +101,8 @@ export async function saveParty(id: string, edit: PartyEdit): Promise<SavePartyR
     });
     return { ok: true };
   } catch (error) {
-    if (error instanceof Refused) return { ok: false, reason: error.reason };
-    const { code, constraint } = postgresError(error);
-    if (code === uniqueViolation && constraint === "candidacies_party_id_unique") {
-      return { ok: false, reason: "party-has-candidacy" };
-    }
-    // The party was deleted meanwhile, so its new candidacy has nothing to point at.
-    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
-    return { ok: false, reason: takenReason(error) };
+    // A foreign key breaks when the party was deleted meanwhile, so its new candidacy has nothing to point at.
+    return { ok: false, reason: refusalOf(error, { taken: saveTakenReasons, foreignKey: "not-found" }) };
   }
 }
 
@@ -120,8 +112,7 @@ export async function removeParty(id: string): Promise<RemovePartyResult> {
     const [deleted] = await db.delete(parties).where(eq(parties.id, id)).returning({ id: parties.id });
     return deleted ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
-    if (postgresError(error).code === foreignKeyViolation) return { ok: false, reason: "in-use" };
-    throw error;
+    return { ok: false, reason: refusalOf(error, { foreignKey: "in-use" }) };
   }
 }
 
@@ -134,14 +125,6 @@ export async function editParty(id: string, changes: PartyChanges): Promise<Edit
     const [edited] = await db.update(parties).set(changes).where(eq(parties.id, id)).returning({ id: parties.id });
     return edited ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
-    return { ok: false, reason: takenReason(error) };
+    return { ok: false, reason: refusalOf(error, { taken: takenReasons }) };
   }
-}
-
-// Rethrows anything but a name or abbreviation already taken.
-function takenReason(error: unknown): Taken {
-  const { code, constraint } = postgresError(error);
-  const reason = code === uniqueViolation && constraint ? takenReasons[constraint] : undefined;
-  if (!reason) throw error;
-  return reason;
 }

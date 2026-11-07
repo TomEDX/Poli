@@ -4,8 +4,8 @@ import { cn } from "cn";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { Direction } from "@/lib/direction";
 
-import type { Direction } from "../topics";
 import { iconButton } from "./row-layout";
 
 type RowActionsProps = {
