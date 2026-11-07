@@ -25,6 +25,9 @@ export const optionalIdField = z
   .transform((id) => id?.trim() || null)
   .pipe(z.uuid().nullable());
 
+// The sources a content is linked to, none required; a source picked twice is linked once.
+export const sourceIdsField = z.array(z.uuid()).transform((ids) => [...new Set(ids)]);
+
 /**
  * An official number, from 1. The form sends what was typed; a value already parsed comes
  * back as a number. label starts the messages, for instance "Le numéro du scrutin".

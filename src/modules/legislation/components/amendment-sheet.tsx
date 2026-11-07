@@ -32,7 +32,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { SourcePicker } from "@/modules/reference/components/source-picker";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import type { Source } from "@/modules/reference/sources";
 
 import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "../actions";
 import { amendmentFateLabels, amendmentFates, amendmentOpinionLabels, amendmentOpinions } from "../amendment-kinds";
@@ -47,6 +49,8 @@ type AmendmentSheetProps = {
   amendment: Amendment | null;
   // The groups of the current legislature, in the official order.
   groups: ParliamentaryGroup[];
+  // Every source the amendment can be linked to.
+  sources: Source[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Where the focus goes once the sheet closes: the row or button that opened it.
@@ -76,7 +80,15 @@ const fieldOrder: TypedField[] = [
   "committeeOpinion",
 ];
 
-export function AmendmentSheet({ textId, amendment, groups, open, onOpenChange, returnFocus }: AmendmentSheetProps) {
+export function AmendmentSheet({
+  textId,
+  amendment,
+  groups,
+  sources,
+  open,
+  onOpenChange,
+  returnFocus,
+}: AmendmentSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-xl" finalFocus={() => returnFocus() ?? true}>
@@ -92,6 +104,7 @@ export function AmendmentSheet({ textId, amendment, groups, open, onOpenChange, 
           textId={textId}
           amendment={amendment}
           groups={groups}
+          sources={sources}
           onDone={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -103,10 +116,11 @@ type AmendmentFormProps = {
   textId: string;
   amendment: Amendment | null;
   groups: ParliamentaryGroup[];
+  sources: Source[];
   onDone: () => void;
 };
 
-function AmendmentForm({ textId, amendment, groups, onDone }: AmendmentFormProps) {
+function AmendmentForm({ textId, amendment, groups, sources, onDone }: AmendmentFormProps) {
   const [values, setValues] = useState<Record<TypedField, string>>(() => ({
     number: amendment ? String(amendment.number) : "",
     authorLabel: amendment?.authorLabel ?? "",
@@ -118,6 +132,7 @@ function AmendmentForm({ textId, amendment, groups, onDone }: AmendmentFormProps
     committeeOpinion: amendment?.committeeOpinion ?? "none",
   }));
   const [published, setPublished] = useState(amendment?.status === "published");
+  const [sourceIds, setSourceIds] = useState<ReadonlySet<string>>(() => new Set(amendment?.sourceIds ?? []));
   const [errors, setErrors] = useState<Errors>({});
   const [pending, startTransition] = useTransition();
   const formId = useId();
@@ -141,7 +156,11 @@ function AmendmentForm({ textId, amendment, groups, onDone }: AmendmentFormProps
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const parsed = amendmentSchema.safeParse({ ...values, status: published ? "published" : "draft" });
+    const parsed = amendmentSchema.safeParse({
+      ...values,
+      sourceIds: [...sourceIds],
+      status: published ? "published" : "draft",
+    });
     if (!parsed.success) {
       const next: Errors = {};
       for (const issue of parsed.error.issues) next[issue.path[0] as TypedField] ??= issue.message;
@@ -260,6 +279,8 @@ function AmendmentForm({ textId, amendment, groups, onDone }: AmendmentFormProps
             ))}
           </div>
         </FieldGroup>
+
+        <SourcePicker sources={sources} selected={sourceIds} onChange={setSourceIds} content="l’amendement" />
 
         <Field orientation="horizontal">
           <FieldContent>

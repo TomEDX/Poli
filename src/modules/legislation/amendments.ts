@@ -10,11 +10,13 @@ import {
 } from "@/modules/reference/parliamentary-groups";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { parliamentaryGroups } from "@/modules/reference/schema";
+import type { SourceSummary } from "@/modules/reference/sources";
 
 import type { AmendmentFate, AmendmentOpinion } from "./amendment-kinds";
+import { replaceSources, sourceIdsOf, sourcesOf } from "./content-sources";
 import { amendments, texts, votes } from "./schema";
 import { getPublishedVotes, type PublishedVote } from "./votes";
-import { refusalOf } from "./write-refusals";
+import { Refused, refusalOf } from "./write-refusals";
 
 export type AmendmentInput = {
   number: number;
@@ -27,17 +29,20 @@ export type AmendmentInput = {
   governmentOpinion: AmendmentOpinion;
   committeeOpinion: AmendmentOpinion;
   status: PublicationStatus;
+  // When given, replaces every source of the amendment; none on a creation without it.
+  sourceIds?: string[];
 };
 
-export type PublishedAmendment = Omit<AmendmentInput, "authorGroupId" | "status"> & {
+export type PublishedAmendment = Omit<AmendmentInput, "authorGroupId" | "status" | "sourceIds"> & {
   id: string;
   authorGroup: ParliamentaryGroupSummary | null;
   // Null when no public scrutin was held on it, for instance a vote by show of hands.
   vote: PublishedVote | null;
+  sources: SourceSummary[];
 };
 
 // What the administration lists and edits, drafts included.
-export type Amendment = AmendmentInput & { id: string; vote: { id: string; number: number } | null };
+export type Amendment = Required<AmendmentInput> & { id: string; vote: { id: string; number: number } | null };
 
 export type CreateAmendmentResult = { ok: true; id: string } | { ok: false; reason: AmendmentRefusal };
 
@@ -71,11 +76,19 @@ export async function getPublishedAmendments(textId: string): Promise<PublishedA
     .where(and(eq(amendments.textId, textId), eq(amendments.status, "published"), eq(texts.status, "published")))
     .orderBy(asc(amendments.number));
   if (rows.length === 0) return [];
-  const votesByAmendment = new Map((await getPublishedVotes(textId)).map((vote) => [vote.amendmentId, vote]));
+  const [publishedVotes, sourcesByAmendment] = await Promise.all([
+    getPublishedVotes(textId),
+    sourcesOf(
+      "amendment",
+      rows.map((row) => row.id),
+    ),
+  ]);
+  const votesByAmendment = new Map(publishedVotes.map((vote) => [vote.amendmentId, vote]));
   return rows.map(({ group, ...row }) => ({
     ...row,
     authorGroup: group,
     vote: votesByAmendment.get(row.id) ?? null,
+    sources: sourcesByAmendment.get(row.id) ?? [],
   }));
 }
 
@@ -92,31 +105,47 @@ export async function getAmendments(textId: string): Promise<Amendment[]> {
       .where(and(eq(votes.textId, textId), isNotNull(votes.amendmentId))),
   ]);
   const votesByAmendment = new Map(linkedVotes.map(({ amendmentId, ...vote }) => [amendmentId, vote]));
-  return rows.map((row) => ({ ...row, vote: votesByAmendment.get(row.id) ?? null }));
+  const sourceIdsByAmendment = await sourceIdsOf(
+    "amendment",
+    rows.map((row) => row.id),
+  );
+  return rows.map((row) => ({
+    ...row,
+    vote: votesByAmendment.get(row.id) ?? null,
+    sourceIds: sourceIdsByAmendment.get(row.id) ?? [],
+  }));
 }
 
-export async function createAmendment(textId: string, amendment: AmendmentInput): Promise<CreateAmendmentResult> {
+// One transaction: the amendment and its sources are written together or not at all.
+export async function createAmendment(
+  textId: string,
+  { sourceIds = [], ...amendment }: AmendmentInput,
+): Promise<CreateAmendmentResult> {
   if (await isOutsideLegislature(amendment.authorGroupId)) return { ok: false, reason: "group-outside-legislature" };
   try {
-    const [created] = await db
-      .insert(amendments)
-      .values({ ...amendment, textId })
-      .returning({ id: amendments.id });
-    return { ok: true, id: created.id };
+    return await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(amendments)
+        .values({ ...amendment, textId })
+        .returning({ id: amendments.id });
+      await replaceSources(tx, "amendment", created.id, sourceIds);
+      return { ok: true as const, id: created.id };
+    });
   } catch (error) {
     return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
-export async function saveAmendment(id: string, amendment: AmendmentInput): Promise<SaveAmendmentResult> {
+// One transaction: the amendment and its sources are written together or not at all.
+export async function saveAmendment(id: string, { sourceIds, ...amendment }: AmendmentInput): Promise<SaveAmendmentResult> {
   if (await isOutsideLegislature(amendment.authorGroupId)) return { ok: false, reason: "group-outside-legislature" };
   try {
-    const [found] = await db
-      .update(amendments)
-      .set(amendment)
-      .where(eq(amendments.id, id))
-      .returning({ id: amendments.id });
-    return found ? { ok: true } : { ok: false, reason: "not-found" };
+    await db.transaction(async (tx) => {
+      const [found] = await tx.update(amendments).set(amendment).where(eq(amendments.id, id)).returning({ id: amendments.id });
+      if (!found) throw new Refused("not-found");
+      if (sourceIds !== undefined) await replaceSources(tx, "amendment", id, sourceIds);
+    });
+    return { ok: true };
   } catch (error) {
     return { ok: false, reason: refusalOf(error, takenReasons) };
   }

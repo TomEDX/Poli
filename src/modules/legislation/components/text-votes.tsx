@@ -1,6 +1,8 @@
 import { ExternalLink } from "lucide-react";
 import { useId } from "react";
 
+import { SourceLinks } from "@/modules/reference/components/source-links";
+
 import { formatCounts, formatHeldOn, voteReference, voteSubjectHeadings } from "../vote-labels";
 import { groupPositionLabels, voteResultLabels } from "../vote-kinds";
 import type { PublishedGroupVote, PublishedVote } from "../votes";
@@ -99,6 +101,7 @@ function VoteCard({ vote }: { vote: PublishedVote }) {
         {vote.officialUrl && <OfficialVoteLink href={vote.officialUrl} />}
       </header>
       <GroupVoteList groupVotes={vote.groupVotes} />
+      <SourceLinks sources={vote.sources} />
     </article>
   );
 }

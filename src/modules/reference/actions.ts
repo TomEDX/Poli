@@ -139,6 +139,9 @@ export const editSourceAction = editorWrite({
 export const removeSourceAction = editorWrite({
   args: [z.uuid()],
   run: removeSource,
+  messages: {
+    "in-use": "Un contenu renvoie encore à cette source : retirez-la de ce contenu avant de la supprimer.",
+  },
 });
 
 function slugTakenMessage(level: TopicNode["level"], slug: string | undefined) {

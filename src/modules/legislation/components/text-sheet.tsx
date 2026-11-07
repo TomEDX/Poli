@@ -33,6 +33,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { SourcePicker } from "@/modules/reference/components/source-picker";
+import type { Source } from "@/modules/reference/sources";
 import type { TopicTree } from "@/modules/reference/topics";
 import { URL_MAX_LENGTH } from "@/modules/reference/validation";
 
@@ -48,6 +50,8 @@ type TextSheetProps = {
   // null to create a new text.
   text: EditableText | null;
   topicTree: TopicTree;
+  // Every source the text can be linked to.
+  sources: Source[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Where the focus goes once the sheet closes: the row or button that opened it.
@@ -70,7 +74,7 @@ const fieldOrder: (TypedField | "subtopicIds")[] = [
   "subtopicIds",
 ];
 
-export function TextSheet({ text, topicTree, open, onOpenChange, returnFocus, onRemovingText }: TextSheetProps) {
+export function TextSheet({ text, topicTree, sources, open, onOpenChange, returnFocus, onRemovingText }: TextSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 data-[side=right]:w-full sm:max-w-lg" finalFocus={() => returnFocus() ?? true}>
@@ -85,6 +89,7 @@ export function TextSheet({ text, topicTree, open, onOpenChange, returnFocus, on
           key={text?.id ?? "new"}
           text={text}
           topicTree={topicTree}
+          sources={sources}
           onDone={() => onOpenChange(false)}
           onRemovingText={onRemovingText}
         />
@@ -96,11 +101,12 @@ export function TextSheet({ text, topicTree, open, onOpenChange, returnFocus, on
 type TextFormProps = {
   text: EditableText | null;
   topicTree: TopicTree;
+  sources: Source[];
   onDone: () => void;
   onRemovingText: (removing: boolean) => void;
 };
 
-function TextForm({ text, topicTree, onDone, onRemovingText }: TextFormProps) {
+function TextForm({ text, topicTree, sources, onDone, onRemovingText }: TextFormProps) {
   const [values, setValues] = useState<Record<TypedField, string>>(() => ({
     nature: text?.nature ?? "",
     number: text ? String(text.number) : "",
@@ -110,6 +116,7 @@ function TextForm({ text, topicTree, onDone, onRemovingText }: TextFormProps) {
     summary: text?.summary ?? "",
   }));
   const [subtopicIds, setSubtopicIds] = useState(() => new Set(text?.subtopicIds ?? []));
+  const [sourceIds, setSourceIds] = useState<ReadonlySet<string>>(() => new Set(text?.sourceIds ?? []));
   const [published, setPublished] = useState(text?.status === "published");
   const [errors, setErrors] = useState<Errors>({});
   const [pending, startTransition] = useTransition();
@@ -136,6 +143,7 @@ function TextForm({ text, topicTree, onDone, onRemovingText }: TextFormProps) {
     const parsed = newTextSchema.safeParse({
       ...values,
       subtopicIds: [...subtopicIds],
+      sourceIds: [...sourceIds],
       status: published ? "published" : "draft",
     });
     const next: Errors = {};
@@ -292,6 +300,8 @@ function TextForm({ text, topicTree, onDone, onRemovingText }: TextFormProps) {
           {error("subtopicIds")}
         </FieldSet>
 
+        <SourcePicker sources={sources} selected={sourceIds} onChange={setSourceIds} content="le texte" />
+
         <Field orientation="horizontal">
           <FieldContent>
             <FieldLabel htmlFor={ids.published}>En ligne</FieldLabel>
@@ -385,9 +395,11 @@ function changesFrom(text: EditableText, input: ReturnType<typeof newTextSchema.
   for (const field of ["nature", "number", "officialTitle", "filedOn", "officialUrl", "summary", "status"] as const) {
     if (input[field] !== text[field]) Object.assign(changes, { [field]: input[field] });
   }
-  const sameSubtopics =
-    input.subtopicIds.length === text.subtopicIds.length &&
-    input.subtopicIds.every((id) => text.subtopicIds.includes(id));
-  if (!sameSubtopics) changes.subtopicIds = input.subtopicIds;
+  if (!sameIds(input.subtopicIds, text.subtopicIds)) changes.subtopicIds = input.subtopicIds;
+  if (!sameIds(input.sourceIds, text.sourceIds)) changes.sourceIds = input.sourceIds;
   return changes;
+}
+
+function sameIds(picked: string[], saved: string[]): boolean {
+  return picked.length === saved.length && picked.every((id) => saved.includes(id));
 }

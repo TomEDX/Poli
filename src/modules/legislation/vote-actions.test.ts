@@ -75,6 +75,7 @@ describe("scrutin actions", () => {
           { groupId: left, position: "for", counts: { for: 30, against: 2, abstention: 1, nonVoting: 0 } },
           { groupId: right, position: "against", counts: null },
         ],
+        sourceIds: [],
       },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");

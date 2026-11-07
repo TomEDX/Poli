@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
+import { removeSourceAction } from "@/modules/reference/actions";
+import { createSource } from "@/modules/reference/sources";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
 import { createTextAction, saveTextAction } from "./actions";
-import { getPublishedText, getTexts } from "./texts";
+import { getPublishedText, getText, getTexts } from "./texts";
 
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => "editrice@example.fr") }));
 
@@ -89,5 +91,28 @@ describe("text actions", () => {
       message: "Saisissez le résumé éditorial.",
     });
     expect(await saveTextAction(text.id, {})).toEqual({ ok: false, message: "Aucune modification à enregistrer." });
+  });
+
+  it("link the sources picked, each once, and keep a source that backs a text from deletion", async () => {
+    const { id: sourceId } = await createSource({
+      title: "Proposition de loi n° 412",
+      organization: "Assemblée nationale",
+      url: "https://assemblee.example.org/textes/412",
+      consultedOn: "2026-10-04",
+      kind: "official_text",
+    });
+
+    expect(await createTextAction({ ...form, sourceIds: [sourceId, sourceId] })).toEqual({ ok: true });
+    const [text] = await getTexts();
+    expect(text.sourceIds).toEqual([sourceId]);
+
+    expect(await removeSourceAction(sourceId)).toEqual({
+      ok: false,
+      message: "Un contenu renvoie encore à cette source : retirez-la de ce contenu avant de la supprimer.",
+    });
+
+    expect(await saveTextAction(text.id, { sourceIds: [] })).toEqual({ ok: true });
+    expect((await getText(text.id))?.sourceIds).toEqual([]);
+    expect(await removeSourceAction(sourceId)).toEqual({ ok: true });
   });
 });

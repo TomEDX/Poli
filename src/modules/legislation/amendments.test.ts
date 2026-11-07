@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { previousLegislatureGroupId } from "../../../test/previous-legislature";
 import { createParliamentaryGroup, removeParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
+import { createSource } from "@/modules/reference/sources";
 import { createSubtopic, createTopic } from "@/modules/reference/topics";
 
 import {
@@ -70,6 +71,7 @@ describe("a published amendment of a published text", () => {
         governmentOpinion: "wisdom",
         committeeOpinion: "favourable",
         vote: null,
+        sources: [],
       },
     ]);
   });
@@ -194,7 +196,7 @@ describe("amendments in the administration", () => {
       status: "published",
     };
     expect(await saveAmendment(created.id, edited)).toEqual({ ok: true });
-    expect(await getAmendments(textId)).toEqual([{ ...edited, id: created.id, vote: null }]);
+    expect(await getAmendments(textId)).toEqual([{ ...edited, id: created.id, vote: null, sourceIds: [] }]);
     expect(await getPublishedAmendments(textId)).toMatchObject([{ number: 14, fate: "withdrawn" }]);
 
     await createAmendment(textId, { ...amendment, authorGroupId: null, status: "draft" });
@@ -225,8 +227,8 @@ describe("amendments in the administration", () => {
     await createAmendment(textId, draft);
 
     expect(await getAmendments(textId)).toEqual([
-      { ...draft, id: expect.any(String), vote: null },
-      { ...published, id: expect.any(String), vote: null },
+      { ...draft, id: expect.any(String), vote: null, sourceIds: [] },
+      { ...published, id: expect.any(String), vote: null, sourceIds: [] },
     ]);
 
     const [, linked] = await getAmendments(textId);
@@ -255,5 +257,40 @@ describe("a parliamentary group", () => {
 
     expect(await removeParliamentaryGroup(left)).toEqual({ ok: false, reason: "in-use" });
     expect(await getPublishedAmendments(textId)).toMatchObject([{ authorGroup: { id: left } }]);
+  });
+});
+
+describe("the sources of an amendment", () => {
+  it("are linked and unlinked by the editors, and read with the amendment", async () => {
+    const textId = await publishedTextId();
+    const { id: sourceId } = await createSource({
+      title: "Amendement n° 12",
+      organization: "Assemblée nationale",
+      url: "https://assemblee.example.org/amendements/12",
+      consultedOn: "2026-10-01",
+      kind: "official_text",
+    });
+    const input = { ...amendment, authorGroupId: null, status: "published" } as const;
+    const created = await createAmendment(textId, { ...input, sourceIds: [sourceId] });
+    if (!created.ok) throw new Error("Could not create the amendment");
+
+    expect(await getAmendments(textId)).toMatchObject([{ id: created.id, sourceIds: [sourceId] }]);
+    expect(await getPublishedAmendments(textId)).toMatchObject([
+      {
+        id: created.id,
+        sources: [
+          {
+            id: sourceId,
+            title: "Amendement n° 12",
+            organization: "Assemblée nationale",
+            url: "https://assemblee.example.org/amendements/12",
+          },
+        ],
+      },
+    ]);
+
+    expect(await saveAmendment(created.id, { ...input, sourceIds: [] })).toEqual({ ok: true });
+    expect(await getAmendments(textId)).toMatchObject([{ sourceIds: [] }]);
+    expect(await getPublishedAmendments(textId)).toMatchObject([{ sources: [] }]);
   });
 });

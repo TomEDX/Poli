@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createSource, type SourceInput } from "@/modules/reference/sources";
 import { createSubtopic, createTopic, getTopicTree, removeNode } from "@/modules/reference/topics";
 
 import {
@@ -36,6 +37,27 @@ async function textId(input: NewText) {
   if (!result.ok) throw new Error(`Could not create text ${input.number}: ${result.reason}`);
   return result.id;
 }
+
+async function sourceId(input: SourceInput) {
+  const result = await createSource(input);
+  return result.id;
+}
+
+const officialText = {
+  title: "Projet de loi n° 105",
+  organization: "Assemblée nationale",
+  url: "https://assemblee.example.org/textes/105",
+  consultedOn: "2026-10-01",
+  kind: "official_text",
+} as const;
+
+const impactStudy = {
+  title: "Étude d'impact du projet de loi",
+  organization: "Gouvernement",
+  url: "https://gouvernement.example.org/etude-impact",
+  consultedOn: "2026-10-02",
+  kind: "other",
+} as const;
 
 describe("published texts", () => {
   it("are listed from the most recently filed", async () => {
@@ -88,6 +110,7 @@ describe("published texts", () => {
       officialUrl: "https://assemblee.example.org/textes/105",
       summary: energyBill.summary,
       subtopics: [{ id: energy, name: "Énergie", topic: { id: expect.any(String), name: "Écologie" } }],
+      sources: [],
     });
   });
 
@@ -270,8 +293,8 @@ describe("texts in the administration", () => {
     const published = await textId({ ...energyBill, subtopicIds: [energy], status: "published" });
 
     expect(await getTexts()).toEqual([
-      { ...energyBill, id: draft, number: 230, filedOn: "2026-10-01", status: "draft", subtopicIds: [] },
-      { ...energyBill, id: published, status: "published", subtopicIds: [energy] },
+      { ...energyBill, id: draft, number: 230, filedOn: "2026-10-01", status: "draft", subtopicIds: [], sourceIds: [] },
+      { ...energyBill, id: published, status: "published", subtopicIds: [energy], sourceIds: [] },
     ]);
   });
 
@@ -280,7 +303,13 @@ describe("texts in the administration", () => {
     const draft = await textId({ ...energyBill, subtopicIds: [energy] });
     await textId({ ...energyBill, number: 230, subtopicIds: [] });
 
-    expect(await getText(draft)).toEqual({ ...energyBill, id: draft, status: "draft", subtopicIds: [energy] });
+    expect(await getText(draft)).toEqual({
+      ...energyBill,
+      id: draft,
+      status: "draft",
+      subtopicIds: [energy],
+      sourceIds: [],
+    });
     expect(await getText("00000000-0000-4000-8000-000000000000")).toBeNull();
     expect(await getText("texte-105")).toBeNull();
   });
@@ -292,5 +321,31 @@ describe("a subtopic", () => {
     await textId({ ...energyBill, subtopicIds: [energy] });
 
     expect(await removeNode({ level: "subtopic", id: energy })).toEqual({ ok: false, reason: "in-use" });
+  });
+});
+
+describe("the sources of a text", () => {
+  it("are linked and unlinked by the editors, and read with the text", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const [official, study] = [await sourceId(officialText), await sourceId(impactStudy)];
+    const id = await textId({ ...energyBill, subtopicIds: [energy], sourceIds: [study, official], status: "published" });
+
+    expect((await getText(id))?.sourceIds.toSorted()).toEqual([official, study].toSorted());
+    expect((await getPublishedText(id))?.sources).toEqual([
+      { id: official, title: "Projet de loi n° 105", organization: "Assemblée nationale", url: officialText.url },
+      { id: study, title: "Étude d'impact du projet de loi", organization: "Gouvernement", url: impactStudy.url },
+    ]);
+
+    expect(await saveText(id, { sourceIds: [official] })).toEqual({ ok: true });
+    expect((await getText(id))?.sourceIds).toEqual([official]);
+    expect((await getPublishedText(id))?.sources.map((source) => source.id)).toEqual([official]);
+  });
+
+  it("are not needed to publish it", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    const id = await textId({ ...energyBill, subtopicIds: [energy], status: "published" });
+
+    expect((await getPublishedText(id))?.sources).toEqual([]);
+    expect((await getText(id))?.sourceIds).toEqual([]);
   });
 });

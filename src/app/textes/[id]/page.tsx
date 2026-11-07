@@ -10,6 +10,7 @@ import { EditorialSummary } from "@/modules/legislation/components/editorial-sum
 import { TextAmendments } from "@/modules/legislation/components/text-amendments";
 import { TextHeader } from "@/modules/legislation/components/text-header";
 import { FinalVoteResult, TextVotes } from "@/modules/legislation/components/text-votes";
+import { SourceLinks } from "@/modules/reference/components/source-links";
 import { getPublishedText } from "@/modules/legislation/texts";
 import { getPublishedVotes } from "@/modules/legislation/votes";
 
@@ -46,6 +47,7 @@ async function PublishedTextPage({ params }: Pick<PageProps<"/textes/[id]">, "pa
       <TextHeader text={text} />
       <FinalVoteResult votes={votes} />
       <EditorialSummary summary={text.summary} />
+      <SourceLinks sources={text.sources} />
       <TextVotes votes={votes.filter((vote) => !shownWithAmendment.has(vote.id))} />
       <TextAmendments amendments={amendments} />
     </article>

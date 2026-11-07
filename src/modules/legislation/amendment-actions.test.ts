@@ -65,6 +65,7 @@ describe("amendment actions", () => {
       committeeOpinion: "none",
       status: "draft",
       vote: null,
+      sourceIds: [],
     });
 
     const published = { ...form, authorGroupId: group.id, cosignatories: "M. Paul Durand", status: "published" };
