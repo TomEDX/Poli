@@ -92,6 +92,19 @@ describe("a scrutin on a published text", () => {
     ]);
   });
 
+  it("put the latest vote on the whole text first, the final reading being the result shown", async () => {
+    const textId = await publishedTextId();
+    await createVote(textId, { ...finalVote, number: 380, heldOn: "2026-06-10", groupVotes: [] });
+    await createVote(textId, { ...finalVote, subject: "motion", number: 405, heldOn: "2026-09-28", groupVotes: [] });
+    await createVote(textId, { ...finalVote, number: 420, heldOn: "2026-10-02", groupVotes: [] });
+
+    expect((await getPublishedVotes(textId)).map((vote) => [vote.subject, vote.number])).toEqual([
+      ["whole_text", 420],
+      ["whole_text", 380],
+      ["motion", 405],
+    ]);
+  });
+
   it("are hidden while their text is a draft", async () => {
     const textId = await publishedTextId();
     await createVote(textId, { ...finalVote, groupVotes: [] });

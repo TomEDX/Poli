@@ -79,7 +79,17 @@ const voteColumns = {
   amendmentId: votes.amendmentId,
 };
 
-// The scrutins of a published text, the one on the whole text first; none for a draft.
+// The votes on the whole text first, the latest one, the final reading, leading; then the
+// others by date.
+const voteOrder = [
+  sql`${votes.subject} = 'whole_text' desc`,
+  sql`case when ${votes.subject} = 'whole_text' then ${votes.heldOn} end desc nulls last`,
+  sql`case when ${votes.subject} = 'whole_text' then ${votes.number} end desc nulls last`,
+  asc(votes.heldOn),
+  asc(votes.number),
+];
+
+// The scrutins of a published text, the final reading on the whole text first; none for a draft.
 export async function getPublishedVotes(textId: string): Promise<PublishedVote[]> {
   if (!z.uuid().safeParse(textId).success) return [];
   const rows = await db
@@ -146,8 +156,6 @@ export async function removeVote(id: string): Promise<RemoveVoteResult> {
   const [deleted] = await db.delete(votes).where(eq(votes.id, id)).returning({ id: votes.id });
   return deleted ? { ok: true } : { ok: false, reason: "not-found" };
 }
-
-const voteOrder = [sql`${votes.subject} = 'whole_text' desc`, asc(votes.heldOn), asc(votes.number)];
 
 // An amendment of another text reads to the editor as one that no longer exists.
 async function checkAmendmentOfText(tx: Transaction, amendmentId: string | null, textId: string) {

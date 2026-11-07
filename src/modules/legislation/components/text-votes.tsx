@@ -5,7 +5,7 @@ import { formatCounts, formatHeldOn, voteReference, voteSubjectHeadings } from "
 import { groupPositionLabels, voteResultLabels } from "../vote-kinds";
 import type { PublishedGroupVote, PublishedVote } from "../votes";
 
-// The outcome of the vote on the whole text, shown before anything else about it.
+// The outcome of the final reading on the whole text, shown before anything else about it.
 export function FinalVoteResult({ votes }: { votes: PublishedVote[] }) {
   const final = votes.find((vote) => vote.subject === "whole_text");
   if (!final) return null;
