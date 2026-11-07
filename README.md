@@ -18,7 +18,7 @@ pnpm dev
 
 `pnpm dev` démarre le Supabase local, applique les migrations Drizzle, insère le jeu de données fictif (une arborescence de thématiques) si la base n'a encore aucune thématique, puis lance l'app sur http://localhost:3000. Le studio Supabase est sur http://127.0.0.1:54323 et les e-mails envoyés (liens de connexion) sur http://127.0.0.1:54324. `pnpm db:stop` arrête les conteneurs.
 
-L'administration est sur http://localhost:3000/admin. Pour s'y connecter, créer un éditeur en suivant [Ajouter un éditeur](docs/environnements.md#ajouter-un-éditeur).
+L'administration est sur http://localhost:3000/admin. En local, le bouton « Se connecter comme éditeur de test » de la page de connexion l'ouvre en un clic, avec l'éditeur `editeur@poli.test`, créé au premier clic. Il n'apparaît que sous `pnpm dev`, qui écrit la clé secrète du Supabase local dans `.env.development.local` (fichier régénéré à chaque démarrage). Pour tester le vrai parcours par lien magique, voir [Ajouter un éditeur](docs/environnements.md#ajouter-un-éditeur).
 
 ## Commandes
 

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { SignInForm } from "@/modules/editors/components/sign-in-form";
+import { DevSignInButton } from "@/modules/editors/components/dev-sign-in-button";
+import { isDevSignInEnabled } from "@/modules/editors/dev-sign-in";
 
 export const metadata: Metadata = {
   title: "Connexion · Poli.",
@@ -21,6 +23,7 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
         <InvalidLinkNotice searchParams={searchParams} />
       </Suspense>
       <SignInForm />
+      {isDevSignInEnabled() && <DevSignInButton />}
     </main>
   );
 }
