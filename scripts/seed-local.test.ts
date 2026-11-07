@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getPublishedCandidacies } from "@/modules/reference/candidacies";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups";
 import { createParty, getParties } from "@/modules/reference/parties";
+import { createSource, getSources } from "@/modules/reference/sources";
 import { createTopic, getTopicTree } from "@/modules/reference/topics";
 
 import { seedLocalDatabase } from "./seed-local";
@@ -60,7 +61,27 @@ describe("local seed", () => {
   it("leaves the groups of a database that already has some untouched", async () => {
     await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
 
-    expect(await seedLocalDatabase(db.$client)).toEqual({ topics: true, parties: true, parliamentaryGroups: false });
+    expect(await seedLocalDatabase(db.$client)).toEqual({ topics: true, parties: true, parliamentaryGroups: false, sources: true });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
+  });
+
+  it("adds sources of every type", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ sources: true });
+
+    const kinds = new Set((await getSources()).map((source) => source.kind));
+    expect([...kinds].sort()).toEqual(["official_text", "other", "program", "vote"]);
+  });
+
+  it("leaves the sources of a database that already has some untouched", async () => {
+    await createSource({
+      title: "Source de test",
+      organization: "Poli.",
+      url: "https://example.org",
+      consultedOn: "2026-11-01",
+      kind: "other",
+    });
+
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ sources: false });
+    expect(await getSources()).toMatchObject([{ title: "Source de test" }]);
   });
 });

@@ -15,8 +15,16 @@ type SeedParty = {
 // partyAbbreviations names seeded parties; one missing from the database is skipped.
 type SeedGroup = { name: string; abbreviation: string; partyAbbreviations: string[] };
 
+type SeedSource = {
+  title: string;
+  organization: string;
+  url: string;
+  consultedOn: string;
+  kind: "program" | "vote" | "official_text" | "other";
+};
+
 // Which sections were written; a section that already had rows is skipped.
-type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean };
+type SeedResult = { topics: boolean; parties: boolean; parliamentaryGroups: boolean; sources: boolean };
 
 const topicTree: SeedTopic[] = [
   {
@@ -124,6 +132,45 @@ const groupList: SeedGroup[] = [
   { name: "Non-inscrits indépendants", abbreviation: "NII", partyAbbreviations: [] },
 ];
 
+// Fictional sources on example.org, so that no real page is cited during development.
+const sourceList: SeedSource[] = [
+  {
+    title: "Programme pour l'Horizon 2027",
+    organization: "Parti de l'Horizon",
+    url: "https://horizon.example.org/programme",
+    consultedOn: "2026-10-12",
+    kind: "program",
+  },
+  {
+    title: "Nos 100 propositions",
+    organization: "Union des territoires",
+    url: "https://territoires.example.org/propositions",
+    consultedOn: "2026-10-20",
+    kind: "program",
+  },
+  {
+    title: "Scrutin public n° 412 sur l'ensemble du projet de loi relatif à l'énergie",
+    organization: "Assemblée nationale",
+    url: "https://assemblee.example.org/scrutins/412",
+    consultedOn: "2026-09-30",
+    kind: "vote",
+  },
+  {
+    title: "Projet de loi n° 105 relatif à l'énergie, texte adopté",
+    organization: "Assemblée nationale",
+    url: "https://assemblee.example.org/textes/105",
+    consultedOn: "2026-09-30",
+    kind: "official_text",
+  },
+  {
+    title: "Calendrier de l'élection présidentielle",
+    organization: "Conseil constitutionnel",
+    url: "https://conseil.example.org/presidentielle/calendrier",
+    consultedOn: "2026-11-02",
+    kind: "other",
+  },
+];
+
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
 export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
@@ -132,6 +179,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       topics: await seedTopics(tx),
       parties: await seedParties(tx),
       parliamentaryGroups: await seedParliamentaryGroups(tx),
+      sources: await seedSources(tx),
     };
   });
 }
@@ -154,6 +202,7 @@ if (import.meta.main) {
       ? "Parliamentary groups seeded."
       : "Local database already has parliamentary groups: skipped.",
   );
+  console.log(seeded.sources ? "Sources seeded." : "Local database already has sources: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -205,9 +254,19 @@ async function seedParliamentaryGroups(tx: postgres.TransactionSql): Promise<boo
   return true;
 }
 
+async function seedSources(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "sources")) return false;
+  for (const source of sourceList) {
+    await tx`
+      insert into sources (title, organization, url, consulted_on, kind)
+      values (${source.title}, ${source.organization}, ${source.url}, ${source.consultedOn}, ${source.kind})`;
+  }
+  return true;
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
-  table: "topics" | "parties" | "parliamentary_groups",
+  table: "topics" | "parties" | "parliamentary_groups" | "sources",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;

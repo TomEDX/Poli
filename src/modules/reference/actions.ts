@@ -14,15 +14,18 @@ import {
 } from "./parliamentary-groups";
 import { createParty, removeParty, saveParty } from "./parties";
 import { abbreviationTakenMessage, partyNameTakenMessage } from "./party-messages";
+import { createSource, editSource, removeSource } from "./sources";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics";
 import {
   candidacyStatusSchema,
   directionSchema,
   newParliamentaryGroupSchema,
   newPartySchema,
+  newSourceSchema,
   newTopicSchema,
   parliamentaryGroupChangesSchema,
   partyEditSchema,
+  sourceChangesSchema,
   topicChangesSchema,
   topicNodeSchema,
 } from "./validation";
@@ -118,6 +121,23 @@ export const moveParliamentaryGroupAction = editorWrite({
 export const removeParliamentaryGroupAction = editorWrite({
   args: [z.uuid()],
   run: removeParliamentaryGroup,
+});
+
+export const createSourceAction = editorWrite({
+  args: [],
+  input: newSourceSchema,
+  run: createSource,
+});
+
+export const editSourceAction = editorWrite({
+  args: [z.uuid()],
+  input: sourceChangesSchema,
+  run: editSource,
+});
+
+export const removeSourceAction = editorWrite({
+  args: [z.uuid()],
+  run: removeSource,
 });
 
 function slugTakenMessage(level: TopicNode["level"], slug: string | undefined) {

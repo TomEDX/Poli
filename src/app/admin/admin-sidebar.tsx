@@ -1,6 +1,6 @@
 "use client";
 
-import { Landmark, ListTree, LogOut, type LucideIcon, Vote } from "lucide-react";
+import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, Vote } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -24,11 +24,12 @@ type Section = { href: string; label: string; icon: LucideIcon };
 
 // Each content section adds its entry here as it is built. Icons are what the collapsed
 // menu shows: the tree for the topic tree, the ballot box for candidacies, the Assemblée
-// for its groups.
+// for its groups, the open book for sources.
 const referenceSections: Section[] = [
   { href: "/admin/topics", label: "Thématiques", icon: ListTree },
   { href: "/admin/parties", label: "Partis et candidatures", icon: Vote },
   { href: "/admin/parliamentary-groups", label: "Groupes parlementaires", icon: Landmark },
+  { href: "/admin/sources", label: "Sources", icon: BookOpen },
 ];
 
 export function AdminSidebar({ footer }: { footer: React.ReactNode }) {
