@@ -39,6 +39,41 @@ async function errorCode(promise: Promise<unknown>) {
 
 const insufficientPrivilege = "42501";
 
+const amendment = {
+  authorLabel: "Mme Claire Martin",
+  authorGroupId: null,
+  cosignatories: null,
+  summary: "Résumé",
+  fate: "rejected",
+  governmentOpinion: "none",
+  committeeOpinion: "none",
+} as const;
+
+// Text 1 is published and text 2 a draft, both filed under the same subtopic.
+async function publishedAndDraftTextIds() {
+  const topic = await createTopic({ name: "Santé", slug: "sante" });
+  const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+  if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+  const text = {
+    nature: "member_bill" as const,
+    officialTitle: "Proposition de loi",
+    filedOn: "2026-10-03",
+    officialUrl: null,
+    summary: "Résumé",
+    subtopicIds: [subtopic.id],
+  };
+  const published = await createText({ ...text, number: 1, status: "published" });
+  const draft = await createText({ ...text, number: 2 });
+  if (!published.ok || !draft.ok) throw new Error("Could not create the texts");
+  return { published: published.id, draft: draft.id };
+}
+
+async function testGroupId() {
+  const group = await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
+  if (!group.ok) throw new Error("Could not create the group");
+  return group.id;
+}
+
 describe("database access rules", () => {
   it("protects every public table with row level security and no write policy", async () => {
     const unprotected = await db.execute<{ name: string }>(
@@ -92,19 +127,7 @@ describe("database access rules", () => {
   });
 
   it("let clients read published texts and their subtopics, never a draft", async () => {
-    const topic = await createTopic({ name: "Santé", slug: "sante" });
-    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
-    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
-    const text = {
-      nature: "member_bill" as const,
-      officialTitle: "Proposition de loi",
-      filedOn: "2026-10-03",
-      officialUrl: null,
-      summary: "Résumé",
-      subtopicIds: [subtopic.id],
-    };
-    await createText({ ...text, number: 1, status: "published" });
-    await createText({ ...text, number: 2 });
+    await publishedAndDraftTextIds();
 
     for (const role of clientRoles) {
       expect(await asRole(role, "select number from texts"), role).toEqual([{ number: 1 }]);
@@ -116,32 +139,18 @@ describe("database access rules", () => {
   });
 
   it("let clients read the scrutins of published texts and their group votes, never those of a draft", async () => {
-    const group = await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
-    if (!group.ok) throw new Error("Could not create the group");
-    const topic = await createTopic({ name: "Santé", slug: "sante" });
-    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
-    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
-    const text = {
-      nature: "member_bill" as const,
-      officialTitle: "Proposition de loi",
-      filedOn: "2026-10-03",
-      officialUrl: null,
-      summary: "Résumé",
-      subtopicIds: [subtopic.id],
-    };
-    const published = await createText({ ...text, number: 1, status: "published" });
-    const draft = await createText({ ...text, number: 2 });
-    if (!published.ok || !draft.ok) throw new Error("Could not create the texts");
+    const groupId = await testGroupId();
+    const { published, draft } = await publishedAndDraftTextIds();
     const vote = {
       subject: "whole_text" as const,
       heldOn: "2026-10-20",
       result: "adopted" as const,
       officialUrl: null,
       amendmentId: null,
-      groupVotes: [{ groupId: group.id, position: "for" as const, counts: null }],
+      groupVotes: [{ groupId, position: "for" as const, counts: null }],
     };
-    await createVote(published.id, { ...vote, number: 10 });
-    await createVote(draft.id, { ...vote, number: 20 });
+    await createVote(published, { ...vote, number: 10 });
+    await createVote(draft, { ...vote, number: 20 });
 
     for (const role of clientRoles) {
       expect(await asRole(role, "select number from votes"), role).toEqual([{ number: 10 }]);
@@ -153,32 +162,10 @@ describe("database access rules", () => {
   });
 
   it("let clients read the published amendments of published texts, never a draft amendment or text", async () => {
-    const topic = await createTopic({ name: "Santé", slug: "sante" });
-    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
-    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
-    const text = {
-      nature: "member_bill" as const,
-      officialTitle: "Proposition de loi",
-      filedOn: "2026-10-03",
-      officialUrl: null,
-      summary: "Résumé",
-      subtopicIds: [subtopic.id],
-    };
-    const published = await createText({ ...text, number: 1, status: "published" });
-    const draft = await createText({ ...text, number: 2 });
-    if (!published.ok || !draft.ok) throw new Error("Could not create the texts");
-    const amendment = {
-      authorLabel: "Mme Claire Martin",
-      authorGroupId: null,
-      cosignatories: null,
-      summary: "Résumé",
-      fate: "rejected" as const,
-      governmentOpinion: "none" as const,
-      committeeOpinion: "none" as const,
-    };
-    await createAmendment(published.id, { ...amendment, number: 10, status: "published" });
-    await createAmendment(published.id, { ...amendment, number: 11, status: "draft" });
-    await createAmendment(draft.id, { ...amendment, number: 20, status: "published" });
+    const { published, draft } = await publishedAndDraftTextIds();
+    await createAmendment(published, { ...amendment, number: 10, status: "published" });
+    await createAmendment(published, { ...amendment, number: 11, status: "draft" });
+    await createAmendment(draft, { ...amendment, number: 20, status: "published" });
 
     for (const role of clientRoles) {
       expect(await asRole(role, "select number from amendments"), role).toEqual([{ number: 10 }]);
@@ -186,43 +173,20 @@ describe("database access rules", () => {
   });
 
   it("hide from clients the scrutin of a draft amendment and its group votes", async () => {
-    const group = await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
-    if (!group.ok) throw new Error("Could not create the group");
-    const topic = await createTopic({ name: "Santé", slug: "sante" });
-    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
-    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
-    const published = await createText({
-      nature: "member_bill",
-      number: 1,
-      officialTitle: "Proposition de loi",
-      filedOn: "2026-10-03",
-      officialUrl: null,
-      summary: "Résumé",
-      subtopicIds: [subtopic.id],
-      status: "published",
-    });
-    if (!published.ok) throw new Error("Could not create the text");
-    const amendment = {
-      authorLabel: "Mme Claire Martin",
-      authorGroupId: null,
-      cosignatories: null,
-      summary: "Résumé",
-      fate: "rejected" as const,
-      governmentOpinion: "none" as const,
-      committeeOpinion: "none" as const,
-    };
-    const shown = await createAmendment(published.id, { ...amendment, number: 10, status: "published" });
-    const draft = await createAmendment(published.id, { ...amendment, number: 11, status: "draft" });
+    const groupId = await testGroupId();
+    const { published } = await publishedAndDraftTextIds();
+    const shown = await createAmendment(published, { ...amendment, number: 10, status: "published" });
+    const draft = await createAmendment(published, { ...amendment, number: 11, status: "draft" });
     if (!shown.ok || !draft.ok) throw new Error("Could not create the amendments");
     const vote = {
       subject: "amendment" as const,
       heldOn: "2026-10-20",
       result: "rejected" as const,
       officialUrl: null,
-      groupVotes: [{ groupId: group.id, position: "against" as const, counts: null }],
+      groupVotes: [{ groupId, position: "against" as const, counts: null }],
     };
-    await createVote(published.id, { ...vote, number: 100, amendmentId: shown.id });
-    await createVote(published.id, { ...vote, number: 110, amendmentId: draft.id });
+    await createVote(published, { ...vote, number: 100, amendmentId: shown.id });
+    await createVote(published, { ...vote, number: 110, amendmentId: draft.id });
 
     for (const role of clientRoles) {
       expect(await asRole(role, "select number from votes"), role).toEqual([{ number: 100 }]);
