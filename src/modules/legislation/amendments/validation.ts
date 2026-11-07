@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
+import { sourceIdsField } from "@/modules/reference/sources/validation";
 
+import { numberField, optionalIdField, summaryField } from "../form-fields";
 import { amendmentFates, amendmentOpinions } from "./vocabulary";
-import { numberField, optionalIdField, sourceIdsField, summaryField } from "../form-fields";
 
 export const AUTHOR_LABEL_MAX_LENGTH = 200;
 

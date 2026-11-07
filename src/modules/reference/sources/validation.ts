@@ -7,6 +7,9 @@ export const SOURCE_TITLE_MAX_LENGTH = 300;
 
 export const ORGANIZATION_MAX_LENGTH = 120;
 
+// The sources a content is linked to, none required; a source picked twice is linked once.
+export const sourceIdsField = z.array(z.uuid()).transform((ids) => [...new Set(ids)]);
+
 const sourceTitleField = z
   .string()
   .trim()

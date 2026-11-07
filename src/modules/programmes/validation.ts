@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
+import { sourceIdsField } from "@/modules/reference/sources/validation";
 
 export const QUOTE_MAX_LENGTH = 3000;
 
@@ -14,9 +15,6 @@ const quoteField = z
   .max(QUOTE_MAX_LENGTH, `La citation dépasse ${QUOTE_MAX_LENGTH} caractères.`);
 
 const recordedOnField = z.iso.date({ error: "Saisissez la date de relevé." });
-
-// A source picked twice is linked once.
-const sourceIdsField = z.array(z.uuid()).transform((ids) => [...new Set(ids)]);
 
 const statusField = z.enum(publicationStatuses);
 

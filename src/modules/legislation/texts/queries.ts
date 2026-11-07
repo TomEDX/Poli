@@ -8,9 +8,9 @@ import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups/
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { subtopics, topics } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
+import { sourceLinks } from "@/modules/reference/sources/links";
 
-import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
-import { texts, textSubtopics } from "../schema";
+import { texts, textSources, textSubtopics } from "../schema";
 import type { TextNature } from "./vocabulary";
 
 export type TextInput = {
@@ -73,6 +73,8 @@ type TextRefusal = "number-taken" | "no-subtopic" | "not-found";
 
 const takenReasons: Record<string, TextRefusal> = { texts_legislature_id_number_unique: "number-taken" };
 
+const textSourceLinks = sourceLinks(textSources, "textId");
+
 const summaryColumns = {
   id: texts.id,
   nature: texts.nature,
@@ -132,7 +134,7 @@ export async function getPublishedText(id: string): Promise<PublishedText | null
     .from(texts)
     .where(and(eq(texts.id, id), eq(texts.status, "published")));
   if (!row) return null;
-  const [subtopicsByText, sourcesByText] = await Promise.all([subtopicsOf([id]), sourcesOf("text", [id])]);
+  const [subtopicsByText, sourcesByText] = await Promise.all([subtopicsOf([id]), textSourceLinks.sourcesOf([id])]);
   return { ...row, subtopics: subtopicsByText.get(id) ?? [], sources: sourcesByText.get(id) ?? [] };
 }
 
@@ -161,7 +163,7 @@ export async function createText({ subtopicIds, sourceIds = [], ...text }: NewTe
       if (subtopicIds.length > 0) {
         await tx.insert(textSubtopics).values(subtopicIds.map((subtopicId) => ({ textId: created.id, subtopicId })));
       }
-      await replaceSources(tx, "text", created.id, sourceIds);
+      await textSourceLinks.replace(tx, created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -186,7 +188,7 @@ export async function saveText(id: string, { subtopicIds, sourceIds, ...text }: 
           await tx.insert(textSubtopics).values(subtopicIds.map((subtopicId) => ({ textId: id, subtopicId })));
         }
       }
-      if (sourceIds !== undefined) await replaceSources(tx, "text", id, sourceIds);
+      if (sourceIds !== undefined) await textSourceLinks.replace(tx, id, sourceIds);
       if (found.status !== "published") return;
       const [{ subtopicCount }] = await tx
         .select({ subtopicCount: count() })
@@ -236,7 +238,7 @@ async function withLinkIds<Row extends { id: string }>(
   rows: Row[],
 ): Promise<(Row & { subtopicIds: string[]; sourceIds: string[] })[]> {
   const ids = rows.map((row) => row.id);
-  const [subtopicsByText, sourceIdsByText] = await Promise.all([subtopicsOf(ids), sourceIdsOf("text", ids)]);
+  const [subtopicsByText, sourceIdsByText] = await Promise.all([subtopicsOf(ids), textSourceLinks.sourceIdsOf(ids)]);
   return rows.map((row) => ({
     ...row,
     subtopicIds: (subtopicsByText.get(row.id) ?? []).map((subtopic) => subtopic.id),

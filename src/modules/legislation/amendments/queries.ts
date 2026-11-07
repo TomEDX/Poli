@@ -12,10 +12,10 @@ import {
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
+import { sourceLinks } from "@/modules/reference/sources/links";
 
 import type { AmendmentFate, AmendmentOpinion } from "./vocabulary";
-import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
-import { amendments, texts, votes } from "../schema";
+import { amendments, amendmentSources, texts, votes } from "../schema";
 import { getPublishedVotes, type PublishedVote } from "../votes/queries";
 
 export type AmendmentInput = {
@@ -54,6 +54,8 @@ type AmendmentRefusal = "number-taken" | "group-outside-legislature" | "not-foun
 
 const takenReasons: Record<string, AmendmentRefusal> = { amendments_text_id_number_unique: "number-taken" };
 
+const amendmentSourceLinks = sourceLinks(amendmentSources, "amendmentId");
+
 const amendmentColumns = {
   id: amendments.id,
   number: amendments.number,
@@ -78,9 +80,7 @@ export async function getPublishedAmendments(textId: string): Promise<PublishedA
   if (rows.length === 0) return [];
   const [publishedVotes, sourcesByAmendment] = await Promise.all([
     getPublishedVotes(textId),
-    sourcesOf(
-      "amendment",
-      rows.map((row) => row.id),
+    amendmentSourceLinks.sourcesOf(rows.map((row) => row.id),
     ),
   ]);
   const votesByAmendment = new Map(publishedVotes.map((vote) => [vote.amendmentId, vote]));
@@ -105,9 +105,7 @@ export async function getAmendments(textId: string): Promise<Amendment[]> {
       .where(and(eq(votes.textId, textId), isNotNull(votes.amendmentId))),
   ]);
   const votesByAmendment = new Map(linkedVotes.map(({ amendmentId, ...vote }) => [amendmentId, vote]));
-  const sourceIdsByAmendment = await sourceIdsOf(
-    "amendment",
-    rows.map((row) => row.id),
+  const sourceIdsByAmendment = await amendmentSourceLinks.sourceIdsOf(rows.map((row) => row.id),
   );
   return rows.map((row) => ({
     ...row,
@@ -128,7 +126,7 @@ export async function createAmendment(
         .insert(amendments)
         .values({ ...amendment, textId })
         .returning({ id: amendments.id });
-      await replaceSources(tx, "amendment", created.id, sourceIds);
+      await amendmentSourceLinks.replace(tx, created.id, sourceIds);
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
@@ -143,7 +141,7 @@ export async function saveAmendment(id: string, { sourceIds, ...amendment }: Ame
     await db.transaction(async (tx) => {
       const [found] = await tx.update(amendments).set(amendment).where(eq(amendments.id, id)).returning({ id: amendments.id });
       if (!found) throw new Refused("not-found");
-      if (sourceIds !== undefined) await replaceSources(tx, "amendment", id, sourceIds);
+      if (sourceIds !== undefined) await amendmentSourceLinks.replace(tx, id, sourceIds);
     });
     return { ok: true };
   } catch (error) {

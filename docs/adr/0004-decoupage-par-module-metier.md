@@ -6,7 +6,7 @@ _Complété par ADR 0008 : un module qui réunit plusieurs concepts se range en 
 
 Le code métier vit dans `src/modules/`, un dossier par module (`reference` pour le référentiel, `legislation` pour le législatif, `programmes`, `quiz`, puis les modules à venir ; le code est écrit en anglais), chacun avec son schéma Drizzle, ses requêtes, ses Server Actions, sa validation et ses composants ; `src/app/` ne contient que des routes fines. Les dépendances vont dans un seul sens : `app` → modules → `reference` et code partagé (`components/ui`, `lib`). Un module n'importe jamais un autre module, sauf le référentiel, et ne lit pas les tables d'un autre ; quand une page a besoin de deux modules, c'est elle qui les assemble. La règle est vérifiée par ESLint (`import/no-restricted-paths`).
 
-Les sources appartiennent au référentiel plutôt qu'à un module à part : tous les modules doivent pouvoir s'y relier, et le référentiel est la seule dépendance commune autorisée. La page Sources est une route qui lit le référentiel.
+Les sources appartiennent au référentiel plutôt qu'à un module à part : tous les modules doivent pouvoir s'y relier, et le référentiel est la seule dépendance commune autorisée. La page Sources est une route qui lit le référentiel. Chaque module garde sa propre table de liaison vers les sources, dont les clés étrangères refusent de supprimer une source encore citée, et la confie à `sourceLinks` du référentiel, qui la lit et l'écrit sans importer le module.
 
 ## Considered Options
 

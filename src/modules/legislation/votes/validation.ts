@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-import { numberField, officialUrlField, optionalIdField, sourceIdsField } from "../form-fields";
+import { sourceIdsField } from "@/modules/reference/sources/validation";
+
+import { numberField, officialUrlField, optionalIdField } from "../form-fields";
 import { completeCounts, type GroupCounts, groupPositions, voteResults, voteSubjects } from "./vocabulary";
 import type { GroupVoteInput } from "./queries";
 
