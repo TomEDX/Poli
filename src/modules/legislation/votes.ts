@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -89,14 +89,22 @@ const voteOrder = [
   asc(votes.number),
 ];
 
-// The scrutins of a published text, the final reading on the whole text first; none for a draft.
+// The scrutins of a published text, the final reading on the whole text first; none for a draft
+// text, nor the scrutin of a draft amendment.
 export async function getPublishedVotes(textId: string): Promise<PublishedVote[]> {
   if (!z.uuid().safeParse(textId).success) return [];
   const rows = await db
     .select(voteColumns)
     .from(votes)
     .innerJoin(texts, eq(texts.id, votes.textId))
-    .where(and(eq(votes.textId, textId), eq(texts.status, "published")))
+    .leftJoin(amendments, eq(amendments.id, votes.amendmentId))
+    .where(
+      and(
+        eq(votes.textId, textId),
+        eq(texts.status, "published"),
+        or(isNull(votes.amendmentId), eq(amendments.status, "published")),
+      ),
+    )
     .orderBy(...voteOrder);
   const cast = await groupVotesOf(rows.map((row) => row.id));
   return rows.map((row) => ({ ...row, groupVotes: cast.get(row.id) ?? [] }));

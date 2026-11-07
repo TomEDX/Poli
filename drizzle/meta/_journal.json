@@ -71,6 +71,13 @@
       "when": 1794058358335,
       "tag": "0009_amendments",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794059201497,
+      "tag": "0010_hide_draft_amendment_votes",
+      "breakpoints": true
     }
   ]
 }

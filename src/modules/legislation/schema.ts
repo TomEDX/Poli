@@ -114,8 +114,8 @@ export const amendments = pgTable(
   ],
 ).enableRLS();
 
-// A scrutin follows the publication of its text. A scrutin on an amendment may point to it,
-// and an amendment has at most one public scrutin; deleting the amendment keeps the scrutin.
+// A scrutin follows the publication of its text, and of its amendment when it points to one.
+// An amendment has at most one public scrutin; deleting the amendment keeps the scrutin.
 export const votes = pgTable(
   "votes",
   {
@@ -143,7 +143,10 @@ export const votes = pgTable(
     pgPolicy("votes_public_read_published", {
       for: "select",
       to: ["anon", "authenticated"],
-      using: sql`exists (select 1 from texts where texts.id = ${table.textId} and texts.status = 'published')`,
+      using: sql`exists (select 1 from texts where texts.id = ${table.textId} and texts.status = 'published')
+                 and (${table.amendmentId} is null
+                      or exists (select 1 from amendments
+                                 where amendments.id = ${table.amendmentId} and amendments.status = 'published'))`,
     }),
   ],
 ).enableRLS();
@@ -181,7 +184,9 @@ export const groupVotes = pgTable(
       for: "select",
       to: ["anon", "authenticated"],
       using: sql`exists (select 1 from votes join texts on texts.id = votes.text_id
-                         where votes.id = ${table.voteId} and texts.status = 'published')`,
+                         left join amendments on amendments.id = votes.amendment_id
+                         where votes.id = ${table.voteId} and texts.status = 'published'
+                           and (votes.amendment_id is null or amendments.status = 'published'))`,
     }),
   ],
 ).enableRLS();

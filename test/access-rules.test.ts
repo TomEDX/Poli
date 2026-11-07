@@ -184,4 +184,52 @@ describe("database access rules", () => {
       expect(await asRole(role, "select number from amendments"), role).toEqual([{ number: 10 }]);
     }
   });
+
+  it("hide from clients the scrutin of a draft amendment and its group votes", async () => {
+    const group = await createParliamentaryGroup({ name: "Groupe de test", abbreviation: "GDT", partyIds: [] });
+    if (!group.ok) throw new Error("Could not create the group");
+    const topic = await createTopic({ name: "Santé", slug: "sante" });
+    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+    const published = await createText({
+      nature: "member_bill",
+      number: 1,
+      officialTitle: "Proposition de loi",
+      filedOn: "2026-10-03",
+      officialUrl: null,
+      summary: "Résumé",
+      subtopicIds: [subtopic.id],
+      status: "published",
+    });
+    if (!published.ok) throw new Error("Could not create the text");
+    const amendment = {
+      authorLabel: "Mme Claire Martin",
+      authorGroupId: null,
+      cosignatories: null,
+      summary: "Résumé",
+      fate: "rejected" as const,
+      governmentOpinion: "none" as const,
+      committeeOpinion: "none" as const,
+    };
+    const shown = await createAmendment(published.id, { ...amendment, number: 10, status: "published" });
+    const draft = await createAmendment(published.id, { ...amendment, number: 11, status: "draft" });
+    if (!shown.ok || !draft.ok) throw new Error("Could not create the amendments");
+    const vote = {
+      subject: "amendment" as const,
+      heldOn: "2026-10-20",
+      result: "rejected" as const,
+      officialUrl: null,
+      groupVotes: [{ groupId: group.id, position: "against" as const, counts: null }],
+    };
+    await createVote(published.id, { ...vote, number: 100, amendmentId: shown.id });
+    await createVote(published.id, { ...vote, number: 110, amendmentId: draft.id });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select number from votes"), role).toEqual([{ number: 100 }]);
+      expect(
+        await asRole(role, "select v.number from group_votes gv join votes v on v.id = gv.vote_id"),
+        role,
+      ).toEqual([{ number: 100 }]);
+    }
+  });
 });

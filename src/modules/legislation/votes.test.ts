@@ -254,7 +254,7 @@ describe("scrutins in the administration", () => {
 describe("a scrutin on an amendment", () => {
   const amendmentVote = { ...finalVote, subject: "amendment" as const, number: 398, groupVotes: [] };
 
-  async function amendmentId(textId: string, number = 12) {
+  async function amendmentId(textId: string, number = 12, status: "draft" | "published" = "published") {
     const created = await createAmendment(textId, {
       number,
       authorLabel: "Mme Claire Martin",
@@ -264,11 +264,21 @@ describe("a scrutin on an amendment", () => {
       fate: "adopted",
       governmentOpinion: "none",
       committeeOpinion: "none",
-      status: "published",
+      status,
     });
     if (!created.ok) throw new Error("Could not create the amendment");
     return created.id;
   }
+
+  it("is hidden from the public while its amendment is a draft", async () => {
+    const textId = await publishedTextId();
+    const draft = await amendmentId(textId, 12, "draft");
+    await createVote(textId, { ...amendmentVote, amendmentId: draft });
+    await createVote(textId, { ...amendmentVote, number: 399, amendmentId: null });
+
+    expect((await getPublishedVotes(textId)).map((vote) => vote.number)).toEqual([399]);
+    expect((await getVotes(textId)).map((vote) => vote.number)).toEqual([398, 399]);
+  });
 
   it("is linked to its amendment, which keeps a single scrutin", async () => {
     const textId = await publishedTextId();
