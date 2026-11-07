@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatFiledOn, textReference } from "../../text-labels";
+import { formatFiledOn, textReference } from "../vocabulary";
 import type { PublishedTextSummary } from "../queries";
 
 // The public list of texts; each entry leads to the page of its text. The count is a status,

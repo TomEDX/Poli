@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import { formatConsultedOn } from "../../source-dates";
-import { sourceKindLabels } from "../../source-kinds";
+import { formatConsultedOn, sourceKindLabels } from "../vocabulary";
 import type { Source } from "../queries";
 import { SourceSheet } from "./source-sheet";
 

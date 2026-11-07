@@ -26,7 +26,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { SourcePicker } from "@/modules/reference/sources/components/source-picker";
@@ -35,12 +43,19 @@ import type { Source } from "@/modules/reference/sources/queries";
 import { URL_MAX_LENGTH } from "@/modules/reference/validation";
 
 import { createVoteAction, removeVoteAction, saveVoteAction } from "../../actions";
-import { amendmentReference } from "../../amendment-labels";
+import { amendmentReference } from "../../amendments/vocabulary";
 import type { Amendment } from "../../amendments/queries";
-import { groupPositionLabels, groupPositions, voteResultLabels, voteResults, voteSubjectLabels, voteSubjects } from "../../vote-kinds";
-import { voteReference } from "../../vote-labels";
+import {
+  type GroupCounts,
+  groupPositionLabels,
+  groupPositions,
+  voteReference,
+  voteResultLabels,
+  voteResults,
+  voteSubjectLabels,
+  voteSubjects,
+} from "../vocabulary";
 import { voteSchema } from "../validation";
-import type { GroupCounts } from "../../group-counts";
 import type { Vote } from "../queries";
 
 type VoteSheetProps = {

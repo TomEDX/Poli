@@ -8,7 +8,7 @@ import { createSource } from "@/modules/reference/sources/queries";
 import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
 import { createExtractAction, moveExtractAction, removeExtractAction, saveExtractAction } from "./actions";
-import { getExtracts, getPublishedProgramme } from "./extracts";
+import { getExtracts, getPublishedProgramme } from "./queries";
 
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => "editrice@example.fr") }));
 

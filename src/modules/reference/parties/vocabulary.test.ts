@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { candidacyLabel } from "./candidacy-label";
+import { candidacyLabel } from "./vocabulary";
 
 const party = { name: "Parti de l'Horizon", abbreviation: "PDH" };
 

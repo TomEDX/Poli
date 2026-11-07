@@ -1,4 +1,4 @@
-import { sourceKindLabels } from "../source-kinds";
+import { sourceKindLabels } from "./vocabulary";
 import type { Source } from "./queries";
 
 const header = ["Titre", "Organisme", "Type", "Lien", "Date de consultation"];

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { directions } from "@/lib/direction";
 
 import { publicationStatuses } from "./publication-status";
-import { sourceKinds } from "./source-kinds";
+import { sourceKinds } from "./sources/vocabulary";
 
 export const NAME_MAX_LENGTH = 80;
 

@@ -3,9 +3,9 @@ import { check, date, integer, pgEnum, pgPolicy, pgTable, text, timestamp, uniqu
 
 import { legislatures, parliamentaryGroups, publicationStatus, sources, subtopics } from "@/modules/reference/schema";
 
-import { amendmentFates, amendmentOpinions } from "./amendment-kinds";
-import { textNatures } from "./text-natures";
-import { groupPositions, voteResults, voteSubjects } from "./vote-kinds";
+import { amendmentFates, amendmentOpinions } from "./amendments/vocabulary";
+import { textNatures } from "./texts/vocabulary";
+import { groupPositions, voteResults, voteSubjects } from "./votes/vocabulary";
 
 export const textNature = pgEnum("text_nature", textNatures);
 

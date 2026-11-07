@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 
-import { formatFiledOn, textReference } from "../../text-labels";
+import { formatFiledOn, textReference } from "../vocabulary";
 import type { PublishedText } from "../queries";
 
 // What identifies a text: its reference, official title, filing date, subtopics and official page.

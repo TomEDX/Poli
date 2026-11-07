@@ -4,10 +4,10 @@ import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
 
-import { amendmentNumberTakenMessage, authorGroupOutsideLegislatureMessage } from "./amendment-messages";
+import { amendmentNumberTakenMessage, authorGroupOutsideLegislatureMessage } from "./amendments/vocabulary";
 import { amendmentSchema } from "./amendments/validation";
 import { createAmendment, removeAmendment, saveAmendment } from "./amendments/queries";
-import { noSubtopicMessage, textNumberTakenMessage } from "./text-messages";
+import { noSubtopicMessage, textNumberTakenMessage } from "./texts/vocabulary";
 import { createText, removeText, saveText } from "./texts/queries";
 import { newTextSchema, textChangesSchema } from "./texts/validation";
 import {
@@ -16,7 +16,7 @@ import {
   missingGroupVoteMessage,
   voteGroupOutsideLegislatureMessage,
   voteNumberTakenMessage,
-} from "./vote-messages";
+} from "./votes/vocabulary";
 import { voteSchema } from "./votes/validation";
 import { createVote, removeVote, saveVote } from "./votes/queries";
 

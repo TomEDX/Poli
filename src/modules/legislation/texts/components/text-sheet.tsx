@@ -28,7 +28,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,9 +47,7 @@ import type { TopicTree } from "@/modules/reference/topics/queries";
 import { URL_MAX_LENGTH } from "@/modules/reference/validation";
 
 import { createTextAction, removeTextAction, saveTextAction } from "../../actions";
-import { textReference } from "../../text-labels";
-import { noSubtopicMessage } from "../../text-messages";
-import { textNatureLabels, textNatures } from "../../text-natures";
+import { noSubtopicMessage, textNatureLabels, textNatures, textReference } from "../vocabulary";
 import type { EditableText, TextChanges } from "../queries";
 import { SUMMARY_MAX_LENGTH } from "../../form-fields";
 import { newTextSchema, OFFICIAL_TITLE_MAX_LENGTH } from "../validation";

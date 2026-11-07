@@ -3,7 +3,7 @@ import { z } from "zod";
 import { publicationStatuses } from "@/modules/reference/publication-status";
 
 import { numberField, officialUrlField, sourceIdsField, summaryField } from "../form-fields";
-import { textNatures } from "../text-natures";
+import { textNatures } from "./vocabulary";
 
 export const OFFICIAL_TITLE_MAX_LENGTH = 500;
 

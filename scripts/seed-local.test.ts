@@ -4,10 +4,9 @@ import { db } from "@/lib/db";
 import { getPublishedAmendments } from "@/modules/legislation/amendments/queries";
 import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts/queries";
 import { getPublishedVotes } from "@/modules/legislation/votes/queries";
-import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/extracts";
-import { getPublishedCandidacies } from "@/modules/reference/parties/candidacies";
+import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/queries";
+import { createParty, getParties, getPublishedCandidacies } from "@/modules/reference/parties/queries";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups/queries";
-import { createParty, getParties } from "@/modules/reference/parties/queries";
 import { createSource, getSources } from "@/modules/reference/sources/queries";
 import { createTopic, getTopicTree } from "@/modules/reference/topics/queries";
 

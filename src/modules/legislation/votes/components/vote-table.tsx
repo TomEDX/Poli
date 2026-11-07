@@ -9,10 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import type { Source } from "@/modules/reference/sources/queries";
 
-import { amendmentReference } from "../../amendment-labels";
+import { amendmentReference } from "../../amendments/vocabulary";
 import type { Amendment } from "../../amendments/queries";
-import { voteResultLabels, voteSubjectLabels } from "../../vote-kinds";
-import { formatHeldOn, voteReference } from "../../vote-labels";
+import { formatHeldOn, voteReference, voteResultLabels, voteSubjectLabels } from "../vocabulary";
 import type { Vote } from "../queries";
 import { VoteSheet } from "./vote-sheet";
 

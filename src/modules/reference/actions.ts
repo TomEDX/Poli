@@ -4,16 +4,19 @@ import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
 
-import { removeCandidacy, setCandidacyStatus } from "./parties/candidacies";
-import { groupAbbreviationTakenMessage, groupInUseMessage, groupNameTakenMessage } from "./parliamentary-group-messages";
+import { createParty, removeCandidacy, removeParty, saveParty, setCandidacyStatus } from "./parties/queries";
+import {
+  groupAbbreviationTakenMessage,
+  groupInUseMessage,
+  groupNameTakenMessage,
+} from "./parliamentary-groups/vocabulary";
 import {
   createParliamentaryGroup,
   moveParliamentaryGroup,
   removeParliamentaryGroup,
   saveParliamentaryGroup,
 } from "./parliamentary-groups/queries";
-import { createParty, removeParty, saveParty } from "./parties/queries";
-import { abbreviationTakenMessage, partyNameTakenMessage } from "./party-messages";
+import { abbreviationTakenMessage, partyNameTakenMessage } from "./parties/vocabulary";
 import { createSource, editSource, removeSource } from "./sources/queries";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics/queries";
 import {

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProgrammeEditor } from "@/modules/programmes/components/programme-editor";
-import { getExtracts, getSubtopicsWithoutExtract } from "@/modules/programmes/extracts";
+import { getExtracts, getSubtopicsWithoutExtract } from "@/modules/programmes/queries";
 import { getParties } from "@/modules/reference/parties/queries";
 import { getSources } from "@/modules/reference/sources/queries";
 import { getTopicTree } from "@/modules/reference/topics/queries";

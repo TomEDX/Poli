@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { createAmendment } from "@/modules/legislation/amendments/queries";
 import { createText, saveText } from "@/modules/legislation/texts/queries";
 import { createVote } from "@/modules/legislation/votes/queries";
-import { createExtract } from "@/modules/programmes/extracts";
+import { createExtract } from "@/modules/programmes/queries";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import { createParty, getParties } from "@/modules/reference/parties/queries";
 import { topics } from "@/modules/reference/schema";

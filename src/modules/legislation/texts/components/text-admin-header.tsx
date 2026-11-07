@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { textReference } from "../../text-labels";
+import { textReference } from "../vocabulary";
 import type { EditableText } from "../queries";
 
 // Heads the administration page of a text, which gathers its amendments and its scrutins.

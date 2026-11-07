@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { setCandidacyStatus } from "@/modules/reference/parties/candidacies";
-import { createParty, getParties } from "@/modules/reference/parties/queries";
+import { setCandidacyStatus, createParty, getParties } from "@/modules/reference/parties/queries";
 import { createSource, removeSource } from "@/modules/reference/sources/queries";
 import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
@@ -13,7 +12,7 @@ import {
   moveExtract,
   removeExtract,
   saveExtract,
-} from "./extracts";
+} from "./queries";
 
 const extract = {
   quote: "Nous rendrons gratuit un bilan de prévention à 25, 45 et 65 ans.",

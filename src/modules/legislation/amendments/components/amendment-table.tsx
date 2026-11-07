@@ -12,10 +12,9 @@ import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-group
 import type { Source } from "@/modules/reference/sources/queries";
 
 import { saveAmendmentAction } from "../../actions";
-import { amendmentFateLabels, wasVotedOn } from "../../amendment-kinds";
-import { amendmentReference } from "../../amendment-labels";
+import { amendmentFateLabels, amendmentReference, wasVotedOn } from "../vocabulary";
 import type { Amendment } from "../queries";
-import { voteReference } from "../../vote-labels";
+import { voteReference } from "../../votes/vocabulary";
 import { AmendmentSheet } from "./amendment-sheet";
 
 type AmendmentTableProps = {

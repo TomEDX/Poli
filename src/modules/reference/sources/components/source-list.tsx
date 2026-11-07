@@ -2,8 +2,7 @@ import { ExternalLink } from "lucide-react";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import { formatConsultedOn } from "../../source-dates";
-import { sourceKindLabels } from "../../source-kinds";
+import { formatConsultedOn, sourceKindLabels } from "../vocabulary";
 import type { Source } from "../queries";
 
 // The public table of the Sources page. On phones, the organization, type and date go

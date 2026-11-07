@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
 
-import { amendmentFates, amendmentOpinions } from "../amendment-kinds";
+import { amendmentFates, amendmentOpinions } from "./vocabulary";
 import { numberField, optionalIdField, sourceIdsField, summaryField } from "../form-fields";
 
 export const AUTHOR_LABEL_MAX_LENGTH = 200;

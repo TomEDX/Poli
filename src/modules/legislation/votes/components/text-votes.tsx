@@ -3,8 +3,14 @@ import { useId } from "react";
 
 import { SourceLinks } from "@/modules/reference/sources/components/source-links";
 
-import { formatCounts, formatHeldOn, voteReference, voteSubjectHeadings } from "../../vote-labels";
-import { groupPositionLabels, voteResultLabels } from "../../vote-kinds";
+import {
+  formatCounts,
+  formatHeldOn,
+  groupPositionLabels,
+  voteReference,
+  voteResultLabels,
+  voteSubjectHeadings,
+} from "../vocabulary";
 import type { PublishedGroupVote, PublishedVote } from "../queries";
 
 // The outcome of the final reading on the whole text, shown before anything else about it.

@@ -27,21 +27,23 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
-import {
-  createPartyAction,
-  removeCandidacyAction,
-  removePartyAction,
-  savePartyAction,
-} from "../../actions";
-import { candidacyLabel } from "../../candidacy-label";
+import { createPartyAction, removeCandidacyAction, removePartyAction, savePartyAction } from "../../actions";
+import { abbreviationTakenMessage, candidacyLabel, partyNameTakenMessage } from "../vocabulary";
 import type { Party, PartyChanges } from "../queries";
-import { abbreviationTakenMessage, partyNameTakenMessage } from "../../party-messages";
 import type { PublicationStatus } from "../../publication-status";
 import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH, newPartySchema, type partyEditSchema } from "../../validation";
 

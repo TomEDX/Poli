@@ -1,4 +1,4 @@
-import type { TextNature } from "../text-natures";
+import type { TextNature } from "./vocabulary";
 import type { TextFilters, TextTopic } from "./queries";
 
 // The filters and sort of the public list as they read in its URL, "" when not picked.

@@ -27,18 +27,25 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 
-import { createParliamentaryGroupAction, removeParliamentaryGroupAction, saveParliamentaryGroupAction } from "../../actions";
-import { groupAbbreviationTakenMessage, groupNameTakenMessage } from "../../parliamentary-group-messages";
-import type {
-  ParliamentaryGroup,
-  ParliamentaryGroupChanges,
-  ParliamentaryGroupInput,
-  PartySummary,
-} from "../queries";
+import {
+  createParliamentaryGroupAction,
+  removeParliamentaryGroupAction,
+  saveParliamentaryGroupAction,
+} from "../../actions";
+import { groupAbbreviationTakenMessage, groupNameTakenMessage } from "../vocabulary";
+import type { ParliamentaryGroup, ParliamentaryGroupChanges, ParliamentaryGroupInput, PartySummary } from "../queries";
 import {
   ABBREVIATION_MAX_LENGTH,
   NAME_MAX_LENGTH,

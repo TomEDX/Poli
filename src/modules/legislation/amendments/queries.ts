@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { Refused, refusalOf } from "@/lib/write-refusals";
+import { refusalOf, Refused } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import {
   getCurrentLegislature,
@@ -13,7 +13,7 @@ import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
 
-import type { AmendmentFate, AmendmentOpinion } from "../amendment-kinds";
+import type { AmendmentFate, AmendmentOpinion } from "./vocabulary";
 import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
 import { amendments, texts, votes } from "../schema";
 import { getPublishedVotes, type PublishedVote } from "../votes/queries";

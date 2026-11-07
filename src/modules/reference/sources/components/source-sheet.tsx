@@ -26,20 +26,22 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 
 import { createSourceAction, editSourceAction, removeSourceAction } from "../../actions";
-import { todayInParis } from "../../source-dates";
-import { sourceKindLabels, sourceKinds } from "../../source-kinds";
+import { sourceKindLabels, sourceKinds, todayInParis } from "../vocabulary";
 import type { Source, SourceChanges, SourceInput } from "../queries";
-import {
-  newSourceSchema,
-  ORGANIZATION_MAX_LENGTH,
-  SOURCE_TITLE_MAX_LENGTH,
-  URL_MAX_LENGTH,
-} from "../../validation";
+import { newSourceSchema, ORGANIZATION_MAX_LENGTH, SOURCE_TITLE_MAX_LENGTH, URL_MAX_LENGTH } from "../../validation";
 
 type SourceSheetProps = {
   // null to create a new source.
@@ -77,7 +79,6 @@ export function SourceSheet({ source, open, onOpenChange, returnFocus, onRemovin
     </Sheet>
   );
 }
-
 
 type SourceFormProps = {
   source: Source | null;

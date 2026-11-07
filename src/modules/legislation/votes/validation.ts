@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 import { numberField, officialUrlField, optionalIdField, sourceIdsField } from "../form-fields";
-import { completeCounts, type GroupCounts } from "../group-counts";
-import { groupPositions, voteResults, voteSubjects } from "../vote-kinds";
+import { completeCounts, type GroupCounts, groupPositions, voteResults, voteSubjects } from "./vocabulary";
 import type { GroupVoteInput } from "./queries";
 
 // Blank when not entered. Four digits are more than the Assemblée has members.

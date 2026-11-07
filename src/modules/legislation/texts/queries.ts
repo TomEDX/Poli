@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, exists, inArray, type SQL } from "drizzle-or
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { Refused, refusalOf } from "@/lib/write-refusals";
+import { refusalOf, Refused } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups/queries";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
@@ -10,8 +10,8 @@ import { subtopics, topics } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
 
 import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
-import { textSubtopics, texts } from "../schema";
-import type { TextNature } from "../text-natures";
+import { texts, textSubtopics } from "../schema";
+import type { TextNature } from "./vocabulary";
 
 export type TextInput = {
   nature: TextNature;

@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { Refused, refusalOf } from "@/lib/write-refusals";
+import { refusalOf, Refused } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import {
   getCurrentLegislature,
@@ -13,9 +13,8 @@ import { parliamentaryGroups } from "@/modules/reference/schema";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
 
 import { replaceSources, sourceIdsOf, sourcesOf } from "../content-sources";
-import { completeCounts, type GroupCounts } from "../group-counts";
+import { completeCounts, type GroupCounts, type GroupPosition, type VoteResult, type VoteSubject } from "./vocabulary";
 import { amendments, groupVotes, texts, votes } from "../schema";
-import type { GroupPosition, VoteResult, VoteSubject } from "../vote-kinds";
 
 // counts is null when only the majority position is known.
 export type GroupVoteInput = { groupId: string; position: GroupPosition; counts: GroupCounts | null };

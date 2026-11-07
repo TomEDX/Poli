@@ -14,8 +14,8 @@ import type { Source } from "@/modules/reference/sources/queries";
 import type { TopicTree } from "@/modules/reference/topics/queries";
 
 import { moveExtractAction, saveExtractAction } from "../actions";
-import { formatRecordedOn } from "../extract-labels";
-import type { EditableExtract, MissingSubtopics } from "../extracts";
+import { formatRecordedOn } from "../vocabulary";
+import type { EditableExtract, MissingSubtopics } from "../queries";
 import { ExtractSheet } from "./extract-sheet";
 
 // As the administration lists it, drafts included.

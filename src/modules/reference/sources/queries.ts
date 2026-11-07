@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { refusalOf } from "@/lib/write-refusals";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 
-import type { SourceKind } from "../source-kinds";
+import type { SourceKind } from "./vocabulary";
 import { sources } from "../schema";
 
 export type SourceInput = {

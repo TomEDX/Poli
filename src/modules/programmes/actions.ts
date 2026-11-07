@@ -5,7 +5,7 @@ import { z } from "zod";
 import { editorWrite } from "@/modules/editors/editor-write";
 import { directionSchema } from "@/modules/reference/validation";
 
-import { createExtract, moveExtract, removeExtract, saveExtract } from "./extracts";
+import { createExtract, moveExtract, removeExtract, saveExtract } from "./queries";
 import { extractChangesSchema, newExtractSchema } from "./validation";
 
 export const createExtractAction = editorWrite({

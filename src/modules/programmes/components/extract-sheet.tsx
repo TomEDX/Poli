@@ -27,18 +27,26 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { SourcePicker } from "@/modules/reference/sources/components/source-picker";
-import { todayInParis } from "@/modules/reference/source-dates";
+import { todayInParis } from "@/modules/reference/sources/vocabulary";
 import type { Source } from "@/modules/reference/sources/queries";
 import type { TopicTree } from "@/modules/reference/topics/queries";
 
 import { createExtractAction, removeExtractAction, saveExtractAction } from "../actions";
-import type { EditableExtract, ExtractChanges } from "../extracts";
+import type { EditableExtract, ExtractChanges } from "../queries";
 import { newExtractSchema, QUOTE_MAX_LENGTH } from "../validation";
 
 type ExtractSheetProps = {

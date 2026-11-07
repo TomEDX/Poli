@@ -2,11 +2,15 @@ import { useId } from "react";
 
 import { SourceLinks } from "@/modules/reference/sources/components/source-links";
 
-import { amendmentFateLabels, amendmentOpinionLabels, type AmendmentOpinion, wasVotedOn } from "../../amendment-kinds";
-import { amendmentReference } from "../../amendment-labels";
+import {
+  amendmentFateLabels,
+  type AmendmentOpinion,
+  amendmentOpinionLabels,
+  amendmentReference,
+  wasVotedOn,
+} from "../vocabulary";
 import type { PublishedAmendment } from "../queries";
-import { formatHeldOn, voteReference } from "../../vote-labels";
-import { voteResultLabels } from "../../vote-kinds";
+import { formatHeldOn, voteReference, voteResultLabels } from "../../votes/vocabulary";
 import { GroupVoteList, OfficialVoteLink } from "../../votes/components/text-votes";
 
 // The amendments the editors picked for a text, by number, each with how it was voted.

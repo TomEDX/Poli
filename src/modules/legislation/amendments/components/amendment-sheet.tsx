@@ -27,7 +27,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,9 +45,14 @@ import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-group
 import type { Source } from "@/modules/reference/sources/queries";
 
 import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "../../actions";
-import { amendmentFateLabels, amendmentFates, amendmentOpinionLabels, amendmentOpinions } from "../../amendment-kinds";
-import { amendmentReference } from "../../amendment-labels";
-import { AUTHOR_LABEL_MAX_LENGTH, amendmentSchema, COSIGNATORIES_MAX_LENGTH } from "../validation";
+import {
+  amendmentFateLabels,
+  amendmentFates,
+  amendmentOpinionLabels,
+  amendmentOpinions,
+  amendmentReference,
+} from "../vocabulary";
+import { amendmentSchema, AUTHOR_LABEL_MAX_LENGTH, COSIGNATORIES_MAX_LENGTH } from "../validation";
 import type { Amendment } from "../queries";
 import { SUMMARY_MAX_LENGTH } from "../../form-fields";
 
