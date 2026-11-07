@@ -40,9 +40,9 @@ import { toast } from "@/components/ui/toast";
 import { SourcePicker } from "@/modules/reference/sources/components/source-picker";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import type { Source } from "@/modules/reference/sources/queries";
-import { URL_MAX_LENGTH } from "@/modules/reference/validation";
+import { URL_MAX_LENGTH } from "@/modules/reference/form-fields";
 
-import { createVoteAction, removeVoteAction, saveVoteAction } from "../../actions";
+import { createVoteAction, removeVoteAction, saveVoteAction } from "../actions";
 import { amendmentReference } from "../../amendments/vocabulary";
 import type { Amendment } from "../../amendments/queries";
 import {

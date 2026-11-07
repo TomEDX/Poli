@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { webUrlField } from "@/modules/reference/validation";
+import { webUrlField } from "@/modules/reference/form-fields";
 
 export const SUMMARY_MAX_LENGTH = 2000;
 

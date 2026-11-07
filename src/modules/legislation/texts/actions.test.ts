@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
-import { removeSourceAction } from "@/modules/reference/actions";
+import { removeSourceAction } from "@/modules/reference/sources/actions";
 import { createSource } from "@/modules/reference/sources/queries";
 import { createSubtopic, createTopic } from "@/modules/reference/topics/queries";
 
-import { createTextAction, saveTextAction } from "../actions";
+import { createTextAction, saveTextAction } from "./actions";
 import { getPublishedText, getText, getTexts } from "./queries";
 
 vi.mock("@/modules/editors/session", () => ({ getSignedInEmail: vi.fn(async () => "editrice@example.fr") }));

@@ -5,7 +5,7 @@ import { Fragment, useState } from "react";
 
 import type { ActionResult } from "@/modules/editors/editor-write";
 
-import { editNodeAction, moveNodeAction, removeNodeAction } from "../../actions";
+import { editNodeAction, moveNodeAction, removeNodeAction } from "../actions";
 import type { Level } from "../queries";
 import type { VisibleRow } from "../visible-tree";
 import { EditableText } from "./editable-text";

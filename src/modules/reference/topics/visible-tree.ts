@@ -1,5 +1,5 @@
 import type { TopicTree } from "./queries";
-import { slugify } from "../validation";
+import { slugify } from "../form-fields";
 
 export type VisibleRow = { id: string; name: string; slug: string; isFirst: boolean; isLast: boolean };
 

@@ -6,7 +6,7 @@ import { useId, useRef, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
-import { NAME_MAX_LENGTH } from "../../validation";
+import { NAME_MAX_LENGTH } from "../../form-fields";
 
 export type Field = "name" | "slug";
 

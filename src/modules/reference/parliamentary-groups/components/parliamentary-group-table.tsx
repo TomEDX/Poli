@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/components/ui/toast";
 import type { Direction } from "@/lib/direction";
 
-import { moveParliamentaryGroupAction } from "../../actions";
+import { moveParliamentaryGroupAction } from "../actions";
 import type { ParliamentaryGroup, PartySummary } from "../queries";
 import { ParliamentaryGroupSheet } from "./parliamentary-group-sheet";
 import { iconButton } from "../../components/row-layout";

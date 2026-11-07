@@ -43,15 +43,11 @@ import {
   createParliamentaryGroupAction,
   removeParliamentaryGroupAction,
   saveParliamentaryGroupAction,
-} from "../../actions";
+} from "../actions";
 import { groupAbbreviationTakenMessage, groupNameTakenMessage } from "../vocabulary";
 import type { ParliamentaryGroup, ParliamentaryGroupChanges, ParliamentaryGroupInput, PartySummary } from "../queries";
-import {
-  ABBREVIATION_MAX_LENGTH,
-  NAME_MAX_LENGTH,
-  newParliamentaryGroupSchema,
-  type parliamentaryGroupChangesSchema,
-} from "../../validation";
+import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH } from "../../form-fields";
+import { newParliamentaryGroupSchema, type parliamentaryGroupChangesSchema } from "../validation";
 
 type ParliamentaryGroupSheetProps = {
   // null to create a new group.

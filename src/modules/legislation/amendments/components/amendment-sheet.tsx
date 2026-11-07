@@ -44,7 +44,7 @@ import { SourcePicker } from "@/modules/reference/sources/components/source-pick
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import type { Source } from "@/modules/reference/sources/queries";
 
-import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "../../actions";
+import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "../actions";
 import {
   amendmentFateLabels,
   amendmentFates,

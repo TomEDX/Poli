@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
-import { createSubtopicAction, createTopicAction } from "../../actions";
+import { createSubtopicAction, createTopicAction } from "../actions";
 import type { TopicTree } from "../queries";
 import { type VisibleTopic, visibleTree } from "../visible-tree";
 import { type Field, InlineInput } from "./inline-input";

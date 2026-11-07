@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
-import { removeParliamentaryGroupAction } from "@/modules/reference/actions";
+import { removeParliamentaryGroupAction } from "@/modules/reference/parliamentary-groups/actions";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 
-import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "../actions";
+import { createAmendmentAction, removeAmendmentAction, saveAmendmentAction } from "./actions";
 import { getAmendments } from "./queries";
 import { createText } from "../texts/queries";
 

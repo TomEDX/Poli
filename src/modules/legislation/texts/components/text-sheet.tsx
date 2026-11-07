@@ -44,9 +44,9 @@ import { toast } from "@/components/ui/toast";
 import { SourcePicker } from "@/modules/reference/sources/components/source-picker";
 import type { Source } from "@/modules/reference/sources/queries";
 import type { TopicTree } from "@/modules/reference/topics/queries";
-import { URL_MAX_LENGTH } from "@/modules/reference/validation";
+import { URL_MAX_LENGTH } from "@/modules/reference/form-fields";
 
-import { createTextAction, removeTextAction, saveTextAction } from "../../actions";
+import { createTextAction, removeTextAction, saveTextAction } from "../actions";
 import { noSubtopicMessage, textNatureLabels, textNatures, textReference } from "../vocabulary";
 import type { EditableText, TextChanges } from "../queries";
 import { SUMMARY_MAX_LENGTH } from "../../form-fields";

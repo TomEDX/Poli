@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 
-import { setCandidacyStatusAction } from "../../actions";
+import { setCandidacyStatusAction } from "../actions";
 import type { Party } from "../queries";
 
 type PartyRowProps = {

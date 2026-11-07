@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
-import { directionSchema } from "@/modules/reference/validation";
+import { directionSchema } from "@/modules/reference/form-fields";
 
 import { createExtract, moveExtract, removeExtract, saveExtract } from "./queries";
 import { extractChangesSchema, newExtractSchema } from "./validation";

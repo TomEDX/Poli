@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/toast";
 import type { Source } from "@/modules/reference/sources/queries";
 import type { TopicTree } from "@/modules/reference/topics/queries";
 
-import { saveTextAction } from "../../actions";
+import { saveTextAction } from "../actions";
 import { formatFiledOn, textReference } from "../vocabulary";
 import type { EditableText } from "../queries";
 import { TextSheet } from "./text-sheet";

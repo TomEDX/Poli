@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { editors } from "@/modules/editors/schema";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 
-import { createVoteAction, saveVoteAction } from "../actions";
+import { createVoteAction, saveVoteAction } from "./actions";
 import { createAmendment } from "../amendments/queries";
 import { createText } from "../texts/queries";
 import { getVotes } from "./queries";

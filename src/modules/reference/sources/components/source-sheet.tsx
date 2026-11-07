@@ -38,10 +38,11 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 
-import { createSourceAction, editSourceAction, removeSourceAction } from "../../actions";
+import { createSourceAction, editSourceAction, removeSourceAction } from "../actions";
 import { sourceKindLabels, sourceKinds, todayInParis } from "../vocabulary";
 import type { Source, SourceChanges, SourceInput } from "../queries";
-import { newSourceSchema, ORGANIZATION_MAX_LENGTH, SOURCE_TITLE_MAX_LENGTH, URL_MAX_LENGTH } from "../../validation";
+import { newSourceSchema, ORGANIZATION_MAX_LENGTH, SOURCE_TITLE_MAX_LENGTH } from "../validation";
+import { URL_MAX_LENGTH } from "../../form-fields";
 
 type SourceSheetProps = {
   // null to create a new source.

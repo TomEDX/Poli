@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { newTopicSchema, topicChangesSchema } from "../validation";
+import { newTopicSchema, topicChangesSchema } from "./validation";
 
 describe("a new topic", () => {
   const parse = (name: string, slug = "") => newTopicSchema.safeParse({ name, slug });

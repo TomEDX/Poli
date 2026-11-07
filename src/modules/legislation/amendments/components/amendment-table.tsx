@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/toast";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import type { Source } from "@/modules/reference/sources/queries";
 
-import { saveAmendmentAction } from "../../actions";
+import { saveAmendmentAction } from "../actions";
 import { amendmentFateLabels, amendmentReference, wasVotedOn } from "../vocabulary";
 import type { Amendment } from "../queries";
 import { voteReference } from "../../votes/vocabulary";

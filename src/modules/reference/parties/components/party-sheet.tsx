@@ -41,11 +41,12 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
-import { createPartyAction, removeCandidacyAction, removePartyAction, savePartyAction } from "../../actions";
+import { createPartyAction, removeCandidacyAction, removePartyAction, savePartyAction } from "../actions";
 import { abbreviationTakenMessage, candidacyLabel, partyNameTakenMessage } from "../vocabulary";
 import type { Party, PartyChanges } from "../queries";
 import type { PublicationStatus } from "../../publication-status";
-import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH, newPartySchema, type partyEditSchema } from "../../validation";
+import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH } from "../../form-fields";
+import { newPartySchema, type partyEditSchema } from "../validation";
 
 type PartySheetProps = {
   // null to create a new party.
