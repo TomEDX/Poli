@@ -151,6 +151,7 @@ export async function closeJob(id: string): Promise<Job> {
 
 export async function cleanupJob(id: string): Promise<void> {
   const job = readJob(id);
+  if (job.worktree === REPO_ROOT) throw new Refusal(`${job.id} works in the factory's own checkout: not removing it.`);
   if (existsSync(job.worktree)) run("git", ["worktree", "remove", "--force", job.worktree], { cwd: REPO_ROOT });
   run("git", ["branch", "-D", job.branch], { cwd: REPO_ROOT });
   await dropJobDatabases(job.databases);
