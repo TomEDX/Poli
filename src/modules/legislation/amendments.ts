@@ -3,14 +3,18 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
-import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
-import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
+import {
+  getCurrentLegislature,
+  groupSummaryColumns,
+  type ParliamentaryGroupSummary,
+} from "@/modules/reference/parliamentary-groups";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 
 import type { AmendmentFate, AmendmentOpinion } from "./amendment-kinds";
 import { amendments, texts, votes } from "./schema";
 import { getPublishedVotes, type PublishedVote } from "./votes";
+import { refusalOf } from "./write-refusals";
 
 export type AmendmentInput = {
   number: number;
@@ -27,7 +31,7 @@ export type AmendmentInput = {
 
 export type PublishedAmendment = Omit<AmendmentInput, "authorGroupId" | "status"> & {
   id: string;
-  authorGroup: { id: string; name: string; abbreviation: string } | null;
+  authorGroup: ParliamentaryGroupSummary | null;
   // Null when no public scrutin was held on it, for instance a vote by show of hands.
   vote: PublishedVote | null;
 };
@@ -42,6 +46,8 @@ export type SaveAmendmentResult = WriteOutcome<AmendmentRefusal>;
 export type RemoveAmendmentResult = WriteOutcome<"not-found">;
 
 type AmendmentRefusal = "number-taken" | "group-outside-legislature" | "not-found";
+
+const takenReasons: Record<string, AmendmentRefusal> = { amendments_text_id_number_unique: "number-taken" };
 
 const amendmentColumns = {
   id: amendments.id,
@@ -58,14 +64,7 @@ const amendmentColumns = {
 export async function getPublishedAmendments(textId: string): Promise<PublishedAmendment[]> {
   if (!z.uuid().safeParse(textId).success) return [];
   const rows = await db
-    .select({
-      ...amendmentColumns,
-      group: {
-        id: parliamentaryGroups.id,
-        name: parliamentaryGroups.name,
-        abbreviation: parliamentaryGroups.abbreviation,
-      },
-    })
+    .select({ ...amendmentColumns, group: groupSummaryColumns })
     .from(amendments)
     .innerJoin(texts, eq(texts.id, amendments.textId))
     .leftJoin(parliamentaryGroups, eq(parliamentaryGroups.id, amendments.authorGroupId))
@@ -107,7 +106,7 @@ export async function createAmendment(textId: string, amendment: AmendmentInput)
       .returning({ id: amendments.id });
     return { ok: true, id: created.id };
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -121,7 +120,7 @@ export async function saveAmendment(id: string, amendment: AmendmentInput): Prom
       .returning({ id: amendments.id });
     return found ? { ok: true } : { ok: false, reason: "not-found" };
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -141,14 +140,5 @@ async function isOutsideLegislature(groupId: string | null): Promise<boolean> {
       .where(eq(parliamentaryGroups.id, groupId)),
   ]);
   return group !== undefined && group.legislatureId !== legislature.id;
-}
-
-// Rethrows anything the editor cannot act on.
-function refusal(error: unknown): AmendmentRefusal {
-  const { code, constraint } = postgresError(error);
-  if (code === uniqueViolation && constraint === "amendments_text_id_number_unique") return "number-taken";
-  // The text or the author's group was deleted while the editor filled the form.
-  if (code === foreignKeyViolation) return "not-found";
-  throw error;
 }
 

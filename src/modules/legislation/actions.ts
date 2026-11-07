@@ -9,7 +9,7 @@ import { amendmentSchema } from "./amendment-validation";
 import { createAmendment, removeAmendment, saveAmendment } from "./amendments";
 import { noSubtopicMessage, textNumberTakenMessage } from "./text-messages";
 import { createText, removeText, saveText } from "./texts";
-import { newTextSchema, textChangesSchema } from "./validation";
+import { newTextSchema, textChangesSchema } from "./text-validation";
 import {
   amendmentVotedTwiceMessage,
   groupVotedTwiceMessage,

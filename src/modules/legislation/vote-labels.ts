@@ -1,5 +1,5 @@
 import { formatFiledOn } from "./text-labels";
-import type { GroupCounts } from "./votes";
+import type { GroupCounts } from "./group-counts";
 import type { VoteSubject } from "./vote-kinds";
 
 // What a scrutin was about, as a heading: "Vote sur l’ensemble du texte".

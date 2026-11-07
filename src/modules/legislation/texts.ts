@@ -4,12 +4,12 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
 import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
-import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
 import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { subtopics, topics } from "@/modules/reference/schema";
 
 import { textSubtopics, texts } from "./schema";
 import type { TextNature } from "./text-natures";
+import { Refused, refusalOf } from "./write-refusals";
 
 export type TextInput = {
   nature: TextNature;
@@ -62,12 +62,7 @@ export type RemoveTextResult = WriteOutcome<"not-found">;
 
 type TextRefusal = "number-taken" | "no-subtopic" | "not-found";
 
-// Thrown inside a transaction to roll it back with the reason the editor will read.
-class Refused extends Error {
-  constructor(readonly reason: TextRefusal) {
-    super(reason);
-  }
-}
+const takenReasons: Record<string, TextRefusal> = { texts_legislature_id_number_unique: "number-taken" };
 
 const summaryColumns = {
   id: texts.id,
@@ -154,7 +149,7 @@ export async function createText({ subtopicIds, ...text }: NewText): Promise<Cre
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -184,7 +179,7 @@ export async function saveText(id: string, { subtopicIds, ...text }: TextChanges
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -238,14 +233,4 @@ async function subtopicsOf(textIds: string[]): Promise<Map<string, TextSubtopic[
     .orderBy(asc(topics.position), asc(subtopics.position));
   for (const { textId, ...subtopic } of rows) filed.set(textId, [...(filed.get(textId) ?? []), subtopic]);
   return filed;
-}
-
-// Rethrows anything the editor cannot act on.
-function refusal(error: unknown): TextRefusal {
-  if (error instanceof Refused) return error.reason;
-  const { code, constraint } = postgresError(error);
-  if (code === uniqueViolation && constraint === "texts_legislature_id_number_unique") return "number-taken";
-  // A subtopic picked by the editor was deleted meanwhile.
-  if (code === foreignKeyViolation) return "not-found";
-  throw error;
 }

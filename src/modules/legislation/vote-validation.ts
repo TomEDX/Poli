@@ -1,17 +1,9 @@
 import { z } from "zod";
 
+import { numberField, officialUrlField, optionalIdField } from "./form-fields";
+import { completeCounts, type GroupCounts } from "./group-counts";
 import { groupPositions, voteResults, voteSubjects } from "./vote-kinds";
-import type { GroupCounts, GroupVoteInput } from "./votes";
-import { officialUrlField } from "./validation";
-
-// The form sends what was typed; a value already parsed comes back as a number.
-const numberField = z.coerce
-  .string()
-  .trim()
-  .min(1, "Saisissez le numéro du scrutin.")
-  .regex(/^\d{1,9}$/, "Le numéro du scrutin ne contient que des chiffres.")
-  .transform(Number)
-  .refine((number) => number > 0, "Le numéro du scrutin commence à 1.");
+import type { GroupVoteInput } from "./votes";
 
 // Blank when not entered. Four digits are more than the Assemblée has members.
 const countField = z.coerce
@@ -23,10 +15,8 @@ const countField = z.coerce
 const countsField = z
   .object({ for: countField, against: countField, abstention: countField, nonVoting: countField })
   .transform((counts): GroupCounts | null | "partial" => {
-    const { for: inFavour, against, abstention, nonVoting } = counts;
-    if (inFavour === null && against === null && abstention === null && nonVoting === null) return null;
-    if (inFavour === null || against === null || abstention === null || nonVoting === null) return "partial";
-    return { for: inFavour, against, abstention, nonVoting };
+    if (Object.values(counts).every((count) => count === null)) return null;
+    return completeCounts(counts) ?? "partial";
   })
   .refine((counts) => counts !== "partial", "Saisissez les quatre nombres du décompte d’un groupe, ou aucun.")
   .transform((counts) => (counts === "partial" ? null : counts));
@@ -42,23 +32,16 @@ const groupVoteField = z
     path: ["counts"],
   });
 
-// Blank when the scrutin is linked to no amendment.
-const amendmentIdField = z
-  .string()
-  .nullable()
-  .transform((id) => id?.trim() || null)
-  .pipe(z.uuid().nullable());
-
 // A scrutin with every group vote, as the form sends it on a creation and on an edit. Only a
-// scrutin on an amendment keeps the amendment it was linked to.
+// scrutin on an amendment keeps the amendment it was linked to, blank for none.
 export const voteSchema = z
   .object({
     subject: z.enum(voteSubjects, { error: "Choisissez l’objet du scrutin." }),
-    number: numberField,
+    number: numberField({ missing: "Saisissez le numéro du scrutin.", label: "Le numéro du scrutin" }),
     heldOn: z.iso.date({ error: "Saisissez la date du scrutin." }),
     result: z.enum(voteResults, { error: "Choisissez le résultat du scrutin." }),
     officialUrl: officialUrlField,
-    amendmentId: amendmentIdField.default(null),
+    amendmentId: optionalIdField.default(null),
     groupVotes: z.array(groupVoteField),
   })
   .transform((vote) => (vote.subject === "amendment" ? vote : { ...vote, amendmentId: null }));

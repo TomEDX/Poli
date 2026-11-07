@@ -38,7 +38,8 @@ import type { Amendment } from "../amendments";
 import { groupPositionLabels, groupPositions, voteResultLabels, voteResults, voteSubjectLabels, voteSubjects } from "../vote-kinds";
 import { voteReference } from "../vote-labels";
 import { voteSchema } from "../vote-validation";
-import type { GroupCounts, Vote } from "../votes";
+import type { GroupCounts } from "../group-counts";
+import type { Vote } from "../votes";
 
 type VoteSheetProps = {
   textId: string;

@@ -39,7 +39,7 @@ import { amendmentFateLabels, amendmentFates, amendmentOpinionLabels, amendmentO
 import { amendmentReference } from "../amendment-labels";
 import { AUTHOR_LABEL_MAX_LENGTH, amendmentSchema, COSIGNATORIES_MAX_LENGTH } from "../amendment-validation";
 import type { Amendment } from "../amendments";
-import { SUMMARY_MAX_LENGTH } from "../validation";
+import { SUMMARY_MAX_LENGTH } from "../form-fields";
 
 type AmendmentSheetProps = {
   textId: string;

@@ -41,7 +41,8 @@ import { textReference } from "../text-labels";
 import { noSubtopicMessage } from "../text-messages";
 import { textNatureLabels, textNatures } from "../text-natures";
 import type { Text, TextChanges } from "../texts";
-import { newTextSchema, OFFICIAL_TITLE_MAX_LENGTH, SUMMARY_MAX_LENGTH } from "../validation";
+import { SUMMARY_MAX_LENGTH } from "../form-fields";
+import { newTextSchema, OFFICIAL_TITLE_MAX_LENGTH } from "../text-validation";
 
 type TextSheetProps = {
   // null to create a new text.

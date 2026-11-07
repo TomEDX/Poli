@@ -1,22 +1,13 @@
 import { z } from "zod";
 
 import { publicationStatuses } from "@/modules/reference/publication-status";
-import { webUrlField } from "@/modules/reference/validation";
 
+import { numberField, officialUrlField, summaryField } from "./form-fields";
 import { textNatures } from "./text-natures";
 
 export const OFFICIAL_TITLE_MAX_LENGTH = 500;
 
-export const SUMMARY_MAX_LENGTH = 2000;
-
-// The form sends what was typed; a value already parsed comes back as a number.
-const numberField = z.coerce
-  .string()
-  .trim()
-  .min(1, "Saisissez le numéro du texte.")
-  .regex(/^\d{1,9}$/, "Le numéro ne contient que des chiffres.")
-  .transform(Number)
-  .refine((number) => number > 0, "Le numéro commence à 1.");
+const textNumberField = numberField({ missing: "Saisissez le numéro du texte.", label: "Le numéro" });
 
 const natureField = z.enum(textNatures, { error: "Choisissez la nature du texte." });
 
@@ -28,19 +19,6 @@ const officialTitleField = z
 
 const filedOnField = z.iso.date({ error: "Saisissez la date de dépôt." });
 
-// Optional: a blank link means there is no official page yet.
-export const officialUrlField = z
-  .string()
-  .nullable()
-  .transform((url) => url?.trim() || null)
-  .pipe(webUrlField.nullable());
-
-const summaryField = z
-  .string()
-  .trim()
-  .min(1, "Saisissez le résumé éditorial.")
-  .max(SUMMARY_MAX_LENGTH, `Le résumé éditorial dépasse ${SUMMARY_MAX_LENGTH} caractères.`);
-
 // A subtopic picked twice is filed once.
 const subtopicIdsField = z.array(z.uuid()).transform((ids) => [...new Set(ids)]);
 
@@ -48,7 +26,7 @@ const statusField = z.enum(publicationStatuses);
 
 export const newTextSchema = z.object({
   nature: natureField,
-  number: numberField,
+  number: textNumberField,
   officialTitle: officialTitleField,
   filedOn: filedOnField,
   officialUrl: officialUrlField,
@@ -61,7 +39,7 @@ export const newTextSchema = z.object({
 export const textChangesSchema = z
   .object({
     nature: natureField.optional(),
-    number: numberField.optional(),
+    number: textNumberField.optional(),
     officialTitle: officialTitleField.optional(),
     filedOn: filedOnField.optional(),
     officialUrl: officialUrlField.optional(),

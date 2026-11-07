@@ -3,15 +3,17 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import type { WriteOutcome } from "@/modules/editors/editor-write";
-import { getCurrentLegislature } from "@/modules/reference/parliamentary-groups";
-import { foreignKeyViolation, postgresError, uniqueViolation } from "@/modules/reference/postgres-errors";
+import {
+  getCurrentLegislature,
+  groupSummaryColumns,
+  type ParliamentaryGroupSummary,
+} from "@/modules/reference/parliamentary-groups";
 import { parliamentaryGroups } from "@/modules/reference/schema";
 
+import { completeCounts, type GroupCounts } from "./group-counts";
 import { amendments, groupVotes, texts, votes } from "./schema";
 import type { GroupPosition, VoteResult, VoteSubject } from "./vote-kinds";
-
-// How many members of the group voted each way.
-export type GroupCounts = { for: number; against: number; abstention: number; nonVoting: number };
+import { Refused, refusalOf } from "./write-refusals";
 
 // counts is null when only the majority position is known.
 export type GroupVoteInput = { groupId: string; position: GroupPosition; counts: GroupCounts | null };
@@ -30,7 +32,7 @@ export type VoteInput = {
 };
 
 export type PublishedGroupVote = {
-  group: { id: string; name: string; abbreviation: string };
+  group: ParliamentaryGroupSummary;
   position: GroupPosition;
   counts: GroupCounts | null;
 };
@@ -61,13 +63,6 @@ const takenReasons: Record<string, VoteRefusal> = {
   group_votes_vote_id_group_id_unique: "group-voted-twice",
   votes_amendment_id_unique: "amendment-voted-twice",
 };
-
-// Thrown inside a transaction to roll it back with the reason the editor will read.
-class Refused extends Error {
-  constructor(readonly reason: VoteRefusal) {
-    super(reason);
-  }
-}
 
 const voteColumns = {
   id: votes.id,
@@ -139,7 +134,7 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -156,7 +151,7 @@ export async function saveVote(id: string, { groupVotes: cast, ...vote }: VoteIn
     });
     return { ok: true };
   } catch (error) {
-    return { ok: false, reason: refusal(error) };
+    return { ok: false, reason: refusalOf(error, takenReasons) };
   }
 }
 
@@ -195,11 +190,7 @@ async function groupVotesOf(voteIds: string[]): Promise<Map<string, PublishedGro
   const rows = await db
     .select({
       voteId: groupVotes.voteId,
-      group: {
-        id: parliamentaryGroups.id,
-        name: parliamentaryGroups.name,
-        abbreviation: parliamentaryGroups.abbreviation,
-      },
+      group: groupSummaryColumns,
       position: groupVotes.position,
       for: groupVotes.forCount,
       against: groupVotes.againstCount,
@@ -211,17 +202,10 @@ async function groupVotesOf(voteIds: string[]): Promise<Map<string, PublishedGro
     .where(inArray(groupVotes.voteId, voteIds))
     .orderBy(asc(parliamentaryGroups.position), asc(parliamentaryGroups.createdAt));
   for (const { voteId, group, position, ...counts } of rows) {
-    const groupVote = { group, position, counts: countsOf(counts) };
+    const groupVote = { group, position, counts: completeCounts(counts) };
     cast.set(voteId, [...(cast.get(voteId) ?? []), groupVote]);
   }
   return cast;
-}
-
-// The four counts are entered together or not at all.
-function countsOf(counts: { [Key in keyof GroupCounts]: number | null }): GroupCounts | null {
-  const { for: inFavour, against, abstention, nonVoting } = counts;
-  if (inFavour === null || against === null || abstention === null || nonVoting === null) return null;
-  return { for: inFavour, against, abstention, nonVoting };
 }
 
 function groupVoteRow(voteId: string, { groupId, position, counts }: GroupVoteInput) {
@@ -234,16 +218,5 @@ function groupVoteRow(voteId: string, { groupId, position, counts }: GroupVoteIn
     abstentionCount: counts?.abstention ?? null,
     nonVotingCount: counts?.nonVoting ?? null,
   };
-}
-
-// Rethrows anything the editor cannot act on.
-function refusal(error: unknown): VoteRefusal {
-  if (error instanceof Refused) return error.reason;
-  const { code, constraint } = postgresError(error);
-  const taken = code === uniqueViolation && constraint ? takenReasons[constraint] : undefined;
-  if (taken) return taken;
-  // The text or a group was deleted while the editor filled the form.
-  if (code === foreignKeyViolation) return "not-found";
-  throw error;
 }
 
