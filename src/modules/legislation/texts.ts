@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, inArray, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -41,6 +41,16 @@ export type PublishedTextSummary = {
 
 export type PublishedText = PublishedTextSummary & { officialUrl: string | null; summary: string };
 
+// By filing date.
+export type TextOrder = "newest" | "oldest";
+
+// What a visitor narrows the public list to, every filter given must match, and its order,
+// the most recently filed first by default.
+export type TextFilters = { topicId?: string; subtopicId?: string; nature?: TextNature; order?: TextOrder };
+
+// A topic a visitor can filter the public list by, with its subtopics that have a published text.
+export type TextTopic = { id: string; name: string; slug: string; subtopics: { id: string; name: string; slug: string }[] };
+
 // What the administration lists and edits, drafts included.
 export type Text = TextInput & { id: string; status: PublicationStatus };
 
@@ -67,17 +77,39 @@ const summaryColumns = {
   filedOn: texts.filedOn,
 };
 
-// The most recently filed first; the number breaks a tie within a day.
+// The number breaks a tie within a day.
 const filingOrder = [desc(texts.filedOn), desc(texts.number)];
+const reverseFilingOrder = [asc(texts.filedOn), asc(texts.number)];
 
-export async function getPublishedTexts(): Promise<PublishedTextSummary[]> {
+export async function getPublishedTexts(filters: TextFilters = {}): Promise<PublishedTextSummary[]> {
   const rows = await db
     .select(summaryColumns)
     .from(texts)
-    .where(eq(texts.status, "published"))
-    .orderBy(...filingOrder);
+    .where(and(eq(texts.status, "published"), ...filterConditions(filters)))
+    .orderBy(...(filters.order === "oldest" ? reverseFilingOrder : filingOrder));
   const filed = await subtopicsOf(rows.map((row) => row.id));
   return rows.map((row) => ({ ...row, subtopics: filed.get(row.id) ?? [] }));
+}
+
+// Only what has a published text: a filter that can only empty the list is not offered.
+export async function getPublishedTextTopics(): Promise<TextTopic[]> {
+  const rows = await db
+    .selectDistinct({
+      topic: { id: topics.id, name: topics.name, slug: topics.slug, position: topics.position },
+      subtopic: { id: subtopics.id, name: subtopics.name, slug: subtopics.slug, position: subtopics.position },
+    })
+    .from(textSubtopics)
+    .innerJoin(texts, and(eq(texts.id, textSubtopics.textId), eq(texts.status, "published")))
+    .innerJoin(subtopics, eq(subtopics.id, textSubtopics.subtopicId))
+    .innerJoin(topics, eq(topics.id, subtopics.topicId))
+    .orderBy(asc(topics.position), asc(subtopics.position));
+  const tree = new Map<string, TextTopic>();
+  for (const { topic, subtopic } of rows) {
+    const entry = tree.get(topic.id) ?? { id: topic.id, name: topic.name, slug: topic.slug, subtopics: [] };
+    entry.subtopics.push({ id: subtopic.id, name: subtopic.name, slug: subtopic.slug });
+    tree.set(topic.id, entry);
+  }
+  return [...tree.values()];
 }
 
 // Null for a draft as for a text that does not exist: the public cannot tell them apart.
@@ -159,6 +191,33 @@ export async function saveText(id: string, { subtopicIds, ...text }: TextChanges
 export async function removeText(id: string): Promise<RemoveTextResult> {
   const [deleted] = await db.delete(texts).where(eq(texts.id, id)).returning({ id: texts.id });
   return deleted ? { ok: true } : { ok: false, reason: "not-found" };
+}
+
+function filterConditions({ topicId, subtopicId, nature }: TextFilters): SQL[] {
+  const conditions: SQL[] = [];
+  if (nature) conditions.push(eq(texts.nature, nature));
+  if (topicId) {
+    conditions.push(
+      exists(
+        db
+          .select()
+          .from(textSubtopics)
+          .innerJoin(subtopics, eq(subtopics.id, textSubtopics.subtopicId))
+          .where(and(eq(textSubtopics.textId, texts.id), eq(subtopics.topicId, topicId))),
+      ),
+    );
+  }
+  if (subtopicId) {
+    conditions.push(
+      exists(
+        db
+          .select()
+          .from(textSubtopics)
+          .where(and(eq(textSubtopics.textId, texts.id), eq(textSubtopics.subtopicId, subtopicId))),
+      ),
+    );
+  }
+  return conditions;
 }
 
 // The subtopics of each text, in the order of the topic tree.
