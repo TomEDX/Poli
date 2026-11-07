@@ -28,12 +28,28 @@ export type EditPartyResult = WriteOutcome<Taken | "not-found">;
 
 export type RemovePartyResult = WriteOutcome<"in-use" | "not-found">;
 
+// Everything the party sheet saves at once; each part is optional and holds only what changed.
+export type PartyEdit = {
+  party?: PartyChanges;
+  candidacy?: { candidateName?: string | null; status?: PublicationStatus };
+  newCandidacy?: { candidateName: string | null; status: PublicationStatus };
+};
+
+export type SavePartyResult = WriteOutcome<Taken | "not-found" | "party-has-candidacy">;
+
 type Taken = "name-taken" | "abbreviation-taken";
 
 const takenReasons: Record<string, Taken> = {
   parties_name_unique: "name-taken",
   parties_abbreviation_unique: "abbreviation-taken",
 };
+
+// Thrown inside a transaction to roll it back with the reason the editor will read.
+class Refused extends Error {
+  constructor(readonly reason: "not-found") {
+    super(reason);
+  }
+}
 
 // Drafts included: for the administration only; public pages read getPublishedCandidacies.
 export async function getParties(): Promise<Party[]> {
@@ -62,6 +78,38 @@ export async function createParty({ candidacy, ...party }: NewParty): Promise<Cr
       return { ok: true as const, id: created.id };
     });
   } catch (error) {
+    return { ok: false, reason: takenReason(error) };
+  }
+}
+
+// One transaction: if any change is refused, none is written. Only the given fields are
+// written, so a save never brings back a value another editor changed.
+export async function saveParty(id: string, edit: PartyEdit): Promise<SavePartyResult> {
+  try {
+    await db.transaction(async (tx) => {
+      if (edit.candidacy && Object.keys(edit.candidacy).length > 0) {
+        const [updated] = await tx
+          .update(candidacies)
+          .set(edit.candidacy)
+          .where(eq(candidacies.partyId, id))
+          .returning({ id: candidacies.id });
+        if (!updated) throw new Refused("not-found");
+      }
+      if (edit.newCandidacy) await tx.insert(candidacies).values({ ...edit.newCandidacy, partyId: id });
+      if (edit.party && Object.keys(edit.party).length > 0) {
+        const [updated] = await tx.update(parties).set(edit.party).where(eq(parties.id, id)).returning({ id: parties.id });
+        if (!updated) throw new Refused("not-found");
+      }
+    });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Refused) return { ok: false, reason: error.reason };
+    const { code, constraint } = postgresError(error);
+    if (code === uniqueViolation && constraint === "candidacies_party_id_unique") {
+      return { ok: false, reason: "party-has-candidacy" };
+    }
+    // The party was deleted meanwhile, so its new candidacy has nothing to point at.
+    if (code === foreignKeyViolation) return { ok: false, reason: "not-found" };
     return { ok: false, reason: takenReason(error) };
   }
 }

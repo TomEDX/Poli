@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
+import type { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -33,18 +34,16 @@ import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
 import {
-  createCandidacyAction,
   createPartyAction,
-  editCandidacyAction,
-  editPartyAction,
   removeCandidacyAction,
   removePartyAction,
-  setCandidacyStatusAction,
+  savePartyAction,
 } from "../actions";
 import { candidacyLabel } from "../candidacy-label";
 import type { Party, PartyChanges } from "../parties";
 import { abbreviationTakenMessage, partyNameTakenMessage } from "../party-messages";
-import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH, newPartySchema } from "../validation";
+import type { PublicationStatus } from "../publication-status";
+import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH, newPartySchema, type partyEditSchema } from "../validation";
 
 type PartySheetProps = {
   // null to create a new party.
@@ -128,14 +127,11 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
     const values = parsed.data;
 
     startTransition(async () => {
-      const writes = party ? editWrites(party, values) : [() => createPartyAction(values)];
-      for (const write of writes) {
-        const result = await write();
-        if (!result.ok) return show(serverErrors(result.message, values));
-      }
-      if (writes.length > 0) {
-        toast.add({ title: party ? "Modifications enregistrées" : `Parti « ${values.name} » créé`, type: "success" });
-      }
+      const edit = party ? changesFrom(party, values) : null;
+      if (edit && Object.keys(edit).length === 0) return onDone();
+      const result = edit && party ? await savePartyAction(party.id, edit) : await createPartyAction(values);
+      if (!result.ok) return show(serverErrors(result.message, values));
+      toast.add({ title: party ? "Modifications enregistrées" : `Parti « ${values.name} » créé`, type: "success" });
       onDone();
     });
   };
@@ -347,30 +343,29 @@ function Deletion({ party, onCandidacyRemoved, onPartyRemoved, onRemovingParty }
 type FormValues = {
   name: string;
   abbreviation: string;
-  candidacy: { candidateName: string | null; status: "draft" | "published" } | null;
+  candidacy: { candidateName: string | null; status: PublicationStatus } | null;
 };
 
-// Only what changed is written, field by field, so a save never restores another editor's value.
-function editWrites(party: Party, values: FormValues): (() => Promise<ActionResult>)[] {
-  const writes: (() => Promise<ActionResult>)[] = [];
+// Only what changed is sent, so a save never brings back a value another editor changed.
+// The server writes it all in one transaction: a refused change leaves everything as it was.
+function changesFrom(party: Party, values: FormValues): z.input<typeof partyEditSchema> {
+  const edit: z.input<typeof partyEditSchema> = {};
   const changes: PartyChanges = {};
   if (values.name !== party.name) changes.name = values.name;
   if (values.abbreviation !== party.abbreviation) changes.abbreviation = values.abbreviation;
-  if (Object.keys(changes).length > 0) writes.push(() => editPartyAction(party.id, changes));
+  if (Object.keys(changes).length > 0) edit.party = changes;
 
   const wanted = values.candidacy;
   const current = party.candidacy;
   if (wanted && current) {
-    if (wanted.candidateName !== current.candidateName) {
-      writes.push(() => editCandidacyAction(current.id, { candidateName: wanted.candidateName ?? "" }));
-    }
-    if (wanted.status !== current.status) writes.push(() => setCandidacyStatusAction(current.id, wanted.status));
+    const candidacy: { candidateName?: string; status?: PublicationStatus } = {};
+    if (wanted.candidateName !== current.candidateName) candidacy.candidateName = wanted.candidateName ?? "";
+    if (wanted.status !== current.status) candidacy.status = wanted.status;
+    if (Object.keys(candidacy).length > 0) edit.candidacy = candidacy;
   } else if (wanted) {
-    writes.push(() =>
-      createCandidacyAction(party.id, { candidateName: wanted.candidateName ?? "", status: wanted.status }),
-    );
+    edit.newCandidacy = { candidateName: wanted.candidateName ?? "", status: wanted.status };
   }
-  return writes;
+  return edit;
 }
 
 function serverErrors(message: string, party: PartyChanges): Errors {

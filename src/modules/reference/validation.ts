@@ -48,9 +48,10 @@ export const topicChangesSchema = z
   .object({ name: nameField.optional(), slug: slugField.optional() })
   .refine((changes) => changes.name !== undefined || changes.slug !== undefined, "Saisissez un nom ou un identifiant.");
 
-export const candidacySchema = z.object({ candidateName: candidateNameField });
-
-export const newCandidacySchema = candidacySchema.extend({ status: candidacyStatusSchema.default("draft") });
+const newCandidacySchema = z.object({
+  candidateName: candidateNameField,
+  status: candidacyStatusSchema.default("draft"),
+});
 
 export const newPartySchema = z.object({
   name: nameField,
@@ -58,9 +59,14 @@ export const newPartySchema = z.object({
   candidacy: newCandidacySchema.nullable().default(null),
 });
 
-export const partyChangesSchema = z
-  .object({ name: nameField.optional(), abbreviation: abbreviationField.optional() })
-  .refine((changes) => changes.name !== undefined || changes.abbreviation !== undefined, "Saisissez un nom ou un sigle.");
+// What the party sheet saves: only the fields that changed, written together or not at all.
+export const partyEditSchema = z.object({
+  party: z.object({ name: nameField.optional(), abbreviation: abbreviationField.optional() }).optional(),
+  candidacy: z
+    .object({ candidateName: candidateNameField.optional(), status: candidacyStatusSchema.optional() })
+    .optional(),
+  newCandidacy: newCandidacySchema.optional(),
+});
 
 export function slugify(text: string): string {
   return text

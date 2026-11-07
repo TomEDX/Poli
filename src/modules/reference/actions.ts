@@ -4,18 +4,16 @@ import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
 
-import { createCandidacy, editCandidacy, removeCandidacy, setCandidacyStatus } from "./candidacies";
-import { createParty, editParty, removeParty } from "./parties";
+import { removeCandidacy, setCandidacyStatus } from "./candidacies";
+import { createParty, removeParty, saveParty } from "./parties";
 import { abbreviationTakenMessage, partyNameTakenMessage } from "./party-messages";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics";
 import {
-  candidacySchema,
   candidacyStatusSchema,
   directionSchema,
-  newCandidacySchema,
   newPartySchema,
   newTopicSchema,
-  partyChangesSchema,
+  partyEditSchema,
   topicChangesSchema,
   topicNodeSchema,
 } from "./validation";
@@ -59,13 +57,14 @@ export const createPartyAction = editorWrite({
   messages: { "name-taken": partyNameTakenMessage, "abbreviation-taken": abbreviationTakenMessage },
 });
 
-export const editPartyAction = editorWrite({
+export const savePartyAction = editorWrite({
   args: [z.uuid()],
-  input: partyChangesSchema,
-  run: editParty,
+  input: partyEditSchema,
+  run: saveParty,
   messages: {
-    "name-taken": (_id, changes) => partyNameTakenMessage(changes),
-    "abbreviation-taken": (_id, changes) => abbreviationTakenMessage(changes),
+    "name-taken": (_id, edit) => partyNameTakenMessage(edit.party ?? {}),
+    "abbreviation-taken": (_id, edit) => abbreviationTakenMessage(edit.party ?? {}),
+    "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page.",
   },
 });
 
@@ -73,19 +72,6 @@ export const removePartyAction = editorWrite({
   args: [z.uuid()],
   run: removeParty,
   messages: { "in-use": "Ce parti porte une candidature : supprimez-la avant de supprimer le parti." },
-});
-
-export const createCandidacyAction = editorWrite({
-  args: [z.uuid()],
-  input: newCandidacySchema,
-  run: createCandidacy,
-  messages: { "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page." },
-});
-
-export const editCandidacyAction = editorWrite({
-  args: [z.uuid()],
-  input: candidacySchema,
-  run: editCandidacy,
 });
 
 export const setCandidacyStatusAction = editorWrite({

@@ -7,7 +7,7 @@ import {
   removeCandidacy,
   setCandidacyStatus,
 } from "./candidacies";
-import { createParty, editParty, getParties, removeParty } from "./parties";
+import { createParty, editParty, getParties, removeParty, saveParty } from "./parties";
 
 async function partyId(name: string, abbreviation: string) {
   const result = await createParty({ name, abbreviation });
@@ -80,6 +80,52 @@ describe("a candidacy", () => {
       await createParty({ name: "Horizon", abbreviation: "PDH", candidacy: { candidateName: null, status: "draft" } }),
     ).toEqual({ ok: false, reason: "abbreviation-taken" });
     expect(await labels()).toEqual([undefined]);
+  });
+});
+
+describe("saving a party with its candidacy", () => {
+  it("writes the party and its candidacy together", async () => {
+    const horizon = await partyId("Parti de l'Horizon", "PDH");
+    await candidacyId(horizon, null);
+
+    expect(
+      await saveParty(horizon, {
+        party: { abbreviation: "PH" },
+        candidacy: { candidateName: "Camille Martin", status: "published" },
+      }),
+    ).toEqual({ ok: true });
+    expect(await getPublishedCandidacies()).toMatchObject([{ label: "Camille Martin (PH)" }]);
+  });
+
+  it("creates the candidacy of a party that had none", async () => {
+    const horizon = await partyId("Parti de l'Horizon", "PDH");
+
+    expect(await saveParty(horizon, { newCandidacy: { candidateName: null, status: "draft" } })).toEqual({ ok: true });
+    expect(await labels()).toEqual(["Parti de l'Horizon"]);
+  });
+
+  it("writes nothing when one of the changes is refused", async () => {
+    const horizon = await partyId("Parti de l'Horizon", "PDH");
+    await partyId("Union des territoires", "UDT");
+    await candidacyId(horizon, null);
+
+    expect(
+      await saveParty(horizon, {
+        party: { abbreviation: "UDT" },
+        candidacy: { candidateName: "Camille Martin", status: "published" },
+      }),
+    ).toEqual({ ok: false, reason: "abbreviation-taken" });
+    expect((await getParties())[0]).toMatchObject({
+      abbreviation: "PDH",
+      candidacy: { candidateName: null, status: "draft" },
+    });
+  });
+
+  it("reports a party deleted meanwhile", async () => {
+    const horizon = await partyId("Parti de l'Horizon", "PDH");
+    await removeParty(horizon);
+
+    expect(await saveParty(horizon, { party: { name: "Horizon" } })).toEqual({ ok: false, reason: "not-found" });
   });
 });
 
