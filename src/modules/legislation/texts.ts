@@ -52,7 +52,7 @@ export type TextFilters = { topicId?: string; subtopicId?: string; nature?: Text
 export type TextTopic = { id: string; name: string; slug: string; subtopics: { id: string; name: string; slug: string }[] };
 
 // What the administration lists and edits, drafts included.
-export type Text = TextInput & { id: string; status: PublicationStatus };
+export type EditableText = TextInput & { id: string; status: PublicationStatus };
 
 export type CreateTextResult = { ok: true; id: string } | { ok: false; reason: TextRefusal };
 
@@ -82,8 +82,8 @@ export async function getPublishedTexts(filters: TextFilters = {}): Promise<Publ
     .from(texts)
     .where(and(eq(texts.status, "published"), ...filterConditions(filters)))
     .orderBy(...(filters.order === "oldest" ? reverseFilingOrder : filingOrder));
-  const filed = await subtopicsOf(rows.map((row) => row.id));
-  return rows.map((row) => ({ ...row, subtopics: filed.get(row.id) ?? [] }));
+  const subtopicsByText = await subtopicsOf(rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, subtopics: subtopicsByText.get(row.id) ?? [] }));
 }
 
 // Only what has a published text: a filter that can only empty the list is not offered.
@@ -116,11 +116,11 @@ export async function getPublishedText(id: string): Promise<PublishedText | null
     .from(texts)
     .where(and(eq(texts.id, id), eq(texts.status, "published")));
   if (!row) return null;
-  const filed = await subtopicsOf([id]);
-  return { ...row, subtopics: filed.get(id) ?? [] };
+  const subtopicsByText = await subtopicsOf([id]);
+  return { ...row, subtopics: subtopicsByText.get(id) ?? [] };
 }
 
-export async function getTexts(): Promise<Text[]> {
+export async function getTexts(): Promise<EditableText[]> {
   const rows = await db
     .select({
       ...summaryColumns,
@@ -130,8 +130,11 @@ export async function getTexts(): Promise<Text[]> {
     })
     .from(texts)
     .orderBy(...filingOrder);
-  const filed = await subtopicsOf(rows.map((row) => row.id));
-  return rows.map((row) => ({ ...row, subtopicIds: (filed.get(row.id) ?? []).map((subtopic) => subtopic.id) }));
+  const subtopicsByText = await subtopicsOf(rows.map((row) => row.id));
+  return rows.map((row) => ({
+    ...row,
+    subtopicIds: (subtopicsByText.get(row.id) ?? []).map((subtopic) => subtopic.id),
+  }));
 }
 
 export async function createText({ subtopicIds, ...text }: NewText): Promise<CreateTextResult> {
@@ -171,11 +174,11 @@ export async function saveText(id: string, { subtopicIds, ...text }: TextChanges
         }
       }
       if (found.status !== "published") return;
-      const [{ filed }] = await tx
-        .select({ filed: count() })
+      const [{ subtopicCount }] = await tx
+        .select({ subtopicCount: count() })
         .from(textSubtopics)
         .where(eq(textSubtopics.textId, id));
-      if (filed === 0) throw new Refused("no-subtopic");
+      if (subtopicCount === 0) throw new Refused("no-subtopic");
     });
     return { ok: true };
   } catch (error) {
@@ -217,8 +220,8 @@ function filterConditions({ topicId, subtopicId, nature }: TextFilters): SQL[] {
 
 // The subtopics of each text, in the order of the topic tree.
 async function subtopicsOf(textIds: string[]): Promise<Map<string, TextSubtopic[]>> {
-  const filed = new Map<string, TextSubtopic[]>();
-  if (textIds.length === 0) return filed;
+  const byText = new Map<string, TextSubtopic[]>();
+  if (textIds.length === 0) return byText;
   const rows = await db
     .select({
       textId: textSubtopics.textId,
@@ -231,6 +234,6 @@ async function subtopicsOf(textIds: string[]): Promise<Map<string, TextSubtopic[
     .innerJoin(topics, eq(topics.id, subtopics.topicId))
     .where(inArray(textSubtopics.textId, textIds))
     .orderBy(asc(topics.position), asc(subtopics.position));
-  for (const { textId, ...subtopic } of rows) filed.set(textId, [...(filed.get(textId) ?? []), subtopic]);
-  return filed;
+  for (const { textId, ...subtopic } of rows) byText.set(textId, [...(byText.get(textId) ?? []), subtopic]);
+  return byText;
 }

@@ -13,10 +13,10 @@ import type { TopicTree } from "@/modules/reference/topics";
 
 import { saveTextAction } from "../actions";
 import { formatFiledOn, textReference } from "../text-labels";
-import type { Text } from "../texts";
+import type { EditableText } from "../texts";
 import { TextSheet } from "./text-sheet";
 
-export function TextTable({ texts, topicTree }: { texts: Text[]; topicTree: TopicTree }) {
+export function TextTable({ texts, topicTree }: { texts: EditableText[]; topicTree: TopicTree }) {
   // The sheet keeps the text it shows while it closes; null means a new text.
   const [sheet, setSheet] = useState<{ open: boolean; textId: string | null }>({ open: false, textId: null });
   const newTextButton = useRef<HTMLButtonElement>(null);
@@ -124,7 +124,7 @@ export function TextTable({ texts, topicTree }: { texts: Text[]; topicTree: Topi
 }
 
 type TextRowProps = {
-  text: Text;
+  text: EditableText;
   openRef: React.Ref<HTMLButtonElement>;
   onOpen: () => void;
 };
@@ -177,7 +177,7 @@ function TextRow({ text, openRef, onOpen }: TextRowProps) {
 }
 
 // Publishing is the frequent task, so it stays one click away from the list.
-function PublishedSwitch({ text }: { text: Text }) {
+function PublishedSwitch({ text }: { text: EditableText }) {
   const [pending, startTransition] = useTransition();
   const [published, setPublished] = useOptimistic(text.status === "published");
 

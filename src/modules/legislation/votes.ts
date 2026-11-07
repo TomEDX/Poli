@@ -101,8 +101,8 @@ export async function getPublishedVotes(textId: string): Promise<PublishedVote[]
       ),
     )
     .orderBy(...voteOrder);
-  const cast = await groupVotesOf(rows.map((row) => row.id));
-  return rows.map((row) => ({ ...row, groupVotes: cast.get(row.id) ?? [] }));
+  const groupVotesByVote = await groupVotesOf(rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, groupVotes: groupVotesByVote.get(row.id) ?? [] }));
 }
 
 export async function getVotes(textId: string): Promise<Vote[]> {
@@ -111,15 +111,18 @@ export async function getVotes(textId: string): Promise<Vote[]> {
     .from(votes)
     .where(eq(votes.textId, textId))
     .orderBy(...voteOrder);
-  const cast = await groupVotesOf(rows.map((row) => row.id));
+  const groupVotesByVote = await groupVotesOf(rows.map((row) => row.id));
   return rows.map((row) => ({
     ...row,
-    groupVotes: (cast.get(row.id) ?? []).map(({ group, ...groupVote }) => ({ groupId: group.id, ...groupVote })),
+    groupVotes: (groupVotesByVote.get(row.id) ?? []).map(({ group, ...groupVote }) => ({ groupId: group.id, ...groupVote })),
   }));
 }
 
 // One transaction: the scrutin and every group vote are written together or not at all.
-export async function createVote(textId: string, { groupVotes: cast, ...vote }: VoteInput): Promise<CreateVoteResult> {
+export async function createVote(
+  textId: string,
+  { groupVotes: groupVoteInputs, ...vote }: VoteInput,
+): Promise<CreateVoteResult> {
   try {
     return await db.transaction(async (tx) => {
       const [created] = await tx
@@ -127,9 +130,11 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
         .values({ ...vote, textId })
         .returning({ id: votes.id });
       await checkAmendmentOfText(tx, vote.amendmentId, textId);
-      await checkGroupsOfLegislature(tx, cast);
-      if (cast.length > 0) {
-        await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(created.id, groupVote)));
+      await checkGroupsOfLegislature(tx, groupVoteInputs);
+      if (groupVoteInputs.length > 0) {
+        await tx
+          .insert(groupVotes)
+          .values(groupVoteInputs.map((groupVote) => groupVoteRow(created.id, groupVote)));
       }
       return { ok: true as const, id: created.id };
     });
@@ -139,15 +144,20 @@ export async function createVote(textId: string, { groupVotes: cast, ...vote }: 
 }
 
 // One transaction: the scrutin is rewritten and its group votes replaced, all or nothing.
-export async function saveVote(id: string, { groupVotes: cast, ...vote }: VoteInput): Promise<SaveVoteResult> {
+export async function saveVote(
+  id: string,
+  { groupVotes: groupVoteInputs, ...vote }: VoteInput,
+): Promise<SaveVoteResult> {
   try {
     await db.transaction(async (tx) => {
       const [found] = await tx.update(votes).set(vote).where(eq(votes.id, id)).returning({ textId: votes.textId });
       if (!found) throw new Refused("not-found");
       await checkAmendmentOfText(tx, vote.amendmentId, found.textId);
-      await checkGroupsOfLegislature(tx, cast);
+      await checkGroupsOfLegislature(tx, groupVoteInputs);
       await tx.delete(groupVotes).where(eq(groupVotes.voteId, id));
-      if (cast.length > 0) await tx.insert(groupVotes).values(cast.map((groupVote) => groupVoteRow(id, groupVote)));
+      if (groupVoteInputs.length > 0) {
+        await tx.insert(groupVotes).values(groupVoteInputs.map((groupVote) => groupVoteRow(id, groupVote)));
+      }
     });
     return { ok: true };
   } catch (error) {
@@ -185,8 +195,8 @@ async function checkGroupsOfLegislature(tx: Transaction, groupVoteInputs: GroupV
 
 // The group votes of each scrutin, groups in the official order.
 async function groupVotesOf(voteIds: string[]): Promise<Map<string, PublishedGroupVote[]>> {
-  const cast = new Map<string, PublishedGroupVote[]>();
-  if (voteIds.length === 0) return cast;
+  const byVote = new Map<string, PublishedGroupVote[]>();
+  if (voteIds.length === 0) return byVote;
   const rows = await db
     .select({
       voteId: groupVotes.voteId,
@@ -203,9 +213,9 @@ async function groupVotesOf(voteIds: string[]): Promise<Map<string, PublishedGro
     .orderBy(asc(parliamentaryGroups.position), asc(parliamentaryGroups.createdAt));
   for (const { voteId, group, position, ...counts } of rows) {
     const groupVote = { group, position, counts: completeCounts(counts) };
-    cast.set(voteId, [...(cast.get(voteId) ?? []), groupVote]);
+    byVote.set(voteId, [...(byVote.get(voteId) ?? []), groupVote]);
   }
-  return cast;
+  return byVote;
 }
 
 function groupVoteRow(voteId: string, { groupId, position, counts }: GroupVoteInput) {

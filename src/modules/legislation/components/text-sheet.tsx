@@ -40,13 +40,13 @@ import { createTextAction, removeTextAction, saveTextAction } from "../actions";
 import { textReference } from "../text-labels";
 import { noSubtopicMessage } from "../text-messages";
 import { textNatureLabels, textNatures } from "../text-natures";
-import type { Text, TextChanges } from "../texts";
+import type { EditableText, TextChanges } from "../texts";
 import { SUMMARY_MAX_LENGTH } from "../form-fields";
 import { newTextSchema, OFFICIAL_TITLE_MAX_LENGTH } from "../text-validation";
 
 type TextSheetProps = {
   // null to create a new text.
-  text: Text | null;
+  text: EditableText | null;
   topicTree: TopicTree;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -94,7 +94,7 @@ export function TextSheet({ text, topicTree, open, onOpenChange, returnFocus, on
 }
 
 type TextFormProps = {
-  text: Text | null;
+  text: EditableText | null;
   topicTree: TopicTree;
   onDone: () => void;
   onRemovingText: (removing: boolean) => void;
@@ -323,7 +323,7 @@ function TextForm({ text, topicTree, onDone, onRemovingText }: TextFormProps) {
 }
 
 type DeletionProps = {
-  text: Text;
+  text: EditableText;
   onRemoved: () => void;
   onRemovingText: (removing: boolean) => void;
 };
@@ -380,7 +380,7 @@ function Deletion({ text, onRemoved, onRemovingText }: DeletionProps) {
 }
 
 // Only what changed is sent, so a save never brings back a value another editor changed.
-function changesFrom(text: Text, input: ReturnType<typeof newTextSchema.parse>): TextChanges {
+function changesFrom(text: EditableText, input: ReturnType<typeof newTextSchema.parse>): TextChanges {
   const changes: TextChanges = {};
   for (const field of ["nature", "number", "officialTitle", "filedOn", "officialUrl", "summary", "status"] as const) {
     if (input[field] !== text[field]) Object.assign(changes, { [field]: input[field] });

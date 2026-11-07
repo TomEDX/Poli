@@ -71,16 +71,16 @@ export async function getPublishedAmendments(textId: string): Promise<PublishedA
     .where(and(eq(amendments.textId, textId), eq(amendments.status, "published"), eq(texts.status, "published")))
     .orderBy(asc(amendments.number));
   if (rows.length === 0) return [];
-  const scrutins = await getPublishedVotes(textId);
+  const publishedVotes = await getPublishedVotes(textId);
   return rows.map(({ group, ...row }) => ({
     ...row,
     authorGroup: group,
-    vote: scrutins.find((scrutin) => scrutin.amendmentId === row.id) ?? null,
+    vote: publishedVotes.find((vote) => vote.amendmentId === row.id) ?? null,
   }));
 }
 
 export async function getAmendments(textId: string): Promise<Amendment[]> {
-  const [rows, scrutins] = await Promise.all([
+  const [rows, linkedVotes] = await Promise.all([
     db
       .select({ ...amendmentColumns, authorGroupId: amendments.authorGroupId, status: amendments.status })
       .from(amendments)
@@ -92,8 +92,8 @@ export async function getAmendments(textId: string): Promise<Amendment[]> {
       .where(and(eq(votes.textId, textId), isNotNull(votes.amendmentId))),
   ]);
   return rows.map((row) => {
-    const scrutin = scrutins.find((candidate) => candidate.amendmentId === row.id);
-    return { ...row, vote: scrutin ? { id: scrutin.id, number: scrutin.number } : null };
+    const linkedVote = linkedVotes.find((candidate) => candidate.amendmentId === row.id);
+    return { ...row, vote: linkedVote ? { id: linkedVote.id, number: linkedVote.number } : null };
   });
 }
 

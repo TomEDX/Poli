@@ -8,6 +8,12 @@ export const amendmentOpinions = ["favourable", "unfavourable", "wisdom", "none"
 
 export type AmendmentOpinion = (typeof amendmentOpinions)[number];
 
+// Only these fates come out of a vote; an amendment withdrawn, not moved, fallen or
+// inadmissible was never put to the vote.
+export function wasVotedOn(fate: AmendmentFate): boolean {
+  return fate === "adopted" || fate === "rejected";
+}
+
 export const amendmentFateLabels: Record<AmendmentFate, string> = {
   adopted: "Adopté",
   rejected: "Rejeté",

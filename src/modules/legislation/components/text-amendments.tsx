@@ -1,7 +1,7 @@
 import { useId } from "react";
 
-import { amendmentFateLabels, amendmentOpinionLabels, type AmendmentOpinion } from "../amendment-kinds";
-import { amendmentReference, wasVotedOn } from "../amendment-labels";
+import { amendmentFateLabels, amendmentOpinionLabels, type AmendmentOpinion, wasVotedOn } from "../amendment-kinds";
+import { amendmentReference } from "../amendment-labels";
 import type { PublishedAmendment } from "../amendments";
 import { formatHeldOn, voteReference } from "../vote-labels";
 import { voteResultLabels } from "../vote-kinds";

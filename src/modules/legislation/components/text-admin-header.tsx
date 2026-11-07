@@ -2,10 +2,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { textReference } from "../text-labels";
-import type { Text } from "../texts";
+import type { EditableText } from "../texts";
 
 // Heads the administration page of a text, which gathers its amendments and its scrutins.
-export function TextAdminHeader({ text }: { text: Text }) {
+export function TextAdminHeader({ text }: { text: EditableText }) {
   return (
     <div className="flex flex-col gap-6">
       <Link

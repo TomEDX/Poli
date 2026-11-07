@@ -11,8 +11,8 @@ import { toast } from "@/components/ui/toast";
 import type { ParliamentaryGroup } from "@/modules/reference/parliamentary-groups";
 
 import { saveAmendmentAction } from "../actions";
-import { amendmentFateLabels } from "../amendment-kinds";
-import { amendmentReference, wasVotedOn } from "../amendment-labels";
+import { amendmentFateLabels, wasVotedOn } from "../amendment-kinds";
+import { amendmentReference } from "../amendment-labels";
 import type { Amendment } from "../amendments";
 import { voteReference } from "../vote-labels";
 import { AmendmentSheet } from "./amendment-sheet";
