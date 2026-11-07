@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
+import type { Direction } from "@/lib/direction";
 
 import { moveParliamentaryGroupAction } from "../actions";
 import type { ParliamentaryGroup, PartySummary } from "../parliamentary-groups";
-import type { Direction } from "../topics";
 import { ParliamentaryGroupSheet } from "./parliamentary-group-sheet";
 import { iconButton } from "./row-layout";
 
