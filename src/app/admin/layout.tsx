@@ -1,49 +1,56 @@
+import { cn } from "cn";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { buttonVariants } from "@/components/ui/button";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentEditor } from "@/modules/editors/authorization";
-import { SignOutButton } from "@/modules/editors/components/sign-out-button";
+
+import { AdminSidebar, SignedInEditor } from "./admin-sidebar";
 
 export const metadata: Metadata = {
   title: "Administration · Poli.",
   robots: { index: false },
 };
 
-// Each content section adds its entry here as it is built.
-const sections: { href: string; label: string }[] = [{ href: "/admin/topics", label: "Thématiques" }];
-
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
-        <Link href="/admin" className="font-heading font-semibold">
-          Poli. <span className="font-normal text-muted-foreground">Administration</span>
-        </Link>
-        <SignOutButton />
-      </header>
-      <div className="flex flex-1 flex-col md:flex-row">
-        <nav aria-label="Administration" className="border-b px-6 py-4 md:w-56 md:border-r md:border-b-0">
-          {sections.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune rubrique pour l&apos;instant.</p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {sections.map((section) => (
-                <li key={section.href}>
-                  <Link href={section.href}>{section.label}</Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </nav>
-        <main className="flex-1 px-6 py-6">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement…</p>}>
-            <EditorsOnly>{children}</EditorsOnly>
-          </Suspense>
-        </main>
-      </div>
-    </div>
+    <TooltipProvider>
+      <Toaster>
+        <SidebarProvider>
+          <a
+            href="#contenu"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:h-8 focus-visible:px-2.5",
+            )}
+          >
+            Aller au contenu
+          </a>
+          <AdminSidebar
+            footer={
+              <Suspense fallback={null}>
+                <EditorFooter />
+              </Suspense>
+            }
+          />
+          <SidebarInset>
+            <header className="flex h-12 shrink-0 items-center border-b px-3">
+              <SidebarTrigger />
+            </header>
+            <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-8 outline-none md:px-8">
+              <Suspense fallback={<ContentSkeleton />}>
+                <EditorsOnly>{children}</EditorsOnly>
+              </Suspense>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </Toaster>
+    </TooltipProvider>
   );
 }
 
@@ -51,4 +58,19 @@ async function EditorsOnly({ children }: { children: React.ReactNode }) {
   const editor = await getCurrentEditor();
   if (!editor) redirect("/sign-in");
   return children;
+}
+
+async function EditorFooter() {
+  const editor = await getCurrentEditor();
+  return editor ? <SignedInEditor email={editor.email} /> : null;
+}
+
+function ContentSkeleton() {
+  return (
+    <div aria-busy className="flex max-w-4xl flex-col gap-8">
+      <span className="sr-only">Chargement…</span>
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  );
 }

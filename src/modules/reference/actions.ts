@@ -4,8 +4,19 @@ import { z } from "zod";
 
 import { editorWrite } from "@/modules/editors/editor-write";
 
+import { removeCandidacy, setCandidacyStatus } from "./candidacies";
+import { createParty, removeParty, saveParty } from "./parties";
+import { abbreviationTakenMessage, partyNameTakenMessage } from "./party-messages";
 import { createSubtopic, createTopic, editNode, moveNode, removeNode, type TopicNode } from "./topics";
-import { directionSchema, newTopicSchema, topicChangesSchema, topicNodeSchema } from "./validation";
+import {
+  candidacyStatusSchema,
+  directionSchema,
+  newPartySchema,
+  newTopicSchema,
+  partyEditSchema,
+  topicChangesSchema,
+  topicNodeSchema,
+} from "./validation";
 
 export const createTopicAction = editorWrite({
   args: [],
@@ -37,6 +48,40 @@ export const removeNodeAction = editorWrite({
   args: [topicNodeSchema],
   run: removeNode,
   messages: { "in-use": inUseMessage },
+});
+
+export const createPartyAction = editorWrite({
+  args: [],
+  input: newPartySchema,
+  run: createParty,
+  messages: { "name-taken": partyNameTakenMessage, "abbreviation-taken": abbreviationTakenMessage },
+});
+
+export const savePartyAction = editorWrite({
+  args: [z.uuid()],
+  input: partyEditSchema,
+  run: saveParty,
+  messages: {
+    "name-taken": (_id, edit) => partyNameTakenMessage(edit.party ?? {}),
+    "abbreviation-taken": (_id, edit) => abbreviationTakenMessage(edit.party ?? {}),
+    "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page.",
+  },
+});
+
+export const removePartyAction = editorWrite({
+  args: [z.uuid()],
+  run: removeParty,
+  messages: { "in-use": "Ce parti porte une candidature : supprimez-la avant de supprimer le parti." },
+});
+
+export const setCandidacyStatusAction = editorWrite({
+  args: [z.uuid(), candidacyStatusSchema],
+  run: setCandidacyStatus,
+});
+
+export const removeCandidacyAction = editorWrite({
+  args: [z.uuid()],
+  run: removeCandidacy,
 });
 
 function slugTakenMessage(level: TopicNode["level"], slug: string | undefined) {

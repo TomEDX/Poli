@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 import type { ActionResult } from "@/modules/editors/editor-write";
 
@@ -49,7 +49,15 @@ export function TreeRow({
   onAction,
 }: TreeRowProps) {
   const node = { level, id: row.id };
-  const stopEditing = () => onEditingChange(null);
+  const [refocus, setRefocus] = useState<Field | null>(null);
+  const edit = (field: Field) => {
+    setRefocus(null);
+    onEditingChange(field);
+  };
+  const stopEditing = (field: Field) => (restoreFocus: boolean) => {
+    onEditingChange(null);
+    setRefocus(restoreFocus ? field : null);
+  };
 
   return (
     <Fragment>
@@ -60,14 +68,15 @@ export function TreeRow({
             <InlineInput
               label={`${labels[level].name} « ${row.name} »`}
               initial={row.name}
-              onClose={stopEditing}
+              onClose={stopEditing("name")}
               onSave={(name) => editNodeAction(node, { name })}
             />
           ) : (
             <EditableText
               label={`Renommer « ${row.name} »`}
               className={level === "topic" ? "font-semibold" : undefined}
-              onEdit={() => onEditingChange("name")}
+              autoFocus={refocus === "name"}
+              onEdit={() => edit("name")}
             >
               {row.name}
             </EditableText>
@@ -80,14 +89,15 @@ export function TreeRow({
               label={`Identifiant de « ${row.name} »`}
               field="slug"
               initial={row.slug}
-              onClose={stopEditing}
+              onClose={stopEditing("slug")}
               onSave={(slug) => editNodeAction(node, { slug })}
             />
           ) : (
             <EditableText
               label={`Modifier l'identifiant de « ${row.name} »`}
               className="font-mono text-xs text-muted-foreground"
-              onEdit={() => onEditingChange("slug")}
+              autoFocus={refocus === "slug"}
+              onEdit={() => edit("slug")}
             >
               {row.slug}
             </EditableText>

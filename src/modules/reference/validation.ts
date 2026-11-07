@@ -1,6 +1,10 @@
 import { z } from "zod";
 
+import { publicationStatuses } from "./publication-status";
+
 export const NAME_MAX_LENGTH = 80;
+
+export const ABBREVIATION_MAX_LENGTH = 20;
 
 const nameField = z
   .string()
@@ -13,6 +17,22 @@ const slugField = z
   .string()
   .transform(slugify)
   .refine((slug) => slug !== "", "Saisissez un identifiant avec au moins une lettre ou un chiffre.");
+
+const abbreviationField = z
+  .string()
+  .trim()
+  .min(1, "Saisissez un sigle.")
+  .max(ABBREVIATION_MAX_LENGTH, `Le sigle dépasse ${ABBREVIATION_MAX_LENGTH} caractères.`);
+
+// A blank candidate name means no candidate is declared yet.
+const candidateNameField = z
+  .string()
+  .trim()
+  .max(NAME_MAX_LENGTH, `Le nom dépasse ${NAME_MAX_LENGTH} caractères.`)
+  .refine((name) => name === "" || slugify(name) !== "", "Le nom doit contenir au moins une lettre.")
+  .transform((name) => (name === "" ? null : name));
+
+export const candidacyStatusSchema = z.enum(publicationStatuses);
 
 export const topicNodeSchema = z.object({ level: z.enum(["topic", "subtopic"]), id: z.uuid() });
 
@@ -27,6 +47,26 @@ export const newTopicSchema = z
 export const topicChangesSchema = z
   .object({ name: nameField.optional(), slug: slugField.optional() })
   .refine((changes) => changes.name !== undefined || changes.slug !== undefined, "Saisissez un nom ou un identifiant.");
+
+const newCandidacySchema = z.object({
+  candidateName: candidateNameField,
+  status: candidacyStatusSchema.default("draft"),
+});
+
+export const newPartySchema = z.object({
+  name: nameField,
+  abbreviation: abbreviationField,
+  candidacy: newCandidacySchema.nullable().default(null),
+});
+
+// What the party sheet saves: only the fields that changed, written together or not at all.
+export const partyEditSchema = z.object({
+  party: z.object({ name: nameField.optional(), abbreviation: abbreviationField.optional() }).optional(),
+  candidacy: z
+    .object({ candidateName: candidateNameField.optional(), status: candidacyStatusSchema.optional() })
+    .optional(),
+  newCandidacy: newCandidacySchema.optional(),
+});
 
 export function slugify(text: string): string {
   return text
