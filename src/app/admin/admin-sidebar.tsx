@@ -1,6 +1,17 @@
 "use client";
 
-import { BookOpen, Landmark, ListTree, LogOut, type LucideIcon, Scale, ScrollText, TextQuote, Vote } from "lucide-react";
+import {
+  BookOpen,
+  CircleQuestionMark,
+  Landmark,
+  ListTree,
+  LogOut,
+  type LucideIcon,
+  Scale,
+  ScrollText,
+  TextQuote,
+  Vote,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -26,7 +37,7 @@ type Section = { href: string; label: string; icon: LucideIcon };
 // Each content section adds its entry here as it is built. Icons are what the collapsed
 // menu shows: the tree for the topic tree, the ballot box for candidacies, the Assemblée
 // for its groups, the open book for sources, the scroll for texts, the quote for programmes,
-// the scales for the method page.
+// the question mark for the quiz, the scales for the method page.
 const menuGroups: { label: string; sections: Section[] }[] = [
   {
     label: "Référentiel",
@@ -44,6 +55,10 @@ const menuGroups: { label: string; sections: Section[] }[] = [
   {
     label: "Programmes",
     sections: [{ href: "/admin/programmes", label: "Extraits", icon: TextQuote }],
+  },
+  {
+    label: "Quiz",
+    sections: [{ href: "/admin/quiz", label: "Questions", icon: CircleQuestionMark }],
   },
   {
     label: "Transparence",

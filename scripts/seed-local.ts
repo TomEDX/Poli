@@ -80,6 +80,17 @@ type SeedExtract = {
   status: "draft" | "published";
 };
 
+// subtopicSlug, the keys of positions and sourceUrl name seeded rows; a question of a missing
+// subtopic is skipped, as is a position of a missing candidacy. A position is from +2 (strongly
+// agree) to -2 (strongly disagree), or null for no position; a candidacy left out has none yet.
+// Listed in the order of each subtopic.
+type SeedQuestion = {
+  subtopicSlug: string;
+  statement: string;
+  status: "draft" | "published";
+  positions: Record<string, { value: -2 | -1 | 0 | 1 | 2 | null; sourceUrl?: string }>;
+};
+
 // Which sections were written; a section that already had rows is skipped.
 type SeedResult = {
   topics: boolean;
@@ -90,6 +101,7 @@ type SeedResult = {
   votes: boolean;
   amendments: boolean;
   extracts: boolean;
+  questions: boolean;
   method: boolean;
 };
 
@@ -431,6 +443,53 @@ const extractList: SeedExtract[] = [
   },
 ];
 
+// Fictional statements; MES has no position yet on some published questions and AC, a draft
+// candidacy, on most, so the administration has missing positions to show.
+const questionList: SeedQuestion[] = [
+  {
+    subtopicSlug: "retraites",
+    statement: "L'âge légal de départ à la retraite doit être abaissé à 62 ans.",
+    status: "published",
+    positions: {
+      PDH: { value: -2, sourceUrl: "https://horizon.example.org/programme" },
+      UDT: { value: 1, sourceUrl: "https://territoires.example.org/propositions" },
+      MES: { value: 2 },
+      AC: { value: 0 },
+    },
+  },
+  {
+    subtopicSlug: "prevention",
+    statement: "Les bilans de prévention doivent être gratuits à tous les âges de la vie.",
+    status: "published",
+    positions: {
+      PDH: { value: 2, sourceUrl: "https://horizon.example.org/programme" },
+      UDT: { value: 1, sourceUrl: "https://territoires.example.org/propositions" },
+      MES: { value: null },
+    },
+  },
+  {
+    subtopicSlug: "energie",
+    statement: "La France doit construire de nouveaux réacteurs nucléaires.",
+    status: "published",
+    positions: { PDH: { value: -1 }, UDT: { value: 2 } },
+  },
+  {
+    subtopicSlug: "collectivites-locales",
+    statement: "Les communes rurales doivent recevoir une dotation garantie sur plusieurs années.",
+    status: "published",
+    positions: {
+      PDH: { value: null },
+      UDT: { value: 2, sourceUrl: "https://territoires.example.org/propositions" },
+      MES: { value: 1 },
+    },
+  },
+  {
+    subtopicSlug: "climat",
+    statement: "La neutralité carbone doit être atteinte avant 2050.",
+    status: "draft",
+    positions: { MES: { value: 2 } },
+  },
+];
 // Placeholder criteria for development; the score formula is the one the quiz applies.
 const methodPage = {
   candidacyCriteria:
@@ -453,6 +512,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       votes: await seedVotes(tx),
       amendments: await seedAmendments(tx),
       extracts: await seedExtracts(tx),
+      questions: await seedQuestions(tx),
       method: await seedMethod(tx),
     };
   });
@@ -481,6 +541,7 @@ if (import.meta.main) {
   console.log(seeded.votes ? "Scrutins seeded." : "Local database already has scrutins: skipped.");
   console.log(seeded.amendments ? "Amendments seeded." : "Local database already has amendments: skipped.");
   console.log(seeded.extracts ? "Programme extracts seeded." : "Local database already has extracts: skipped.");
+  console.log(seeded.questions ? "Quiz questions seeded." : "Local database already has questions: skipped.");
   console.log(seeded.method ? "Method page seeded." : "Local database already has a method page: skipped.");
 }
 
@@ -641,6 +702,26 @@ async function seedExtracts(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
+async function seedQuestions(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "questions")) return false;
+  for (const [index, question] of questionList.entries()) {
+    const [created] = await tx<{ id: string }[]>`
+      insert into questions (subtopic_id, statement, position, status)
+      select id, ${question.statement}, ${index + 1}, ${question.status}
+      from subtopics where slug = ${question.subtopicSlug}
+      returning id`;
+    if (!created) continue;
+    for (const [abbreviation, { value, sourceUrl }] of Object.entries(question.positions)) {
+      await tx`
+        insert into positions (question_id, candidacy_id, value, source_id)
+        select ${created.id}, candidacies.id, ${value}, (select id from sources where url = ${sourceUrl ?? null})
+        from candidacies join parties on parties.id = candidacies.party_id
+        where parties.abbreviation = ${abbreviation}`;
+    }
+  }
+  return true;
+}
+
 // Published, with its draft reading the same, as the editors leave it after publishing.
 async function seedMethod(tx: postgres.TransactionSql): Promise<boolean> {
   if (await hasRows(tx, "method_pages")) return false;
@@ -663,6 +744,7 @@ async function hasRows(
     | "votes"
     | "amendments"
     | "extracts"
+    | "questions"
     | "method_pages",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
