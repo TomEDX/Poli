@@ -42,11 +42,18 @@ import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/modules/editors/editor-write";
 
 import { createPartyAction, removeCandidacyAction, removePartyAction, savePartyAction } from "../actions";
-import { abbreviationTakenMessage, candidacyLabel, partyNameTakenMessage } from "../vocabulary";
+import {
+  abbreviationTakenMessage,
+  candidacyLabel,
+  logoSizeMessage,
+  logoTypeMessage,
+  partyNameTakenMessage,
+} from "../vocabulary";
 import type { Party, PartyChanges } from "../queries";
 import type { PublicationStatus } from "../../publication-status";
 import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH } from "../../form-fields";
 import { newPartySchema, type partyEditSchema } from "../validation";
+import { type LogoChoice, LogoField } from "./logo-field";
 
 type PartySheetProps = {
   // null to create a new party.
@@ -81,7 +88,8 @@ export function PartySheet({ party, open, onOpenChange, returnFocus, onRemovingP
   );
 }
 
-type Errors = { name?: string; abbreviation?: string; candidateName?: string; form?: string };
+type Errors = { name?: string; abbreviation?: string; logo?: string; candidateName?: string; form?: string };
+
 
 type PartyFormProps = {
   party: Party | null;
@@ -97,10 +105,18 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
   const [wantsCandidacy, setWantsCandidacy] = useState(party === null);
   const [candidateName, setCandidateName] = useState(candidacy?.candidateName ?? "");
   const [published, setPublished] = useState(candidacy?.status === "published");
+  const [logo, setLogo] = useState<LogoChoice>(undefined);
   const [errors, setErrors] = useState<Errors>({});
   const [pending, startTransition] = useTransition();
   const formId = useId();
-  const ids = { name: useId(), abbreviation: useId(), wants: useId(), candidate: useId(), published: useId() };
+  const ids = {
+    name: useId(),
+    abbreviation: useId(),
+    logo: useId(),
+    wants: useId(),
+    candidate: useId(),
+    published: useId(),
+  };
 
   const hasCandidacy = candidacy !== null || wantsCandidacy;
   // Shown once the party has a name and an abbreviation to build the public label from.
@@ -111,7 +127,7 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
 
   const show = (next: Errors) => {
     setErrors(next);
-    const first = (["name", "abbreviation", "candidateName"] as const).find((field) => next[field]);
+    const first = (["name", "abbreviation", "logo", "candidateName"] as const).find((field) => next[field]);
     if (first) document.getElementById(ids[first === "candidateName" ? "candidate" : first])?.focus();
   };
 
@@ -122,15 +138,21 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
       name,
       abbreviation,
       candidacy: hasCandidacy ? { candidateName, status } : null,
+      logo: logo?.file,
     });
     if (!parsed.success) {
       const message = (field: string) => parsed.error.issues.find((issue) => issue.path.at(-1) === field)?.message;
-      return show({ name: message("name"), abbreviation: message("abbreviation"), candidateName: message("candidateName") });
+      return show({
+        name: message("name"),
+        abbreviation: message("abbreviation"),
+        logo: message("logo"),
+        candidateName: message("candidateName"),
+      });
     }
     const values = parsed.data;
 
     startTransition(async () => {
-      const edit = party ? changesFrom(party, values) : null;
+      const edit = party ? changesFrom(party, values, logo === null) : null;
       if (edit && Object.keys(edit).length === 0) return onDone();
       const result = edit && party ? await savePartyAction(party.id, edit) : await createPartyAction(values);
       if (!result.ok) return show(serverErrors(result.message, values));
@@ -175,6 +197,15 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
               />
               <FieldError id={`${ids.abbreviation}-error`}>{errors.abbreviation}</FieldError>
             </Field>
+            <LogoField
+              id={ids.logo}
+              value={logo}
+              savedLogo={party?.logo ?? null}
+              party={{ name: name.trim() || "Nouveau parti", abbreviation: abbreviation.trim() }}
+              error={errors.logo}
+              onChange={setLogo}
+              onError={(message) => setErrors((current) => ({ ...current, logo: message }))}
+            />
           </FieldGroup>
         </FieldSet>
 
@@ -347,16 +378,19 @@ type FormValues = {
   name: string;
   abbreviation: string;
   candidacy: { candidateName: string | null; status: PublicationStatus } | null;
+  logo?: File;
 };
 
 // Only what changed is sent, so a save never brings back a value another editor changed.
 // The server writes it all in one transaction: a refused change leaves everything as it was.
-function changesFrom(party: Party, values: FormValues): z.input<typeof partyEditSchema> {
+function changesFrom(party: Party, values: FormValues, removesLogo: boolean): z.input<typeof partyEditSchema> {
   const edit: z.input<typeof partyEditSchema> = {};
   const changes: PartyChanges = {};
   if (values.name !== party.name) changes.name = values.name;
   if (values.abbreviation !== party.abbreviation) changes.abbreviation = values.abbreviation;
   if (Object.keys(changes).length > 0) edit.party = changes;
+  if (values.logo) edit.logo = values.logo;
+  else if (removesLogo) edit.logo = null;
 
   const wanted = values.candidacy;
   const current = party.candidacy;
@@ -374,6 +408,7 @@ function changesFrom(party: Party, values: FormValues): z.input<typeof partyEdit
 function serverErrors(message: string, party: PartyChanges): Errors {
   if (message === partyNameTakenMessage(party)) return { name: message };
   if (message === abbreviationTakenMessage(party)) return { abbreviation: message };
+  if (message === logoTypeMessage || message === logoSizeMessage) return { logo: message };
   return { form: message };
 }
 

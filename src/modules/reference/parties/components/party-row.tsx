@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/toast";
 
 import { setCandidacyStatusAction } from "../actions";
 import type { Party } from "../queries";
+import { PartyLogo } from "./party-logo";
 
 type PartyRowProps = {
   party: Party;
@@ -26,21 +27,26 @@ export function PartyRow({ party, openRef, onOpen }: PartyRowProps) {
   return (
     <TableRow className="cursor-pointer" onClick={onOpen}>
       <TableCell className="px-4 py-3.5 whitespace-normal">
-        <button
-          ref={openRef}
-          type="button"
-          className="rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-        >
-          <span className="sr-only">Modifier </span>
-          <span className="font-medium">{party.name}</span>
-          {" "}
-          <span className="whitespace-nowrap text-muted-foreground">· {party.abbreviation}</span>
-        </button>
-        <p className={cn("mt-0.5 md:hidden", candidateMuted && "text-muted-foreground")}>{candidate}</p>
+        <div className="flex items-center gap-3">
+          <PartyLogo party={party} />
+          <div className="min-w-0">
+            <button
+              ref={openRef}
+              type="button"
+              className="rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen();
+              }}
+            >
+              <span className="sr-only">Modifier </span>
+              <span className="font-medium">{party.name}</span>
+              {" "}
+              <span className="whitespace-nowrap text-muted-foreground">· {party.abbreviation}</span>
+            </button>
+            <p className={cn("mt-0.5 md:hidden", candidateMuted && "text-muted-foreground")}>{candidate}</p>
+          </div>
+        </div>
       </TableCell>
       <TableCell className={cn("hidden px-4 py-3.5 md:table-cell", candidateMuted && "text-muted-foreground")}>
         {candidate}

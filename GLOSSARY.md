@@ -8,6 +8,10 @@ Application neutre qui aide un public non spécialiste à comprendre les program
 Organisation politique (RN, LFI, LR…) qui peut soutenir une candidature et dont les élus forment un ou plusieurs groupes parlementaires.
 _À éviter_ : partie, formation, mouvement
 
+**Logo** :
+Image officielle d'un parti, toujours affichée à côté de son nom ou de son sigle. Un parti dont le logo n'est pas connu est représenté par son sigle seul.
+_À éviter_ : icône, emblème
+
 **Candidature** :
 Ce qui se présente à l'élection présidentielle : un candidat et le parti qui le porte, affichés ensemble. Avant toute déclaration, la candidature est celle du parti seul ; c'est l'unité qui reçoit un score dans le quiz et un programme dans le comparateur.
 _À éviter_ : liste, camp

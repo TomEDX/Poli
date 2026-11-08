@@ -46,6 +46,8 @@ export const parties = pgTable("parties", {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull().unique(),
   abbreviation: text().notNull().unique(),
+  // The file's name in the logo bucket; null until a logo is sent.
+  logoPath: text(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true })
     .notNull()

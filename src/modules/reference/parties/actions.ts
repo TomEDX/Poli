@@ -6,13 +6,17 @@ import { editorWrite } from "@/modules/editors/editor-write";
 
 import { createParty, removeCandidacy, removeParty, saveParty, setCandidacyStatus } from "./queries";
 import { candidacyStatusSchema, newPartySchema, partyEditSchema } from "./validation";
-import { abbreviationTakenMessage, partyNameTakenMessage } from "./vocabulary";
+import { abbreviationTakenMessage, logoTypeMessage, partyNameTakenMessage } from "./vocabulary";
 
 export const createPartyAction = editorWrite({
   args: [],
   input: newPartySchema,
   run: createParty,
-  messages: { "name-taken": partyNameTakenMessage, "abbreviation-taken": abbreviationTakenMessage },
+  messages: {
+    "name-taken": partyNameTakenMessage,
+    "abbreviation-taken": abbreviationTakenMessage,
+    "unsupported-logo": logoTypeMessage,
+  },
 });
 
 export const savePartyAction = editorWrite({
@@ -23,6 +27,7 @@ export const savePartyAction = editorWrite({
     "name-taken": (_id, edit) => partyNameTakenMessage(edit.party ?? {}),
     "abbreviation-taken": (_id, edit) => abbreviationTakenMessage(edit.party ?? {}),
     "party-has-candidacy": "Ce parti a déjà une candidature : rechargez la page.",
+    "unsupported-logo": logoTypeMessage,
   },
 });
 
