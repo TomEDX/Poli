@@ -25,7 +25,7 @@ Personne ne pousse directement sur `develop` ni `main` : `develop` n'accepte que
 
 ## Remplir develop
 
-`poli-develop` utilise le même jeu de données fictif que la base locale (ADR 0006). Pour l'y insérer, lancer le workflow **Seed** depuis l'onglet Actions, sur la branche `develop`. Chaque section (thématiques, partis, textes…) n'est écrite que si sa table est vide : relancer le workflow ne remplace rien de ce qui a été saisi. La prod n'est jamais remplie ainsi.
+`poli-develop` utilise le même jeu de données fictif que la base locale (ADR 0006). Pour l'y insérer, lancer le workflow **Seed** depuis l'onglet Actions, sur la branche `develop`. Chaque section (thématiques, partis, textes…) n'est écrite que si sa table est vide : relancer le workflow ne remplace rien de ce qui a été saisi. Pour repartir du jeu complet, cocher « Vider tout le contenu de develop » : tout le contenu saisi est effacé, les éditeurs sont conservés. La prod n'est jamais remplie ainsi.
 
 ## Secrets
 
