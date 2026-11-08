@@ -27,8 +27,12 @@ export async function uploadLogo(bytes: Uint8Array, contentType: LogoType): Prom
 // Called once the database no longer points at the file: a failure only leaves an unused file
 // behind, so it is logged without failing a write that already succeeded.
 export async function removeLogo(path: string): Promise<void> {
-  const { error } = await logoBucket().remove([path]);
-  if (error) console.error(`Could not remove the party logo ${path}.`, error);
+  try {
+    const { error } = await logoBucket().remove([path]);
+    if (error) throw error;
+  } catch (error) {
+    console.error(`Could not remove the party logo ${path}.`, error);
+  }
 }
 
 function logoBucket() {
