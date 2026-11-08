@@ -12,9 +12,9 @@ import {
   positionsOf,
   type PublishedPosition,
   publishedPositionsOf,
-  questionOrder,
   replacePositions,
 } from "../positions/queries";
+import { questionOrder } from "../question-order";
 import { questions } from "../schema";
 
 export type QuestionInput = {

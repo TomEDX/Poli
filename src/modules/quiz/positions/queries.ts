@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { candidacies, sources, subtopics, topics } from "@/modules/reference/schema";
 import { sourceSummaryColumns, type SourceSummary } from "@/modules/reference/sources/queries";
 
+import { questionOrder } from "../question-order";
 import { positions, questions } from "../schema";
 import type { PositionValue } from "./vocabulary";
 
@@ -15,17 +16,6 @@ export type PublishedPosition = { candidacyId: string; value: PositionValue; sou
 export type MissingPositions = { questionId: string; candidacyIds: string[] }[];
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-// The order of the quiz: the topic tree, then the order the editors gave within each subtopic.
-// The same tie-breaks as the topic tree, so every list of questions agrees.
-export const questionOrder = [
-  asc(topics.position),
-  asc(topics.createdAt),
-  asc(subtopics.position),
-  asc(subtopics.createdAt),
-  asc(questions.position),
-  asc(questions.createdAt),
-];
 
 // The positions of every question follow the order the candidacies were created in.
 const candidacyOrder = [asc(candidacies.createdAt), asc(candidacies.id)];
