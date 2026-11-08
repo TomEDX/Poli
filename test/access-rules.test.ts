@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { createAmendment } from "@/modules/legislation/amendments/queries";
 import { createText, saveText } from "@/modules/legislation/texts/queries";
 import { createVote } from "@/modules/legislation/votes/queries";
+import { publishMethod, saveMethodDraft } from "@/modules/method/queries";
 import { createExtract } from "@/modules/programmes/queries";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import { createParty, getParties } from "@/modules/reference/parties/queries";
@@ -265,6 +266,17 @@ describe("database access rules", () => {
         await asRole(role, "select e.quote from extract_sources es join extracts e on e.id = es.extract_id"),
         role,
       ).toEqual([{ quote: "Publié" }]);
+    }
+  });
+
+  it("let clients read the published method page, never its draft", async () => {
+    await publishMethod({ candidacyCriteria: "Publié", textCriteria: "Publié", scoreFormula: "Publié" });
+    await saveMethodDraft({ candidacyCriteria: "Brouillon", textCriteria: "Brouillon", scoreFormula: "Brouillon" });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select candidacy_criteria from method_pages"), role).toEqual([
+        { candidacy_criteria: "Publié" },
+      ]);
     }
   });
 });
