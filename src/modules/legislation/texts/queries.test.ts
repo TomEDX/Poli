@@ -4,6 +4,7 @@ import { createSource, type SourceInput } from "@/modules/reference/sources/quer
 import { createSubtopic, createTopic, getTopicTree, removeNode } from "@/modules/reference/topics/queries";
 
 import {
+  countPublishedTexts,
   createText,
   getPublishedText,
   getPublishedTextTopics,
@@ -121,6 +122,17 @@ describe("published texts", () => {
     expect(await getPublishedText(draft)).toBeNull();
     expect(await getPublishedText("00000000-0000-4000-8000-000000000000")).toBeNull();
     expect(await getPublishedText("projet-de-loi-105")).toBeNull();
+  });
+
+  it("are counted without the drafts", async () => {
+    const energy = await subtopicId("Écologie", "Énergie");
+    expect(await countPublishedTexts()).toBe(0);
+
+    await textId({ ...energyBill, number: 1, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 2, subtopicIds: [energy], status: "published" });
+    await textId({ ...energyBill, number: 3, subtopicIds: [energy] });
+
+    expect(await countPublishedTexts()).toBe(2);
   });
 });
 
