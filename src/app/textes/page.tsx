@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +20,11 @@ export default function TextsPage({ searchParams }: PageProps<"/textes">) {
         <h1 className="font-heading text-3xl font-semibold tracking-tight">Textes</h1>
         <p className="text-muted-foreground">
           Les projets et propositions de loi examinés à l’Assemblée nationale. Filtrez-les par thématique ou par type,
-          et triez-les par date de dépôt.
+          et triez-les par date de dépôt. Notre{" "}
+          <Link href="/methode" className="underline underline-offset-4 hover:text-foreground">
+            méthode
+          </Link>{" "}
+          explique comment nous les choisissons.
         </p>
       </div>
       <Suspense fallback={<TextListSkeleton />}>
