@@ -23,6 +23,11 @@ export default function HomePage() {
             Nos sources
           </Link>
         </li>
+        <li>
+          <Link href="/methode" className="underline underline-offset-4">
+            Notre méthode
+          </Link>
+        </li>
       </ul>
     </main>
   );
