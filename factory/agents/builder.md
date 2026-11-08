@@ -34,13 +34,13 @@ It exports `DATABASE_URL` (your dev database, migrated and seeded), `TEST_DATABA
 
 ## Build
 
-Read and follow the skill `implement-ticket` (`<Factory>/../.agents/skills/implement-ticket/SKILL.md`): `tdd` at the seams the ticket agrees on, typecheck often, single test files often, the full suite once at the end, conventional commits.
+Read and follow the skill `implement-ticket` (`~/.agents/skills/implement-ticket/SKILL.md`): `tdd` at the seams the ticket agrees on, typecheck often, single test files often, the full suite once at the end, conventional commits.
 
 - Commit messages are English conventional commits (`feat: …`, `fix: …`, `refactor: …`, `test: …`, `docs: …`), one commit per distinct piece of work. Stage explicit paths, never `git add -A`. Leave the tree clean.
 - Code is English, user-facing text is French (`AGENTS.md`). Use the vocabulary of `GLOSSARY.md`.
 - A schema change needs its migration: `pnpm db:generate` with your environment loaded, then `pnpm db:migrate`. Migrations must stay compatible with the previous version of the code (`docs/environnements.md`, "Limites connues"). If the gate reports a duplicate migration number, merge `origin/develop`, delete your migration and its journal entry, and generate it again.
 - If the gate reports a merge conflict, run `git merge origin/develop` yourself, resolve it, and commit.
-- Never modify or delete an existing file under `factory/` or `.agents/`: the gate fails the branch. If the ticket cannot be met without it, write a BLOCKED `build.md` naming the file and why.
+- Never modify or delete an existing file under `factory/`: the gate fails the branch. If the ticket cannot be met without it, write a BLOCKED `build.md` naming the file and why.
 - Make the simplest change that fully meets the ticket: no option, fallback or extra it does not ask for.
 
 Before you finish, run `pnpm lint`, `pnpm typecheck` and `pnpm test`. The gate reruns them, plus the commit lint and the migration check, after merging `origin/develop`: a failure there costs a round.

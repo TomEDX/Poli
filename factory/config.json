@@ -8,7 +8,7 @@
   "envFiles": [".env", ".env.local", ".env.development.local"],
   "project": { "owner": "TomEDX", "number": 2 },
   "ports": { "base": 3100, "step": 10 },
-  "protectedPaths": ["factory/**", ".agents/**"],
+  "protectedPaths": ["factory/**"],
   "alwaysReviewers": ["code"],
   "pathReviewers": {
     "ui": ["src/app/**", "src/components/**", "src/modules/*/components/**"],

@@ -1,5 +1,0 @@
-interface:
-  display_name: "Factory"
-  short_description: "Run ready-for-agent tickets up to a PR to validate"
-policy:
-  allow_implicit_invocation: false

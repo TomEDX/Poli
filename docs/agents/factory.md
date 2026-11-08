@@ -1,6 +1,6 @@
 # Software factory
 
-`factory/` turns `ready-for-agent` tickets into pull requests to `develop`, one ticket per worktree, branch and PR. It stops at "PR ready, every review PASS": the maintainer squash-merges. Run it from Codex with `/factory run` (the skill is `.agents/skills/factory/SKILL.md`).
+`factory/` turns `ready-for-agent` tickets into pull requests to `develop`, one ticket per worktree, branch and PR. It stops at "PR ready, every review PASS": the maintainer squash-merges. Run it from Codex with `/factory run`. The skills `factory` (orchestrator) and `implement-ticket` (builder) are not in the repository: they live with the other personal skills in `~/.agents/skills/`.
 
 ## Pieces
 
