@@ -24,6 +24,12 @@ export function formatFiledOn(isoDate: string): string {
   return longDate.format(new Date(`${isoDate}T00:00:00Z`));
 }
 
+// What the home page says next to the link to the texts.
+export function publishedTextCountLabel(count: number): string {
+  if (count === 0) return "Aucun texte publié pour l’instant";
+  return count === 1 ? "1 texte examiné" : `${count} textes examinés`;
+}
+
 // A save that leaves the number unchanged cannot collide, yet its changes type the number as optional.
 export function textNumberTakenMessage(number: number | undefined): string {
   const taken = number === undefined ? "Ce numéro" : `Le numéro ${number}`;

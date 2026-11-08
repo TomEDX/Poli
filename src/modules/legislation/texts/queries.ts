@@ -104,6 +104,10 @@ export async function getPublishedTexts(filters: TextFilters = {}): Promise<Publ
   return rows.map((row) => ({ ...row, subtopics: subtopicsByText.get(row.id) ?? [] }));
 }
 
+export async function countPublishedTexts(): Promise<number> {
+  return db.$count(texts, eq(texts.status, "published"));
+}
+
 // Only what has a published text: a filter that can only empty the list is not offered.
 export async function getPublishedTextTopics(): Promise<TextTopic[]> {
   const rows = await db
