@@ -4,8 +4,6 @@ import postgres from "postgres";
 
 import { TEST_DATABASE_URL } from "./database-url";
 
-const connect = (url: string) => postgres(url, { max: 1, onnotice: () => {} });
-
 export default async function createTestDatabase() {
   const url = new URL(TEST_DATABASE_URL);
   const name = url.pathname.slice(1);
@@ -31,4 +29,8 @@ export default async function createTestDatabase() {
   `);
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   await client.end();
+}
+
+function connect(url: string) {
+  return postgres(url, { max: 1, onnotice: () => {} });
 }

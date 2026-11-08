@@ -6,15 +6,7 @@ Write all code in English: identifiers, file and folder names, test names, error
 
 Keep comments rare: only explain why, or how when it is not obvious from the code.
 
-Give each file one responsibility, and lay it out in this order so its interface reads first:
-
-1. imports;
-2. exported types;
-3. constants;
-4. exported functions and components, the main one first;
-5. private helpers, below the code that calls them.
-
-Write private helpers as function declarations so they can sit below their callers. A constant that another constant needs at load time goes above it.
+File layout is checked by `pnpm lint`: helpers at the top level of a file are function declarations, and nothing is used before it is defined.
 
 ## Agent skills
 
@@ -29,6 +21,10 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Test database
+
+Tests run on a local Postgres that the sandbox blocks. See `docs/agents/test-database.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
