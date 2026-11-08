@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Progress, ProgressLabel } from "@/components/ui/progress";
 import { shuffled } from "@/lib/shuffle";
 
 import { AgreementResults, type ScoredCandidacy } from "../agreement/components/agreement-results";
@@ -85,10 +86,10 @@ export function FullQuiz({ questions, candidacies }: { questions: PublishedQuest
           <p className="text-muted-foreground">Aucune candidature n’est encore publiée.</p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={editAnswers}>
+          <Button size="xl" variant="outline" onClick={editAnswers}>
             Modifier mes réponses
           </Button>
-          <Button variant="ghost" onClick={restart}>
+          <Button size="xl" variant="ghost" onClick={restart}>
             Recommencer le quiz
           </Button>
         </div>
@@ -102,7 +103,7 @@ export function FullQuiz({ questions, candidacies }: { questions: PublishedQuest
 
   return (
     <section aria-labelledby="quiz-statement" className="flex flex-col gap-6">
-      <Progress current={current} total={questions.length} />
+      <QuizProgress current={current} total={questions.length} />
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">
           {question.subtopic.topic.name} · {question.subtopic.name}
@@ -120,22 +121,22 @@ export function FullQuiz({ questions, candidacies }: { questions: PublishedQuest
         {stances.map((stance) => (
           <Button
             key={stance}
-            size="lg"
+            size="xl"
             variant={given === stance ? "default" : "outline"}
             aria-pressed={given === stance}
             onClick={() => answer(stance)}
-            className="h-11 justify-start px-4 text-base"
+            className="justify-start"
           >
             {stanceLabels[stance]}
           </Button>
         ))}
       </div>
       <div className="flex flex-wrap justify-between gap-2">
-        <Button variant="ghost" disabled={current === 0} onClick={() => goTo(current - 1)}>
+        <Button size="xl" variant="ghost" disabled={current === 0} onClick={() => goTo(current - 1)}>
           Question précédente
         </Button>
         {given !== undefined && (
-          <Button variant="outline" onClick={() => (last ? showResults(answers) : goTo(current + 1))}>
+          <Button size="xl" variant="outline" onClick={() => (last ? showResults(answers) : goTo(current + 1))}>
             {last ? "Voir mes résultats" : "Question suivante"}
           </Button>
         )}
@@ -144,23 +145,11 @@ export function FullQuiz({ questions, candidacies }: { questions: PublishedQuest
   );
 }
 
-function Progress({ current, total }: { current: number; total: number }) {
-  const labelId = useId();
+function QuizProgress({ current, total }: { current: number; total: number }) {
+  const label = `Question ${current + 1} sur ${total}`;
   return (
-    <div className="flex flex-col gap-2">
-      <p id={labelId} className="text-sm text-muted-foreground">
-        Question {current + 1} sur {total}
-      </p>
-      <div
-        role="progressbar"
-        aria-labelledby={labelId}
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={current + 1}
-        className="h-2 overflow-hidden rounded-full bg-muted"
-      >
-        <div className="h-full rounded-full bg-foreground/70 transition-[width]" style={{ width: `${((current + 1) / total) * 100}%` }} />
-      </div>
-    </div>
+    <Progress value={current + 1} min={0} max={total} getAriaValueText={() => label}>
+      <ProgressLabel className="font-normal text-muted-foreground">{label}</ProgressLabel>
+    </Progress>
   );
 }

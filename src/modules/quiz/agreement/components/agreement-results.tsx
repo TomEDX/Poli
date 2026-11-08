@@ -1,3 +1,7 @@
+import { ChevronRight } from "lucide-react";
+
+import { Progress } from "@/components/ui/progress";
+
 import { formatScore } from "../vocabulary";
 import type { CandidacyScore } from "../score";
 
@@ -16,13 +20,21 @@ export function AgreementResults({ scores }: { scores: ScoredCandidacy[] }) {
           </div>
           {score.total === null ? (
             <p className="text-sm text-muted-foreground">
-              Cette candidature n’a de position sur aucune de vos réponses : elle n’a pas de score.
+              Cette candidature n’a de position sur aucune des questions auxquelles vous avez répondu : elle n’a pas
+              de score.
             </p>
           ) : (
-            <ScoreBar score={score.total} />
+            // The score is already written out above, so the bar is only a picture of it.
+            <Progress aria-hidden value={score.total * 100} />
           )}
-          <details className="text-sm">
-            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Détail par thématique</summary>
+          <details className="group text-sm">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+              <ChevronRight
+                aria-hidden
+                className="size-4 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              />
+              Détail par thématique
+            </summary>
             <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
               {score.byTopic.map(({ topic, score: topicScore }) => (
                 <div key={topic.id} className="contents">
@@ -35,13 +47,5 @@ export function AgreementResults({ scores }: { scores: ScoredCandidacy[] }) {
         </li>
       ))}
     </ol>
-  );
-}
-
-function ScoreBar({ score }: { score: number }) {
-  return (
-    <div aria-hidden className="h-2 overflow-hidden rounded-full bg-muted">
-      <div className="h-full rounded-full bg-foreground/70" style={{ width: `${score * 100}%` }} />
-    </div>
   );
 }
