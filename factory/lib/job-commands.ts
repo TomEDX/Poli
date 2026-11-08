@@ -97,12 +97,14 @@ export function reworkJob(id: string, note: string): Job {
   const number = countFiles(directory, /^feedback-\d+\.md$/) + 1;
   writeFileSync(join(directory, `feedback-${number}.md`), `# Feedback ${number}\n\nFrom the maintainer, after the job reached ${job.stage}.\n\n${note.trim()}\n`);
   if (job.pr !== null) markDraft(job.pr);
-  updateJob(id, (current) => {
-    assignSlot(current);
-    current.roundLimit = current.round + config.maxRounds;
-    startNextRound(current);
-    current.stage = "build";
-  });
+  withLock("slots", () =>
+    updateJob(id, (current) => {
+      assignSlot(current);
+      current.roundLimit = current.round + config.maxRounds;
+      startNextRound(current);
+      current.stage = "build";
+    }),
+  );
   return refreshBoard(id);
 }
 
@@ -223,11 +225,13 @@ async function startFirstBuild(job: Job): Promise<void> {
   }
   runOrRefuse("pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], { cwd: job.worktree });
 
-  updateJob(job.id, (current) => {
-    assignSlot(current);
-    startNextRound(current);
-    current.stage = "build";
-  });
+  withLock("slots", () =>
+    updateJob(job.id, (current) => {
+      assignSlot(current);
+      startNextRound(current);
+      current.stage = "build";
+    }),
+  );
   await prepareDevDatabase(readJob(job.id));
 }
 
