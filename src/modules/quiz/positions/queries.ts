@@ -27,7 +27,10 @@ export const questionOrder = [
   asc(questions.createdAt),
 ];
 
-// The position of each published candidacy on each question, in the order of the candidacies' parties.
+// The positions of every question follow the order the candidacies were created in.
+const candidacyOrder = [asc(candidacies.createdAt), asc(candidacies.id)];
+
+// The position of each published candidacy on each question.
 export async function publishedPositionsOf(questionIds: string[]): Promise<Map<string, PublishedPosition[]>> {
   const byQuestion = new Map<string, PublishedPosition[]>();
   if (questionIds.length === 0) return byQuestion;
@@ -42,7 +45,7 @@ export async function publishedPositionsOf(questionIds: string[]): Promise<Map<s
     .innerJoin(candidacies, eq(candidacies.id, positions.candidacyId))
     .leftJoin(sources, eq(sources.id, positions.sourceId))
     .where(and(inArray(positions.questionId, questionIds), eq(candidacies.status, "published")))
-    .orderBy(asc(positions.createdAt), asc(positions.id));
+    .orderBy(...candidacyOrder);
   for (const { questionId, value, source, ...position } of rows) {
     const published = { ...position, value: value as PositionValue, source: source?.id ? source : null };
     byQuestion.set(questionId, [...(byQuestion.get(questionId) ?? []), published]);
@@ -62,8 +65,9 @@ export async function positionsOf(questionIds: string[]): Promise<Map<string, Po
       sourceId: positions.sourceId,
     })
     .from(positions)
+    .innerJoin(candidacies, eq(candidacies.id, positions.candidacyId))
     .where(inArray(positions.questionId, questionIds))
-    .orderBy(asc(positions.createdAt), asc(positions.id));
+    .orderBy(...candidacyOrder);
   for (const { questionId, value, ...position } of rows) {
     byQuestion.set(questionId, [...(byQuestion.get(questionId) ?? []), { ...position, value: value as PositionValue }]);
   }
@@ -89,7 +93,7 @@ export async function getMissingPositions(): Promise<MissingPositions> {
           .where(and(eq(positions.questionId, questions.id), eq(positions.candidacyId, candidacies.id))),
       ),
     )
-    .orderBy(...questionOrder, asc(candidacies.createdAt), asc(candidacies.id));
+    .orderBy(...questionOrder, ...candidacyOrder);
   const missing: MissingPositions = [];
   for (const { questionId, candidacyId } of rows) {
     const last = missing.at(-1);
