@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import type { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,7 +25,6 @@ import {
   FieldLegend,
   FieldSeparator,
   FieldSet,
-  FieldTitle,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,14 +47,13 @@ import {
   candidacyLabel,
   logoSizeMessage,
   logoTypeMessage,
-  logoTypes,
   partyNameTakenMessage,
 } from "../vocabulary";
 import type { Party, PartyChanges } from "../queries";
 import type { PublicationStatus } from "../../publication-status";
 import { ABBREVIATION_MAX_LENGTH, NAME_MAX_LENGTH } from "../../form-fields";
-import { logoFileSchema, newPartySchema, type partyEditSchema } from "../validation";
-import { PartyLogo } from "./party-logo";
+import { newPartySchema, type partyEditSchema } from "../validation";
+import { type LogoChoice, LogoField } from "./logo-field";
 
 type PartySheetProps = {
   // null to create a new party.
@@ -92,8 +90,6 @@ export function PartySheet({ party, open, onOpenChange, returnFocus, onRemovingP
 
 type Errors = { name?: string; abbreviation?: string; logo?: string; candidateName?: string; form?: string };
 
-// undefined keeps the saved logo and null removes it; a new file shows from its preview until saved.
-type LogoChoice = { file: File; preview: string } | null | undefined;
 
 type PartyFormProps = {
   party: Party | null;
@@ -112,7 +108,6 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
   const [logo, setLogo] = useState<LogoChoice>(undefined);
   const [errors, setErrors] = useState<Errors>({});
   const [pending, startTransition] = useTransition();
-  const logoInput = useRef<HTMLInputElement>(null);
   const formId = useId();
   const ids = {
     name: useId(),
@@ -124,7 +119,6 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
   };
 
   const hasCandidacy = candidacy !== null || wantsCandidacy;
-  const shownLogo = logo === undefined ? (party?.logo ?? null) : (logo?.preview ?? null);
   // Shown once the party has a name and an abbreviation to build the public label from.
   const preview =
     name.trim() && abbreviation.trim()
@@ -135,28 +129,6 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
     setErrors(next);
     const first = (["name", "abbreviation", "logo", "candidateName"] as const).find((field) => next[field]);
     if (first) document.getElementById(ids[first === "candidateName" ? "candidate" : first])?.focus();
-  };
-
-  const chooseLogo = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    // Emptied so that choosing the same file again still counts as a choice.
-    event.target.value = "";
-    if (!file) return;
-    const checked = logoFileSchema.safeParse(file);
-    if (!checked.success) return setErrors((current) => ({ ...current, logo: checked.error.issues[0].message }));
-    const reader = new FileReader();
-    reader.onload = () => {
-      const preview = reader.result as string;
-      // A file that the browser cannot show as an image is refused before it is ever sent.
-      const image = new Image();
-      image.onload = () => {
-        setLogo({ file, preview });
-        setErrors((current) => ({ ...current, logo: undefined }));
-      };
-      image.onerror = () => setErrors((current) => ({ ...current, logo: logoTypeMessage }));
-      image.src = preview;
-    };
-    reader.readAsDataURL(file);
   };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -225,49 +197,15 @@ function PartyForm({ party, onDone, onRemovingParty }: PartyFormProps) {
               />
               <FieldError id={`${ids.abbreviation}-error`}>{errors.abbreviation}</FieldError>
             </Field>
-            <Field data-invalid={errors.logo ? true : undefined} aria-labelledby={`${ids.logo}-title`}>
-              <FieldTitle id={`${ids.logo}-title`}>Logo</FieldTitle>
-              <div className="flex items-center gap-4">
-                <PartyLogo
-                  party={{ name: name.trim() || "Nouveau parti", abbreviation: abbreviation.trim(), logo: shownLogo }}
-                  className="size-16"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    id={ids.logo}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-describedby={`${ids.logo}-help${errors.logo ? ` ${ids.logo}-error` : ""}`}
-                    onClick={() => logoInput.current?.click()}
-                  >
-                    {shownLogo ? "Remplacer le logo" : "Choisir un logo"}
-                  </Button>
-                  {shownLogo && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setLogo(party?.logo ? null : undefined);
-                        setErrors((current) => ({ ...current, logo: undefined }));
-                      }}
-                    >
-                      Retirer le logo
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <input
-                ref={logoInput}
-                type="file"
-                accept={logoTypes.join(",")}
-                hidden
-                onChange={chooseLogo}
-              />
-              <FieldDescription id={`${ids.logo}-help`}>{logoHelp(logo)}</FieldDescription>
-              <FieldError id={`${ids.logo}-error`}>{errors.logo}</FieldError>
-            </Field>
+            <LogoField
+              id={ids.logo}
+              value={logo}
+              savedLogo={party?.logo ?? null}
+              party={{ name: name.trim() || "Nouveau parti", abbreviation: abbreviation.trim() }}
+              error={errors.logo}
+              onChange={setLogo}
+              onError={(message) => setErrors((current) => ({ ...current, logo: message }))}
+            />
           </FieldGroup>
         </FieldSet>
 
@@ -472,13 +410,6 @@ function serverErrors(message: string, party: PartyChanges): Errors {
   if (message === abbreviationTakenMessage(party)) return { abbreviation: message };
   if (message === logoTypeMessage || message === logoSizeMessage) return { logo: message };
   return { form: message };
-}
-
-// The logo is only written with the rest of the sheet, so the help says what saving will do.
-function logoHelp(logo: LogoChoice) {
-  if (logo === null) return "Le logo sera retiré à l’enregistrement.";
-  if (logo) return `« ${logo.file.name} » sera enregistré avec le parti.`;
-  return "SVG, PNG ou WebP, 1 Mo maximum. Sans logo, le sigle s’affiche à sa place.";
 }
 
 function notify(result: ActionResult, success: string) {
