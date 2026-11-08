@@ -29,7 +29,7 @@ L'administration est sur http://localhost:3000/admin. En local, le bouton « Se 
 | `pnpm test` | Tests Vitest sur une base `poli_test` recréée à chaque lancement et vidée avant chaque test (le Supabase local doit tourner) |
 | `pnpm db:generate` | Génère une migration à partir des schémas `src/modules/*/schema.ts` |
 | `pnpm db:migrate` | Applique les migrations sur la base de `DATABASE_URL` |
-| `pnpm db:seed` | Insère le jeu de données fictif dans la base locale si elle n'a aucune thématique (refuse toute autre base) |
+| `pnpm db:seed` | Insère le jeu de données fictif dans la base locale, section par section, quand la table concernée est vide (refuse toute autre base ; develop se remplit avec le workflow **Seed**) |
 
 ## Organisation du code
 
