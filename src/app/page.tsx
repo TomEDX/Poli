@@ -12,6 +12,11 @@ export default function HomePage() {
         parlementaire, sans orienter son choix.
       </p>
       <ul className="flex flex-col gap-2">
+        <li>
+          <Link href="/comparateur" className="underline underline-offset-4">
+            Comparer les programmes
+          </Link>
+        </li>
         <li className="flex flex-wrap items-baseline gap-x-2">
           <Link href="/textes" className="underline underline-offset-4">
             Les textes examinés à l&apos;Assemblée

@@ -1,4 +1,4 @@
-import { and, asc, eq, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, notExists, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
@@ -9,7 +9,9 @@ import type { PublicationStatus } from "@/modules/reference/publication-status";
 import { candidacies, subtopics, topics } from "@/modules/reference/schema";
 import { sourceLinks } from "@/modules/reference/sources/links";
 import type { SourceSummary } from "@/modules/reference/sources/queries";
+import { getTopicTree } from "@/modules/reference/topics/queries";
 
+import { MAX_COMPARED_CANDIDACIES } from "./vocabulary";
 import { extractSources, extracts } from "./schema";
 
 export type ExtractInput = {
@@ -42,6 +44,20 @@ export type EditableExtract = ExtractInput & { id: string; status: PublicationSt
 
 // What remains to read in the programme, grouped by topic; a topic with nothing left is omitted.
 export type MissingSubtopics = { id: string; name: string; subtopics: { id: string; name: string }[] }[];
+
+export type ComparedExtract = { id: string; quote: string; recordedOn: string; sources: SourceSummary[] };
+
+// What one candidacy's programme says on one subtopic; no extract means nothing in the programme.
+export type ComparisonCell = { candidacyId: string; extracts: ComparedExtract[] };
+
+// The topic tree, each subtopic holding one cell per compared candidacy, in the order they were given.
+// A topic without subtopics is left out: it has nothing to compare.
+export type ComparisonGrid = {
+  id: string;
+  name: string;
+  slug: string;
+  subtopics: { id: string; name: string; cells: ComparisonCell[] }[];
+}[];
 
 export type CreateExtractResult = { ok: true; id: string } | { ok: false; reason: "not-found" };
 
@@ -142,6 +158,62 @@ export async function getSubtopicsWithoutExtract(candidacyId: string): Promise<M
     tree.set(topic.id, entry);
   }
   return [...tree.values()];
+}
+
+/**
+ * The comparator's grid for one to three candidacies: every subtopic of the tree, with the
+ * published extracts of each candidacy. A draft candidacy, like one that does not exist, has
+ * empty cells; the ids may come from a URL, so anything but a uuid is one that does not exist.
+ */
+export async function getComparisonGrid(candidacyIds: string[]): Promise<ComparisonGrid> {
+  if (candidacyIds.length > MAX_COMPARED_CANDIDACIES) {
+    throw new Error(`At most ${MAX_COMPARED_CANDIDACIES} candidacies can be compared.`);
+  }
+  const ids = candidacyIds.filter((id) => z.uuid().safeParse(id).success);
+  const rows =
+    ids.length === 0
+      ? []
+      : await db
+          .select({
+            id: extracts.id,
+            candidacyId: extracts.candidacyId,
+            subtopicId: extracts.subtopicId,
+            quote: extracts.quote,
+            recordedOn: extracts.recordedOn,
+          })
+          .from(extracts)
+          .innerJoin(candidacies, eq(candidacies.id, extracts.candidacyId))
+          .where(
+            and(
+              inArray(extracts.candidacyId, ids),
+              eq(extracts.status, "published"),
+              eq(candidacies.status, "published"),
+            ),
+          )
+          .orderBy(asc(extracts.position), asc(extracts.createdAt));
+  const sourcesByExtract = await extractSourceLinks.sourcesOf(rows.map((row) => row.id));
+
+  const cells = new Map<string, ComparedExtract[]>();
+  for (const { candidacyId, subtopicId, ...extract } of rows) {
+    const key = `${subtopicId}/${candidacyId}`;
+    cells.set(key, [...(cells.get(key) ?? []), { ...extract, sources: sourcesByExtract.get(extract.id) ?? [] }]);
+  }
+
+  return (await getTopicTree())
+    .filter((topic) => topic.subtopics.length > 0)
+    .map((topic) => ({
+      id: topic.id,
+      name: topic.name,
+      slug: topic.slug,
+      subtopics: topic.subtopics.map((subtopic) => ({
+        id: subtopic.id,
+        name: subtopic.name,
+        cells: candidacyIds.map((candidacyId) => ({
+          candidacyId,
+          extracts: cells.get(`${subtopic.id}/${candidacyId}`) ?? [],
+        })),
+      })),
+    }));
 }
 
 // Placed last among the extracts of the candidacy in its subtopic.

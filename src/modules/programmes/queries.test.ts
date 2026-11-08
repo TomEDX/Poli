@@ -6,6 +6,7 @@ import { createSubtopic, createTopic } from "@/modules/reference/topics/queries"
 
 import {
   createExtract,
+  getComparisonGrid,
   getExtracts,
   getPublishedProgramme,
   getSubtopicsWithoutExtract,
@@ -256,3 +257,91 @@ describe("the subtopics without an extract", () => {
     ]);
   });
 });
+
+describe("the comparison grid", () => {
+  it("holds, for every subtopic of the tree, the published extracts of each candidacy or nothing", async () => {
+    const health = await createTopic({ name: "Santé", slug: "sante" });
+    const school = await createTopic({ name: "Éducation", slug: "education" });
+    await createTopic({ name: "Culture", slug: "culture" });
+    if (!health.ok || !school.ok) throw new Error("Could not create the topics");
+    const prevention = await createSubtopic(health.id, { name: "Prévention", slug: "prevention" });
+    const hospital = await createSubtopic(health.id, { name: "Hôpital", slug: "hopital" });
+    const primarySchool = await createSubtopic(school.id, { name: "École", slug: "ecole" });
+    if (!prevention.ok || !hospital.ok || !primarySchool.ok) throw new Error("Could not create the subtopics");
+    const horizon = await candidacyId("PDH");
+    const territories = await candidacyId("UDT");
+    const notCompared = await candidacyId("MES");
+    const programme = await sourceId("Programme");
+    await createExtract(horizon, { ...extract, subtopicId: prevention.id, status: "published" });
+    await createExtract(horizon, { ...extract, quote: "Un brouillon.", subtopicId: hospital.id, status: "draft" });
+    for (const quote of ["Urgences 1", "Urgences 2"]) {
+      await createExtract(territories, {
+        quote,
+        recordedOn: "2026-11-02",
+        subtopicId: hospital.id,
+        sourceIds: [programme],
+        status: "published",
+      });
+    }
+    await createExtract(notCompared, { ...extract, subtopicId: primarySchool.id, status: "published" });
+
+    const nothing = (candidacy: string) => ({ candidacyId: candidacy, extracts: [] });
+    const urgences = (quote: string) => ({
+      id: expect.any(String),
+      quote,
+      recordedOn: "2026-11-02",
+      sources: [{ id: programme, title: "Programme", organization: "Parti PDH", url: "https://pdh.example.org/programme" }],
+    });
+    expect(await getComparisonGrid([territories, horizon])).toEqual([
+      {
+        id: health.id,
+        name: "Santé",
+        slug: "sante",
+        subtopics: [
+          {
+            id: prevention.id,
+            name: "Prévention",
+            cells: [
+              nothing(territories),
+              {
+                candidacyId: horizon,
+                extracts: [{ id: expect.any(String), quote: extract.quote, recordedOn: "2026-10-12", sources: [] }],
+              },
+            ],
+          },
+          {
+            id: hospital.id,
+            name: "Hôpital",
+            cells: [{ candidacyId: territories, extracts: [urgences("Urgences 1"), urgences("Urgences 2")] }, nothing(horizon)],
+          },
+        ],
+      },
+      {
+        id: school.id,
+        name: "Éducation",
+        slug: "education",
+        subtopics: [{ id: primarySchool.id, name: "École", cells: [nothing(territories), nothing(horizon)] }],
+      },
+    ]);
+  });
+
+  it("has nothing for a draft candidacy, or an id that is not a candidacy", async () => {
+    const prevention = await subtopicId("Santé", "Prévention");
+    const candidacy = await candidacyId("PDH", "draft");
+    await createExtract(candidacy, { ...extract, subtopicId: prevention, status: "published" });
+
+    const [health] = await getComparisonGrid([candidacy, "parti-de-l-horizon"]);
+
+    expect(health.subtopics[0].cells).toEqual([
+      { candidacyId: candidacy, extracts: [] },
+      { candidacyId: "parti-de-l-horizon", extracts: [] },
+    ]);
+  });
+
+  it("refuses more than three candidacies", async () => {
+    const ids = await Promise.all(["PDH", "UDT", "MES", "AC"].map((abbreviation) => candidacyId(abbreviation)));
+
+    await expect(getComparisonGrid(ids)).rejects.toThrow("At most 3 candidacies can be compared.");
+  });
+});
+

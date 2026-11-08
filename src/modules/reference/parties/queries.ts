@@ -53,7 +53,8 @@ export type PublishedCandidacy = {
   id: string;
   label: string;
   candidateName: string | null;
-  party: { id: string; name: string; abbreviation: string };
+  // logo is the public address of the party's logo, or null when it has none.
+  party: { id: string; name: string; abbreviation: string; logo: string | null };
 };
 
 export type CreateCandidacyResult = { ok: true; id: string } | { ok: false; reason: "party-has-candidacy" | "not-found" };
@@ -185,14 +186,19 @@ export async function getPublishedCandidacies(): Promise<PublishedCandidacy[]> {
     .select({
       id: candidacies.id,
       candidateName: candidacies.candidateName,
-      party: { id: parties.id, name: parties.name, abbreviation: parties.abbreviation },
+      party: { id: parties.id, name: parties.name, abbreviation: parties.abbreviation, logoPath: parties.logoPath },
     })
     .from(candidacies)
     .innerJoin(parties, eq(parties.id, candidacies.partyId))
     .where(eq(candidacies.status, "published"))
     .orderBy(asc(parties.name));
 
-  return rows.map((row) => ({ id: row.id, label: candidacyLabel(row), candidateName: row.candidateName, party: row.party }));
+  return rows.map(({ id, candidateName, party: { logoPath, ...party } }) => ({
+    id,
+    label: candidacyLabel({ candidateName, party }),
+    candidateName,
+    party: { ...party, logo: logoPath && logoUrl(logoPath) },
+  }));
 }
 
 export async function createCandidacy(partyId: string, input: NewCandidacy): Promise<CreateCandidacyResult> {
