@@ -48,7 +48,7 @@ export function agreementScores(
       })),
     };
   });
-  return scores.toSorted((a, b) => (b.total ?? -1) - (a.total ?? -1));
+  return [...scores].sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
 }
 
 function meanOf(values: number[]): number | null {
