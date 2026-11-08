@@ -501,8 +501,11 @@ const methodPage = {
 
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
-export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResult> {
+// With reset, every content table is emptied first, so the whole fictional dataset is written
+// again; editors and the legislature inserted by the migrations are kept.
+export async function seedLocalDatabase(client: postgres.Sql, { reset = false } = {}): Promise<SeedResult> {
   return client.begin(async (tx) => {
+    if (reset) await emptyContentTables(tx);
     return {
       topics: await seedTopics(tx),
       parties: await seedParties(tx),
@@ -529,7 +532,7 @@ if (import.meta.main) {
   }
 
   const client = postgres(url, { max: 1, onnotice: () => {} });
-  const seeded = await seedLocalDatabase(client);
+  const seeded = await seedLocalDatabase(client, { reset: process.env.SEED_RESET === "true" });
   await client.end();
   console.log(seeded.topics ? "Topic tree seeded." : "Local database already has topics: skipped.");
   console.log(seeded.parties ? "Parties and candidacies seeded." : "Local database already has parties: skipped.");
@@ -733,6 +736,13 @@ async function seedMethod(tx: postgres.TransactionSql): Promise<boolean> {
       values (${status}, ${methodPage.candidacyCriteria}, ${methodPage.textCriteria}, ${methodPage.scoreFormula})`;
   }
   return true;
+}
+
+// Cascade empties every table that points to these roots: subtopics, candidacies, links,
+// scrutins, group votes, positions.
+async function emptyContentTables(tx: postgres.TransactionSql) {
+  await tx`
+    truncate topics, parties, parliamentary_groups, sources, texts, extracts, questions, method_pages cascade`;
 }
 
 async function hasRows(

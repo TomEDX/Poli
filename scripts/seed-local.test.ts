@@ -192,4 +192,15 @@ describe("local seed", () => {
     expect(await getPublishedMethod()).not.toBeNull();
     expect(await getEditableMethod()).toMatchObject({ publication: "up-to-date" });
   });
+
+  it("replaces existing content with the whole dataset when asked to reset", async () => {
+    await createTopic({ name: "Thématique saisie", slug: "thematique-saisie" });
+    await createParty({ name: "Parti saisi", abbreviation: "PS" });
+
+    const seeded = await seedLocalDatabase(db.$client, { reset: true });
+
+    expect(Object.values(seeded).every(Boolean)).toBe(true);
+    expect((await getTopicTree()).map((topic) => topic.slug)).not.toContain("thematique-saisie");
+    expect((await getParties()).map((party) => party.abbreviation)).not.toContain("PS");
+  });
 });

@@ -2,9 +2,14 @@ name: Seed
 
 # Fills poli-develop with the fictional dataset of scripts/seed-local.ts (ADR 0006).
 # Each section is written only when its table is empty, so a rerun keeps what
-# editors have entered. Production is never seeded.
+# editors have entered, unless reset empties the content first. Production is never seeded.
 on:
   workflow_dispatch:
+    inputs:
+      reset:
+        description: "Vider tout le contenu de develop avant de le remplir"
+        type: boolean
+        default: false
 
 concurrency: seed-develop
 
@@ -25,3 +30,4 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SEED_TARGET: develop
+          SEED_RESET: ${{ inputs.reset }}
