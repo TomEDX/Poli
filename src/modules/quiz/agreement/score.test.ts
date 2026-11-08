@@ -9,7 +9,7 @@ const work = { id: "work", name: "Travail" };
 function question(id: string, topic: { id: string; name: string }, positions: Record<string, PositionValue>): ScoredQuestion {
   return {
     id,
-    topic,
+    subtopic: { topic },
     positions: Object.entries(positions).map(([candidacyId, value]) => ({ candidacyId, value })),
   };
 }

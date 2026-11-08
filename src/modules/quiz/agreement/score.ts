@@ -5,7 +5,7 @@ type Topic = { id: string; name: string };
 // What the score needs of a published question; the visitor's answers are keyed by question id.
 export type ScoredQuestion = {
   id: string;
-  topic: Topic;
+  subtopic: { topic: Topic };
   positions: { candidacyId: string; value: PositionValue }[];
 };
 
@@ -31,13 +31,13 @@ export function agreementScores(
   answers: ReadonlyMap<string, Stance>,
   candidacyIds: string[],
 ): CandidacyScore[] {
-  const topics = [...new Map(questions.map((question) => [question.topic.id, question.topic])).values()];
+  const topics = [...new Map(questions.map(({ subtopic: { topic } }) => [topic.id, topic])).values()];
   const scores = candidacyIds.map((candidacyId) => {
     const agreements = questions.flatMap((question) => {
       const answer = answers.get(question.id);
       const position = question.positions.find((candidate) => candidate.candidacyId === candidacyId)?.value ?? null;
       if (answer === undefined || position === null) return [];
-      return [{ topicId: question.topic.id, agreement: 1 - Math.abs(answer - position) / SCALE_SPAN }];
+      return [{ topicId: question.subtopic.topic.id, agreement: 1 - Math.abs(answer - position) / SCALE_SPAN }];
     });
     return {
       candidacyId,

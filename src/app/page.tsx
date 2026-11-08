@@ -19,6 +19,11 @@ export default function HomePage() {
           <PublishedTextCount />
         </li>
         <li>
+          <Link href="/quiz" className="underline underline-offset-4">
+            Le quiz
+          </Link>
+        </li>
+        <li>
           <Link href="/sources" className="underline underline-offset-4">
             Nos sources
           </Link>
