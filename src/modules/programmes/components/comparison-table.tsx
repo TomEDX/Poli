@@ -1,7 +1,7 @@
-import { PartyLogo } from "@/modules/reference/parties/components/party-logo";
 import type { PublishedCandidacy } from "@/modules/reference/parties/queries";
 import { SourceLinks } from "@/modules/reference/sources/components/source-links";
 
+import { CandidacyName } from "./candidacy-name";
 import { formatRecordedOn, nothingInProgrammeMessage } from "../vocabulary";
 import type { ComparedExtract, ComparisonGrid } from "../queries";
 
@@ -34,10 +34,7 @@ export function ComparisonTable({
               return (
                 <li key={cell.candidacyId} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
                   <p className="flex items-center gap-2 text-sm font-medium">
-                    <span aria-hidden>
-                      <PartyLogo party={candidacy.party} className="size-8" />
-                    </span>
-                    {candidacy.label}
+                    <CandidacyName candidacy={candidacy} />
                   </p>
                   {cell.extracts.length === 0 ? (
                     <p className="text-sm text-muted-foreground italic">{nothingInProgrammeMessage}</p>

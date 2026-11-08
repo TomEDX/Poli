@@ -4,12 +4,12 @@ import { MAX_COMPARED_CANDIDACIES } from "./vocabulary";
 // and the slug of the topic, "" when none is given.
 export type ComparisonSelection = { candidacyIds: string[]; topic: string };
 
-export type ComparisonSearchParams = Record<string, string | string[] | undefined>;
+type ComparisonSearchParams = Record<string, string | string[] | undefined>;
 
-export const comparisonPath = "/comparateur";
+const comparisonPath = "/comparateur";
 
 // French, since visitors read and share these URLs.
-export const comparisonParamNames: Record<keyof ComparisonSelection, string> = {
+const comparisonParamNames: Record<keyof ComparisonSelection, string> = {
   candidacyIds: "candidatures",
   topic: "thematique",
 };
