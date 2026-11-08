@@ -23,6 +23,10 @@ Les autres adresses Vercel (`poli-git-main-…`, `poli-tomedx…`, ou celles qui
 
 Personne ne pousse directement sur `develop` ni `main` : `develop` n'accepte que des PR dont la CI passe, et seul le workflow Promote peut avancer `main`.
 
+## Remplir develop
+
+`poli-develop` utilise le même jeu de données fictif que la base locale (ADR 0006). Pour l'y insérer, lancer le workflow **Seed** depuis l'onglet Actions, sur la branche `develop`. Chaque section (thématiques, partis, textes…) n'est écrite que si sa table est vide : relancer le workflow ne remplace rien de ce qui a été saisi. La prod n'est jamais remplie ainsi.
+
 ## Secrets
 
 Les secrets vivent dans des environnements GitHub, chacun lisible seulement depuis sa branche. Aucun n'est dans le dépôt ni dans le `.env` local.
