@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getPublishedAmendments } from "@/modules/legislation/amendments/queries";
 import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts/queries";
 import { getPublishedVotes } from "@/modules/legislation/votes/queries";
+import { getEditableMethod, getPublishedMethod } from "@/modules/method/queries";
 import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/queries";
 import { getMissingPositions } from "@/modules/quiz/positions/queries";
 import { getPublishedQuiz, getQuestions } from "@/modules/quiz/questions/queries";
@@ -76,6 +77,7 @@ describe("local seed", () => {
       amendments: true,
       extracts: true,
       questions: true,
+      method: true,
     });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
@@ -182,5 +184,12 @@ describe("local seed", () => {
     expect(positions.some((position) => position.source !== null)).toBe(true);
     expect((await getQuestions()).some((question) => question.status === "draft")).toBe(true);
     expect(await getMissingPositions()).not.toEqual([]);
+  });
+
+  it("publishes a method page whose draft reads the same", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ method: true });
+
+    expect(await getPublishedMethod()).not.toBeNull();
+    expect(await getEditableMethod()).toMatchObject({ publication: "up-to-date" });
   });
 });

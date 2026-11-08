@@ -50,6 +50,13 @@ async function PublishedTextPage({ params }: Pick<PageProps<"/textes/[id]">, "pa
       <SourceLinks sources={text.sources} />
       <TextVotes votes={votes.filter((vote) => !shownWithAmendment.has(vote.id))} />
       <TextAmendments amendments={amendments} />
+      <p className="text-sm text-muted-foreground">
+        Pourquoi ce texte figure sur Poli. :{" "}
+        <Link href="/methode" className="underline underline-offset-4 hover:text-foreground">
+          lire notre méthode
+        </Link>
+        .
+      </p>
     </article>
   );
 }

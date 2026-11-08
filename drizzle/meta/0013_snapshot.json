@@ -1,5 +1,5 @@
 {
-  "id": "9b2eb856-0485-4dd7-9b08-74947d74a734",
+  "id": "96e89e6d-a657-4e71-a6af-263f0f17b02a",
   "prevId": "517fd16c-5994-42a1-98ea-182c08f843cf",
   "version": "7",
   "dialect": "postgresql",
@@ -963,6 +963,84 @@
       },
       "isRLSEnabled": true
     },
+    "public.method_pages": {
+      "name": "method_pages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "status": {
+          "name": "status",
+          "type": "publication_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "candidacy_criteria": {
+          "name": "candidacy_criteria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text_criteria": {
+          "name": "text_criteria",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score_formula": {
+          "name": "score_formula",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "method_pages_status_unique": {
+          "name": "method_pages_status_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "status"
+          ]
+        }
+      },
+      "policies": {
+        "method_pages_public_read_published": {
+          "name": "method_pages_public_read_published",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "\"method_pages\".\"status\" = 'published'"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
     "public.extract_sources": {
       "name": "extract_sources",
       "schema": "",
@@ -1161,214 +1239,6 @@
             "authenticated"
           ],
           "using": "\"extracts\".\"status\" = 'published'\n                 and exists (select 1 from candidacies\n                             where candidacies.id = \"extracts\".\"candidacy_id\" and candidacies.status = 'published')"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.positions": {
-      "name": "positions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "question_id": {
-          "name": "question_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "candidacy_id": {
-          "name": "candidacy_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_id": {
-          "name": "source_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "positions_question_id_questions_id_fk": {
-          "name": "positions_question_id_questions_id_fk",
-          "tableFrom": "positions",
-          "tableTo": "questions",
-          "columnsFrom": [
-            "question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "positions_candidacy_id_candidacies_id_fk": {
-          "name": "positions_candidacy_id_candidacies_id_fk",
-          "tableFrom": "positions",
-          "tableTo": "candidacies",
-          "columnsFrom": [
-            "candidacy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "positions_source_id_sources_id_fk": {
-          "name": "positions_source_id_sources_id_fk",
-          "tableFrom": "positions",
-          "tableTo": "sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "positions_question_id_candidacy_id_unique": {
-          "name": "positions_question_id_candidacy_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "question_id",
-            "candidacy_id"
-          ]
-        }
-      },
-      "policies": {
-        "positions_public_read_published": {
-          "name": "positions_public_read_published",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "anon",
-            "authenticated"
-          ],
-          "using": "exists (select 1 from questions where questions.id = \"positions\".\"question_id\" and questions.status = 'published')\n                 and exists (select 1 from candidacies\n                             where candidacies.id = \"positions\".\"candidacy_id\" and candidacies.status = 'published')"
-        }
-      },
-      "checkConstraints": {
-        "positions_value_on_the_scale": {
-          "name": "positions_value_on_the_scale",
-          "value": "\"positions\".\"value\" between -2 and 2"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.questions": {
-      "name": "questions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "subtopic_id": {
-          "name": "subtopic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "statement": {
-          "name": "statement",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "publication_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "questions_subtopic_id_subtopics_id_fk": {
-          "name": "questions_subtopic_id_subtopics_id_fk",
-          "tableFrom": "questions",
-          "tableTo": "subtopics",
-          "columnsFrom": [
-            "subtopic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "questions_public_read_published": {
-          "name": "questions_public_read_published",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "anon",
-            "authenticated"
-          ],
-          "using": "\"questions\".\"status\" = 'published'"
         }
       },
       "checkConstraints": {},

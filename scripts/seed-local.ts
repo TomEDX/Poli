@@ -102,6 +102,7 @@ type SeedResult = {
   amendments: boolean;
   extracts: boolean;
   questions: boolean;
+  method: boolean;
 };
 
 const topicTree: SeedTopic[] = [
@@ -489,6 +490,14 @@ const questionList: SeedQuestion[] = [
     positions: { MES: { value: 2 } },
   },
 ];
+// Placeholder criteria for development; the score formula is the one the quiz applies.
+const methodPage = {
+  candidacyCriteria:
+    "Texte d'exemple. Poli. présente chaque candidature annoncée par un parti fictif du jeu de données.\n\nLes candidatures apparaissent dans un ordre tiré au hasard à chaque visite.",
+  textCriteria: "Texte d'exemple. Poli. retient les textes fictifs votés sur l'ensemble pendant la législature.",
+  scoreFormula:
+    "Chaque réponse et chaque position vont de +2 (tout à fait d'accord) à −2 (pas du tout d'accord).\n\nAccord sur une question = 1 − |réponse − position| / 4. Une question sur laquelle la candidature n'a pas de position est exclue de son score.\n\nLe score d'accord est la moyenne des accords, au total et par thématique.",
+};
 
 // Each section is written only when its table is empty, so editors' local changes
 // survive a restart.
@@ -504,6 +513,7 @@ export async function seedLocalDatabase(client: postgres.Sql): Promise<SeedResul
       amendments: await seedAmendments(tx),
       extracts: await seedExtracts(tx),
       questions: await seedQuestions(tx),
+      method: await seedMethod(tx),
     };
   });
 }
@@ -532,6 +542,7 @@ if (import.meta.main) {
   console.log(seeded.amendments ? "Amendments seeded." : "Local database already has amendments: skipped.");
   console.log(seeded.extracts ? "Programme extracts seeded." : "Local database already has extracts: skipped.");
   console.log(seeded.questions ? "Quiz questions seeded." : "Local database already has questions: skipped.");
+  console.log(seeded.method ? "Method page seeded." : "Local database already has a method page: skipped.");
 }
 
 async function seedTopics(tx: postgres.TransactionSql): Promise<boolean> {
@@ -711,6 +722,17 @@ async function seedQuestions(tx: postgres.TransactionSql): Promise<boolean> {
   return true;
 }
 
+// Published, with its draft reading the same, as the editors leave it after publishing.
+async function seedMethod(tx: postgres.TransactionSql): Promise<boolean> {
+  if (await hasRows(tx, "method_pages")) return false;
+  for (const status of ["draft", "published"]) {
+    await tx`
+      insert into method_pages (status, candidacy_criteria, text_criteria, score_formula)
+      values (${status}, ${methodPage.candidacyCriteria}, ${methodPage.textCriteria}, ${methodPage.scoreFormula})`;
+  }
+  return true;
+}
+
 async function hasRows(
   tx: postgres.TransactionSql,
   table:
@@ -722,7 +744,8 @@ async function hasRows(
     | "votes"
     | "amendments"
     | "extracts"
-    | "questions",
+    | "questions"
+    | "method_pages",
 ): Promise<boolean> {
   const [{ count }] = await tx<{ count: number }[]>`select count(*)::int as count from ${tx(table)}`;
   return count > 0;
