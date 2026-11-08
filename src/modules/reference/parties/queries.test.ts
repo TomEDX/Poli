@@ -183,13 +183,13 @@ describe("published candidacies", () => {
         id: greens,
         label: "Mouvement écologie solidaire",
         candidateName: null,
-        party: { id: expect.any(String), name: "Mouvement écologie solidaire", abbreviation: "MES" },
+        party: { id: expect.any(String), name: "Mouvement écologie solidaire", abbreviation: "MES", logo: null },
       },
       {
         id: horizon,
         label: "Camille Martin (PDH)",
         candidateName: "Camille Martin",
-        party: { id: expect.any(String), name: "Parti de l'Horizon", abbreviation: "PDH" },
+        party: { id: expect.any(String), name: "Parti de l'Horizon", abbreviation: "PDH", logo: null },
       },
     ]);
   });
