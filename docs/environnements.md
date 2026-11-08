@@ -44,6 +44,10 @@ Les secrets vivent dans des environnements GitHub, chacun lisible seulement depu
 
 Les adresses se trouvent dans Supabase : projet → **Connect** → onglet **Direct**. GitHub Actions utilise le *Session pooler*, car ses machines n'ont que l'IPv4 ; l'app utilise le *Transaction pooler*, adapté aux connexions courtes de Vercel.
 
+Sur Vercel, l'adresse doit être celle du *Transaction pooler*, sur le port 6543. Le *Session pooler* (port 5432) réserve l'une de ses 15 places à chaque connexion ouverte tant qu'elle reste ouverte, jusqu'à refuser les requêtes avec « max clients reached in session mode ». L'app refuse donc de démarrer sur Vercel avec une adresse du *Session pooler* : le build échoue tout de suite avec un message qui le dit.
+
+Le *Transaction pooler* n'accepte ni les requêtes préparées ni l'envoi de plusieurs requêtes à la suite sur une même connexion (*pipelining*). `src/lib/db.ts` désactive donc les deux (`prepare: false`, `max_pipeline: 1`). Sans cela, une requête peut attendre une réponse qui ne vient jamais : le build s'arrête sur « A "use cache" function took too long during prerendering ».
+
 L'identifiant du projet est dans **Project Settings → General**, les clés dans **Project Settings → API Keys**. La clé *publishable* peut être publique. La clé secrète (`sb_secret_…`) ne sert qu'au serveur, pour écrire les logos des partis (voir plus bas) : la définir sur Vercel en type *Sensitive*, jamais dans GitHub Actions.
 
 Pour changer un secret GitHub : `gh secret set <NOM> --env <environnement> --repo TomEDX/Poli`, puis coller la valeur. Le jeton de release-please expire : le renouveler avant sa date d'expiration de la même façon.
