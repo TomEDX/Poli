@@ -5,6 +5,8 @@ import { getPublishedAmendments } from "@/modules/legislation/amendments/queries
 import { createText, getPublishedText, getPublishedTexts, getTexts } from "@/modules/legislation/texts/queries";
 import { getPublishedVotes } from "@/modules/legislation/votes/queries";
 import { getExtracts, getPublishedProgramme, getSubtopicsWithoutExtract } from "@/modules/programmes/queries";
+import { getMissingPositions } from "@/modules/quiz/positions/queries";
+import { getPublishedQuiz, getQuestions } from "@/modules/quiz/questions/queries";
 import { createParty, getParties, getPublishedCandidacies } from "@/modules/reference/parties/queries";
 import { createParliamentaryGroup, getParliamentaryGroups } from "@/modules/reference/parliamentary-groups/queries";
 import { createSource, getSources } from "@/modules/reference/sources/queries";
@@ -73,6 +75,7 @@ describe("local seed", () => {
       votes: true,
       amendments: true,
       extracts: true,
+      questions: true,
     });
     expect(await getParliamentaryGroups()).toMatchObject([{ name: "Groupe de test", parties: [] }]);
   });
@@ -169,5 +172,15 @@ describe("local seed", () => {
     const extracts = (await Promise.all(candidacies.map((candidacy) => getExtracts(candidacy.id)))).flat();
     expect(extracts.some((extract) => extract.status === "draft")).toBe(true);
     expect(await getSubtopicsWithoutExtract(candidacies[0].id)).not.toEqual([]);
+  });
+
+  it("adds quiz questions with positions, some sourced, some missing, and a draft question", async () => {
+    expect(await seedLocalDatabase(db.$client)).toMatchObject({ questions: true });
+
+    const positions = (await getPublishedQuiz()).flatMap((question) => question.positions);
+    expect(positions.some((position) => position.value === null)).toBe(true);
+    expect(positions.some((position) => position.source !== null)).toBe(true);
+    expect((await getQuestions()).some((question) => question.status === "draft")).toBe(true);
+    expect(await getMissingPositions()).not.toEqual([]);
   });
 });
