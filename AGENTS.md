@@ -22,9 +22,9 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
-### Software factory
+### Test database
 
-`factory/` turns `ready-for-agent` tickets into pull requests. See `docs/agents/factory.md`; run it with `/factory run`.
+Tests run on a local Postgres that the sandbox blocks. See `docs/agents/test-database.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
