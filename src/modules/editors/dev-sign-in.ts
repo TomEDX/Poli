@@ -13,7 +13,8 @@ export const DEV_EDITOR_EMAIL = "editeur@poli.test";
 const LOCAL_HOSTNAMES = ["127.0.0.1", "localhost"];
 
 // The one-click sign-in only exists under `next dev` against the local Supabase. `pnpm dev`
-// writes its secret key to .env.development.local; no deployed environment sets it.
+// writes its secret key to .env.development.local; deployed environments also set one, for the
+// party logos, so the environment and the local address are what keep the button out of them.
 export function isDevSignInEnabled(): boolean {
   const url = process.env.SUPABASE_URL;
   return (

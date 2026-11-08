@@ -39,10 +39,12 @@ Les secrets vivent dans des environnements GitHub, chacun lisible seulement depu
 | Vercel, Production | `SUPABASE_PUBLISHABLE_KEY` | `main` | Clé *publishable* (`sb_publishable_…`) de `poli-prod` |
 | Vercel, Preview branche `develop` | `SUPABASE_URL` | `develop` | `https://<identifiant>.supabase.co` de `poli-develop` |
 | Vercel, Preview branche `develop` | `SUPABASE_PUBLISHABLE_KEY` | `develop` | Clé *publishable* (`sb_publishable_…`) de `poli-develop` |
+| Vercel, Production | `SUPABASE_SECRET_KEY` | `main` | Clé secrète (`sb_secret_…`) de `poli-prod` |
+| Vercel, Preview branche `develop` | `SUPABASE_SECRET_KEY` | `develop` | Clé secrète (`sb_secret_…`) de `poli-develop` |
 
 Les adresses se trouvent dans Supabase : projet → **Connect** → onglet **Direct**. GitHub Actions utilise le *Session pooler*, car ses machines n'ont que l'IPv4 ; l'app utilise le *Transaction pooler*, adapté aux connexions courtes de Vercel.
 
-L'identifiant du projet est dans **Project Settings → General**, la clé *publishable* dans **Project Settings → API Keys**. Elle peut être publique ; la clé secrète (`sb_secret_…`) des projets develop et prod n'est utilisée nulle part. Seule la clé secrète par défaut du Supabase local sert, au bouton de connexion de test.
+L'identifiant du projet est dans **Project Settings → General**, les clés dans **Project Settings → API Keys**. La clé *publishable* peut être publique. La clé secrète (`sb_secret_…`) ne sert qu'au serveur, pour écrire les logos des partis (voir plus bas) : la définir sur Vercel en type *Sensitive*, jamais dans GitHub Actions.
 
 Pour changer un secret GitHub : `gh secret set <NOM> --env <environnement> --repo TomEDX/Poli`, puis coller la valeur. Le jeton de release-please expire : le renouveler avant sa date d'expiration de la même façon.
 
@@ -76,7 +78,20 @@ Pour retirer un éditeur, supprimer sa ligne de `editors` (il perd l'accès à l
 
 En local, même procédure dans le studio (http://127.0.0.1:54323) ; les e-mails arrivent dans Mailpit (http://127.0.0.1:54324), sans invitation. Pour simplement accéder à l'administration, le bouton « Se connecter comme éditeur de test » de `/sign-in` suffit (voir le README).
 
-`SUPABASE_SECRET_KEY` ne sert qu'à ce bouton : `pnpm dev` l'écrit dans `.env.development.local`. Ne jamais la définir sur Vercel ni dans GitHub Actions.
+En local, `pnpm dev` écrit la clé secrète par défaut du Supabase local dans `.env.development.local` ; elle sert à ce bouton et aux logos. Le bouton n'existe que sous `next dev` avec le Supabase local, même si la clé est définie ailleurs.
+
+## Logos des partis
+
+Les logos vivent dans le bucket public `party-logos` de Supabase Storage (ADR 0009) : tout le monde peut les lire, seul le serveur les écrit, avec `SUPABASE_SECRET_KEY`. Les clients n'ont aucun droit d'écriture sur Storage : n'ajouter aucune règle d'accès (*policy*) sur ce bucket.
+
+Le bucket est déclaré dans [supabase/config.toml](../supabase/config.toml) : public, 1 Mo au plus, SVG, PNG et WebP. En local, `pnpm dev` le crée au démarrage de Supabase. Sur `poli-develop` puis `poli-prod`, le créer une fois depuis cette déclaration, avant de livrer la version qui l'utilise :
+
+```sh
+pnpm exec supabase login
+pnpm exec supabase seed buckets --remote=<identifiant du projet>
+```
+
+Vérifier ensuite dans **Storage** que `party-logos` est public, limité à 1 MB et aux types `image/svg+xml`, `image/png` et `image/webp`, et que **Policies** ne montre aucune règle pour ce bucket.
 
 ## Réglages du dépôt
 
