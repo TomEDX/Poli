@@ -18,9 +18,4 @@ export const stanceLabels: Record<Stance, string> = {
 
 export const noPositionLabel = "Pas de position";
 
-// Shared by the Server Actions and the question form.
 export const candidacyPositionedTwiceMessage = "Une candidature n’a qu’une position par question.";
-
-export function positionLabel(value: PositionValue): string {
-  return value === null ? noPositionLabel : stanceLabels[value];
-}

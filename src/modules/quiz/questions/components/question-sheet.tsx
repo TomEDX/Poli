@@ -289,6 +289,7 @@ function PositionField({ candidacy, sources, choice, onChange }: PositionFieldPr
         <NativeSelect
           id={positionId}
           value={choice.value}
+          aria-label={`Position de ${candidacy.label}`}
           className="w-full"
           onChange={(event) => onChange({ ...choice, value: event.target.value })}
         >
