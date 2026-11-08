@@ -7,6 +7,7 @@ import { createText, saveText } from "@/modules/legislation/texts/queries";
 import { createVote } from "@/modules/legislation/votes/queries";
 import { publishMethod, saveMethodDraft } from "@/modules/method/queries";
 import { createExtract } from "@/modules/programmes/queries";
+import { createQuestion } from "@/modules/quiz/questions/queries";
 import { createParliamentaryGroup } from "@/modules/reference/parliamentary-groups/queries";
 import { createParty, getParties } from "@/modules/reference/parties/queries";
 import { topics } from "@/modules/reference/schema";
@@ -266,6 +267,31 @@ describe("database access rules", () => {
         await asRole(role, "select e.quote from extract_sources es join extracts e on e.id = es.extract_id"),
         role,
       ).toEqual([{ quote: "Publié" }]);
+    }
+  });
+
+  it("let clients read published questions and the positions of published candidacies, never a draft", async () => {
+    const topic = await createTopic({ name: "Santé", slug: "sante" });
+    const subtopic = topic.ok && (await createSubtopic(topic.id, { name: "Prévention", slug: "prevention" }));
+    if (!subtopic || !subtopic.ok) throw new Error("Could not create the subtopic");
+    await createParty({ name: "Parti de test", abbreviation: "PDT", candidacy: { candidateName: null, status: "published" } });
+    await createParty({ name: "Parti en brouillon", abbreviation: "PEB", candidacy: { candidateName: null, status: "draft" } });
+    const parties = await getParties();
+    const candidacy = parties.find((party) => party.abbreviation === "PDT")!.candidacy!;
+    const draftCandidacy = parties.find((party) => party.abbreviation === "PEB")!.candidacy!;
+    const positions = [
+      { candidacyId: candidacy.id, value: 2 as const, sourceId: null },
+      { candidacyId: draftCandidacy.id, value: -2 as const, sourceId: null },
+    ];
+    await createQuestion({ subtopicId: subtopic.id, statement: "Publiée", positions, status: "published" });
+    await createQuestion({ subtopicId: subtopic.id, statement: "Brouillon", positions, status: "draft" });
+
+    for (const role of clientRoles) {
+      expect(await asRole(role, "select statement from questions"), role).toEqual([{ statement: "Publiée" }]);
+      expect(
+        await asRole(role, "select q.statement, p.value from positions p join questions q on q.id = p.question_id"),
+        role,
+      ).toEqual([{ statement: "Publiée", value: 2 }]);
     }
   });
 
