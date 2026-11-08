@@ -1,9 +1,12 @@
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+
 import { type ComparisonSelection, comparisonHref } from "../comparison-params";
 import type { ComparisonGrid } from "../queries";
 
-// One link per topic, which keeps the chosen candidacies, so the URL always holds both.
+// One link per topic, which keeps the chosen candidacies, so the URL always holds both. Tall
+// enough on a phone to be touched without missing.
 export function ComparisonTopics({ grid, selection }: { grid: ComparisonGrid; selection: ComparisonSelection }) {
   return (
     <nav aria-label="Thématiques">
@@ -12,14 +15,20 @@ export function ComparisonTopics({ grid, selection }: { grid: ComparisonGrid; se
           const current = topic.slug === selection.topic;
           return (
             <li key={topic.id}>
-              <Link
-                href={comparisonHref({ ...selection, topic: topic.slug })}
-                scroll={false}
-                aria-current={current ? "page" : undefined}
-                className="block rounded-full border px-3 py-1 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:border-foreground aria-[current=page]:bg-foreground aria-[current=page]:text-background"
+              <Button
+                variant={current ? "default" : "outline"}
+                className="h-11 rounded-full px-4 md:h-8 md:px-3"
+                nativeButton={false}
+                render={
+                  <Link
+                    href={comparisonHref({ ...selection, topic: topic.slug })}
+                    scroll={false}
+                    aria-current={current ? "page" : undefined}
+                  />
+                }
               >
                 {topic.name}
-              </Link>
+              </Button>
             </li>
           );
         })}
