@@ -3,9 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { CandidacyPicker } from "@/modules/programmes/components/candidacy-picker";
-import { ComparisonTable } from "@/modules/programmes/components/comparison-table";
-import { ComparisonTopics } from "@/modules/programmes/components/comparison-topics";
+import { Comparator } from "@/modules/programmes/components/comparator";
 import { readComparison } from "@/modules/programmes/comparison-params";
 import { getComparisonGrid } from "@/modules/programmes/queries";
 import { getPublishedCandidacies } from "@/modules/reference/parties/queries";
@@ -47,29 +45,11 @@ async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "sea
     candidacies.map((candidacy) => candidacy.id),
   );
   const grid = await comparisonGrid(requested.candidacyIds);
-  const topic = grid.find((candidate) => candidate.slug === requested.topic) ?? grid[0];
-  const selection = { ...requested, topic: topic?.slug ?? "" };
+  // The page opens on the link's topic, at the top when the link has none or an unknown one.
+  const selection = { ...requested, topic: grid.some((topic) => topic.slug === requested.topic) ? requested.topic : "" };
   const chosen = selection.candidacyIds.flatMap((id) => candidacies.filter((candidacy) => candidacy.id === id));
 
-  return (
-    <div className="flex flex-col gap-6">
-      <CandidacyPicker candidacies={candidacies} selection={selection} />
-      {chosen.length > 0 && topic && (
-        <>
-          <ComparisonTopics grid={grid} selection={selection} />
-          <section aria-labelledby="compared-topic" className="flex flex-col gap-4">
-            <h2 id="compared-topic" className="font-heading text-2xl font-semibold tracking-tight">
-              {topic.name}
-            </h2>
-            <ComparisonTable topic={topic} candidacies={chosen} />
-          </section>
-        </>
-      )}
-      {chosen.length > 0 && !topic && (
-        <p className="text-muted-foreground">Aucune thématique n’est encore définie.</p>
-      )}
-    </div>
-  );
+  return <Comparator candidacies={candidacies} chosen={chosen} grid={grid} selection={selection} />;
 }
 
 // Cached, so the page is served ahead of time; each editor write regenerates it (ADR 0005).
