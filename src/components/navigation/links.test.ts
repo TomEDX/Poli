@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { adminGroups, isActiveLink, rubriques, sectionOf, transparencyLinks } from "./links";
+import { adminGroups, homeLink, isActiveLink, rubriques, sectionOf, transparencyLinks } from "./links";
 
 function activeEntries(pathname: string) {
-  const links = [...rubriques, ...transparencyLinks, ...adminGroups.flatMap((group) => group.links)];
+  const links = [homeLink, ...rubriques, ...transparencyLinks, ...adminGroups.flatMap((group) => group.links)];
   return links.filter((link) => isActiveLink(pathname, link.href)).map((link) => link.href);
 }
 

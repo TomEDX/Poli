@@ -17,8 +17,9 @@ export type NavLink = { href: string; label: string; icon: LucideIcon };
 /** A section of the editor's navigation: the public site or the administration. */
 export type NavSection = "site" | "admin";
 
+export const homeLink: NavLink = { href: "/", label: "Accueil", icon: House };
+
 export const rubriques: NavLink[] = [
-  { href: "/", label: "Accueil", icon: House },
   { href: "/quiz", label: "Quiz", icon: CircleQuestionMark },
   { href: "/comparateur", label: "Comparateur", icon: Columns2 },
   { href: "/textes", label: "Textes", icon: ScrollText },
