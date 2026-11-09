@@ -1,5 +1,9 @@
 "use client"
 
+// Adapted from shadcn: the folded look uses the `sidebar-folded:` variant (globals.css) instead
+// of `group-data-[collapsible=icon]:`, and the tooltips stay mounted on desktop. Keep both when
+// updating this file.
+
 import * as React from "react"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
