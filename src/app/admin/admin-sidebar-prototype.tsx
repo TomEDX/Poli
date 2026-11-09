@@ -85,7 +85,9 @@ function IndependentSections({ footer }: { footer: React.ReactNode }) {
 }
 
 function OneSectionAtATime({ footer }: { footer: React.ReactNode }) {
+  const pathname = usePathname();
   const [openSection, setOpenSection] = useState<"site" | "admin" | null>("admin");
+  const adminActive = menuGroups.some((group) => group.sections.some((section) => isActiveLink(pathname, section.href)));
 
   return (
     <Frame footer={footer}>
@@ -94,13 +96,14 @@ function OneSectionAtATime({ footer }: { footer: React.ReactNode }) {
           label="Site public"
           icon={Globe}
           open={openSection === "site"}
+          holdsCurrentPage={!adminActive}
           onOpenChange={(open) => setOpenSection(open ? "site" : null)}
         />
-        {openSection === "site" && (
+        <Foldable open={openSection === "site"}>
           <SectionBody>
             <NavLinks links={siteLinks} />
           </SectionBody>
-        )}
+        </Foldable>
       </SidebarGroup>
       <SidebarSeparator className="mx-0" />
       <SidebarGroup>
@@ -108,15 +111,32 @@ function OneSectionAtATime({ footer }: { footer: React.ReactNode }) {
           label="Administration"
           icon={Settings}
           open={openSection === "admin"}
+          holdsCurrentPage={adminActive}
           onOpenChange={(open) => setOpenSection(open ? "admin" : null)}
         />
-        {openSection === "admin" && (
+        <Foldable open={openSection === "admin"}>
           <SectionBody>
             <LabelledAdminGroups />
           </SectionBody>
-        )}
+        </Foldable>
       </SidebarGroup>
     </Frame>
+  );
+}
+
+// Animates the height between 0 and the content's own height, and leaves only the section
+// icons in a folded sidebar.
+function Foldable({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      inert={!open}
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none group-data-[collapsible=icon]:hidden",
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   );
 }
 
@@ -230,11 +250,13 @@ function SectionHeader({
   label,
   icon: Icon,
   open,
+  holdsCurrentPage = false,
   onOpenChange,
 }: {
   label: string;
   icon: LucideIcon;
   open: boolean;
+  holdsCurrentPage?: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const { state, setOpen: setSidebarOpen } = useSidebar();
@@ -245,6 +267,8 @@ function SectionHeader({
         <SidebarMenuButton
           tooltip={label}
           aria-expanded={open}
+          // Folded sidebar: the section holding the current page is the highlighted icon.
+          isActive={state === "collapsed" && holdsCurrentPage}
           className="font-medium"
           onClick={() => {
             if (state === "collapsed") {
