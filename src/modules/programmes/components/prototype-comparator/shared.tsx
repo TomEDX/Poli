@@ -196,18 +196,33 @@ export function CandidacyChip({
   );
 }
 
+/** A candidacy's quotes on a phone, under its logo and full name, as the comparator shows them today. */
+export function NamedCard({ candidacy, children }: { candidacy: PublishedCandidacy; children: React.ReactNode }) {
+  return (
+    <li className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <span aria-hidden>
+          <PartyLogo party={candidacy.party} className="size-8" />
+        </span>
+        {candidacy.label}
+      </p>
+      {children}
+    </li>
+  );
+}
+
 /** A chosen candidacy at the head of its column: the candidate first, the party under it. */
 export function NameTile({ candidacy, onRemove }: { candidacy: PublishedCandidacy; onRemove: () => void }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-foreground px-3 py-2.5 text-background shadow-sm">
-      <span aria-hidden className="hidden shrink-0 rounded-lg bg-background p-0.5 xl:block">
-        <PartyLogo party={candidacy.party} className="size-10 border-0" />
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-foreground/15 bg-muted px-3 py-2.5 text-foreground shadow-sm">
+      <span aria-hidden className="hidden shrink-0 lg:block">
+        <PartyLogo party={candidacy.party} className="size-10" />
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="line-clamp-2 text-sm leading-tight font-semibold lg:text-base">
           {candidacy.candidateName ?? candidacy.party.name}
         </span>
-        <span className="line-clamp-2 text-xs opacity-75">
+        <span className="line-clamp-2 text-xs text-muted-foreground">
           {candidacy.candidateName ? candidacy.party.name : "Candidature du parti"}
         </span>
       </span>
@@ -215,7 +230,7 @@ export function NameTile({ candidacy, onRemove }: { candidacy: PublishedCandidac
         type="button"
         onClick={onRemove}
         aria-label={"Retirer " + candidacy.label}
-        className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full opacity-70 hover:bg-background/15 hover:opacity-100"
+        className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
       >
         <XIcon aria-hidden className="size-4" />
       </button>

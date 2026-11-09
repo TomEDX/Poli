@@ -15,8 +15,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { PartyLogo } from "@/modules/reference/parties/components/party-logo";
-import type { PublishedCandidacy } from "@/modules/reference/parties/queries";
 
 import type { ComparisonSelection } from "../../comparison-params";
 import type { ComparisonGrid } from "../../queries";
@@ -24,6 +22,7 @@ import {
   AddCandidacy,
   CandidacyBadge,
   CandidacyChip,
+  NamedCard,
   NameTile,
   candidacyOf,
   EmptySubtopic,
@@ -40,7 +39,7 @@ import {
   useComparisonNav,
 } from "./shared";
 
-export type PhoneLayout = "C" | "D" | "E" | "F" | "G";
+export type PhoneLayout = "C" | "D" | "E" | "F" | "G" | "I";
 
 function scrollToSubtopic(id: string) {
   document.getElementById("sub-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -142,32 +141,45 @@ function TopicSheetBar({
   variant,
   reading,
   onPickTopic,
+  trigger = "bar",
 }: {
   grid: ComparisonGrid;
   selection: ComparisonSelection;
   variant: string;
   reading: string | null;
   onPickTopic?: (slug: string) => void;
+  trigger?: "bar" | "button";
 }) {
   const [open, setOpen] = useState(false);
   const topic = grid.find((candidate) => candidate.slug === selection.topic);
   const subtopic = topic?.subtopics.find((candidate) => candidate.id === reading);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex h-12 w-full items-center gap-2 px-4 text-left"
-        aria-label={"Changer de thématique, actuellement " + (topic?.name ?? "")}
-      >
-        <TopicIcon slug={selection.topic} className="size-4 shrink-0" />
-        <span className="shrink-0 font-medium">{topic?.name}</span>
-        {subtopic && <span className="min-w-0 truncate text-sm text-muted-foreground">› {subtopic.name}</span>}
-        <span className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs">
+      {trigger === "button" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 font-sans text-xs font-normal tracking-normal"
+        >
           <ListTreeIcon aria-hidden className="size-3.5" />
           Sommaire
-        </span>
-      </button>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex h-12 w-full items-center gap-2 px-4 text-left"
+          aria-label={"Changer de thématique, actuellement " + (topic?.name ?? "")}
+        >
+          <TopicIcon slug={selection.topic} className="size-4 shrink-0" />
+          <span className="shrink-0 font-medium">{topic?.name}</span>
+          {subtopic && <span className="min-w-0 truncate text-sm text-muted-foreground">› {subtopic.name}</span>}
+          <span className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs">
+            <ListTreeIcon aria-hidden className="size-3.5" />
+            Sommaire
+          </span>
+        </button>
+      )}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto rounded-t-2xl pb-8">
           <SheetHeader>
@@ -296,19 +308,6 @@ function TopicSelect({
   );
 }
 
-function NamedCard({ candidacy, children }: { candidacy: PublishedCandidacy; children: React.ReactNode }) {
-  return (
-    <li className="flex flex-col gap-4 rounded-xl border bg-card p-4">
-      <p className="flex items-center gap-2 text-sm font-medium">
-        <span aria-hidden>
-          <PartyLogo party={candidacy.party} className="size-8" />
-        </span>
-        {candidacy.label}
-      </p>
-      {children}
-    </li>
-  );
-}
 
 export function VariantC({
   candidacies,
@@ -321,7 +320,11 @@ export function VariantC({
   const nav = useComparisonNav(selection, variant);
   const topic = grid.find((candidate) => candidate.slug === selection.topic);
   const [reading, setReading] = useState<string | null>(null);
-  const all = phone === "G";
+  const all = phone === "G" || phone === "I";
+  // I pins the titles themselves: the topic under the names, the subtopic under the topic.
+  const pinnedTitles = phone === "I";
+  const namesRef = useRef<HTMLDivElement>(null);
+  const [namesHeight, setNamesHeight] = useState(0);
   const lockUntil = useRef(0);
   const [readingTopic, setReadingTopic] = useState(selection.topic);
   const outlineSelection = all ? { ...selection, topic: readingTopic } : selection;
@@ -335,19 +338,29 @@ export function VariantC({
       }
     : undefined;
   const columns = { gridTemplateColumns: "repeat(" + chosen.length + ", minmax(0, 1fr))" };
-  const pinnedOnPhone = phone !== "E";
+  const pinnedOnPhone = phone !== "E" && phone !== "I";
+
+  useEffect(() => {
+    const names = namesRef.current;
+    if (!names) return;
+    const observer = new ResizeObserver(() => setNamesHeight(names.offsetHeight));
+    observer.observe(names);
+    return () => observer.disconnect();
+  }, [chosen.length]);
+  const topicLine = pinnedTitles ? namesHeight + 60 : 160;
+  const subtopicLine = pinnedTitles ? namesHeight + 110 : 120;
 
   useEffect(() => {
     // The subtopic being read is the last one whose top went under the pinned bar.
     function onScroll() {
       if (Date.now() < lockUntil.current) return;
       const sections = [...document.querySelectorAll<HTMLElement>("[data-subtopic]")];
-      const passed = sections.filter((section) => section.getBoundingClientRect().top < 120);
+      const passed = sections.filter((section) => section.getBoundingClientRect().top < subtopicLine);
       const current = passed.at(-1) ?? sections[0];
       setReading(current?.getAttribute("data-subtopic") ?? null);
       // The topic in view is the last one whose title reached the pinned names.
       const topics = [...document.querySelectorAll<HTMLElement>("section[id^=topic-]")];
-      const topic = topics.filter((section) => section.getBoundingClientRect().top < 160).at(-1) ?? topics[0];
+      const topic = topics.filter((section) => section.getBoundingClientRect().top < topicLine).at(-1) ?? topics[0];
       if (topic) setReadingTopic(topic.id.slice("topic-".length));
     }
     onScroll();
@@ -363,7 +376,7 @@ export function VariantC({
       window.removeEventListener("resize", onScroll);
       window.removeEventListener("scrollend", onScrollEnd);
     };
-  }, [selection.topic, chosen.length]);
+  }, [selection.topic, chosen.length, topicLine, subtopicLine]);
 
   // A shared link opens on its topic; reading on keeps the link pointing at the topic in view.
   useEffect(() => {
@@ -422,6 +435,7 @@ export function VariantC({
           </div>
         )}
         <div
+          ref={namesRef}
           className={cn(
             "z-20 -mx-4 bg-background/95 backdrop-blur md:sticky md:top-0 md:mx-0 md:border-b",
             pinnedOnPhone && "sticky top-0 border-b",
@@ -465,10 +479,30 @@ export function VariantC({
             id={"topic-" + topic.slug}
             aria-labelledby={"title-" + topic.slug}
             className={cn("flex scroll-mt-14 flex-col gap-6 pt-6 md:scroll-mt-24", all && "pb-6")}
+            style={pinnedTitles ? { scrollMarginTop: namesHeight } : undefined}
           >
-            <h2 id={"title-" + topic.slug} className="flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight">
+            <h2
+              id={"title-" + topic.slug}
+              className={cn(
+                "flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight",
+                pinnedTitles && "sticky z-10 -mx-4 h-14 bg-background/95 px-4 backdrop-blur md:mx-0 md:px-0",
+              )}
+              style={pinnedTitles ? { top: namesHeight } : undefined}
+            >
               {all && <TopicIcon slug={topic.slug} className="size-6" />}
               {topic.name}
+              {pinnedTitles && (
+                <span className="ml-auto md:hidden">
+                  <TopicSheetBar
+                    trigger="button"
+                    grid={grid}
+                    selection={outlineSelection}
+                    variant={variant}
+                    reading={reading}
+                    onPickTopic={pickTopic}
+                  />
+                </span>
+              )}
             </h2>
             {topic.subtopics.map((subtopic) => (
               <div
@@ -477,12 +511,22 @@ export function VariantC({
                 data-subtopic={subtopic.id}
                 data-topic={topic.slug}
                 className="scroll-mt-20 md:scroll-mt-32"
+                style={pinnedTitles ? { scrollMarginTop: namesHeight + 56 } : undefined}
               >
                 {isEmptySubtopic(subtopic) ? (
                   <EmptySubtopic name={subtopic.name} />
                 ) : (
                   <section className="flex flex-col gap-3">
-                    <h3 className="font-heading text-lg font-semibold">{subtopic.name}</h3>
+                    <h3
+                      className={cn(
+                        "font-heading text-lg font-semibold",
+                        pinnedTitles &&
+                          "sticky z-[5] -mx-4 border-b bg-background/95 px-4 py-2 backdrop-blur md:mx-0 md:px-0",
+                      )}
+                      style={pinnedTitles ? { top: namesHeight + 56 } : undefined}
+                    >
+                      {subtopic.name}
+                    </h3>
                     <div className="hidden gap-4 md:grid" style={columns}>
                       {subtopic.cells.map((cell) => (
                         <div key={cell.candidacyId} className="flex flex-col gap-4 rounded-xl bg-muted/40 p-4">

@@ -7,6 +7,7 @@ import { PrototypeSwitcher } from "@/components/prototype-switcher";
 import { VariantA } from "@/modules/programmes/components/prototype-comparator/variant-a";
 import { VariantB } from "@/modules/programmes/components/prototype-comparator/variant-b";
 import { VariantC } from "@/modules/programmes/components/prototype-comparator/variant-c";
+import { VariantH } from "@/modules/programmes/components/prototype-comparator/variant-h";
 import { readComparison } from "@/modules/programmes/comparison-params";
 import { type ComparisonGrid, getComparisonGrid } from "@/modules/programmes/queries";
 import { getPublishedCandidacies } from "@/modules/reference/parties/queries";
@@ -45,6 +46,7 @@ const prototypeVariants = [
   { key: "E", name: "Tél. : pastilles et thématique suivante" },
   { key: "F", name: "Tél. : menu du téléphone" },
   { key: "G", name: "Tout sur une page, sommaire pour naviguer" },
+  { key: "I", name: "Tout sur une page, titres épinglés" },
 ];
 
 // The URL is read here, outside the cache; each comparison is then cached on its own.
@@ -67,14 +69,16 @@ async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "sea
   const props = { candidacies, chosen, grid, selection, variant };
   return (
     <>
-      {variant === "A" ? (
+      {variant === "H" ? (
+        <VariantH {...props} />
+      ) : variant === "A" ? (
         <VariantA {...props} />
       ) : variant === "B" ? (
         <VariantB {...props} />
       ) : (
         <VariantC
           {...props}
-          phone={(["D", "E", "F", "G"].includes(variant) ? variant : "C") as "C" | "D" | "E" | "F" | "G"}
+          phone={(["D", "E", "F", "G", "I"].includes(variant) ? variant : "C") as "C" | "D" | "E" | "F" | "G" | "I"}
         />
       )}
       <PrototypeSwitcher variants={prototypeVariants} />
