@@ -32,6 +32,10 @@ _À éviter_ : catégorie, thème, sujet
 **Sous-thématique** :
 Second et dernier niveau de l'arborescence, rattaché à une seule thématique.
 
+**Rubrique** :
+Grande partie publique de Poli. accessible depuis le menu : le quiz, le comparateur et les textes. La page Méthode et la page Sources n'en sont pas.
+_À éviter_ : feature, fonctionnalité, section, module
+
 **Résumé éditorial** :
 Courte explication en langage courant rédigée par les éditeurs, toujours présentée comme telle.
 _À éviter_ : description, synthèse
@@ -49,6 +53,10 @@ Tableau public de toutes les sources utilisées, exportable vers un tableur.
 
 **Programme** :
 Ensemble des extraits publiés pour une candidature.
+
+**Comparateur** :
+Rubrique qui met côte à côte les programmes des candidatures, sous-thématique par sous-thématique.
+_À éviter_ : comparatif
 
 **Extrait** :
 Citation mot pour mot d'un programme, rattachée à une sous-thématique et portant sa date de relevé.

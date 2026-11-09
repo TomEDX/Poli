@@ -3,16 +3,25 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { type LeaveWarning, useLeaveWarning } from "@/components/leave-guard";
 import { Button } from "@/components/ui/button";
 import { Progress, ProgressLabel } from "@/components/ui/progress";
 import { shuffled } from "@/lib/shuffle";
 
 import { AgreementResults, type ScoredCandidacy } from "../agreement/components/agreement-results";
 import { agreementScores } from "../agreement/score";
+import { mustConfirmLeaving } from "../leaving";
 import { type Stance, stanceLabels, stances } from "../positions/vocabulary";
 import type { PublishedQuestion } from "../questions/queries";
 
 export type QuizCandidacy = { id: string; label: string };
+
+const leaveWarning: LeaveWarning = {
+  title: "Quitter le quiz ?",
+  description: "Vos réponses seront perdues : elles ne sont enregistrées nulle part.",
+  stay: "Continuer le quiz",
+  leave: "Quitter le quiz",
+};
 
 /**
  * The full quiz, one statement at a time, then the agreement scores. The answers stay in this
@@ -25,6 +34,7 @@ export function FullQuiz({ questions, candidacies }: { questions: PublishedQuest
   const headingRef = useRef<HTMLHeadingElement>(null);
   // Focus follows each step the visitor takes, but not the first render of the page.
   const stepTaken = useRef(false);
+  useLeaveWarning(mustConfirmLeaving({ answered: answers.size, showingResults: results !== null }) ? leaveWarning : null);
 
   useEffect(() => {
     if (stepTaken.current) headingRef.current?.focus();
