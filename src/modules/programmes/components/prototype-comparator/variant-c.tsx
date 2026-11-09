@@ -11,7 +11,7 @@ import { cn } from "cn";
 import { ArrowLeftIcon, ArrowRightIcon, ListTreeIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +24,7 @@ import {
   AddCandidacy,
   CandidacyBadge,
   CandidacyChip,
+  NameTile,
   candidacyOf,
   EmptySubtopic,
   extractCount,
@@ -39,7 +40,7 @@ import {
   useComparisonNav,
 } from "./shared";
 
-export type PhoneLayout = "C" | "D" | "E" | "F";
+export type PhoneLayout = "C" | "D" | "E" | "F" | "G";
 
 function scrollToSubtopic(id: string) {
   document.getElementById("sub-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -51,12 +52,14 @@ function TopicOutline({
   variant,
   reading,
   onNavigate,
+  onPickTopic,
 }: {
   grid: ComparisonGrid;
   selection: ComparisonSelection;
   variant: string;
   reading: string | null;
   onNavigate?: () => void;
+  onPickTopic?: (slug: string) => void;
 }) {
   return (
     <nav aria-label="Thématiques" className="flex flex-col gap-0.5">
@@ -68,21 +71,40 @@ function TopicOutline({
             <Link
               href={prototypeHref({ ...selection, topic: candidate.slug }, variant)}
               scroll={!current}
-              onClick={onNavigate}
+              onClick={(event) => {
+                onNavigate?.();
+                if (!onPickTopic) return;
+                // Every topic is on the page: jump to it instead of loading another.
+                event.preventDefault();
+                setTimeout(() => onPickTopic(candidate.slug), onNavigate ? 250 : 0);
+              }}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm",
+                "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-all duration-300 ease-out motion-reduce:transition-none",
                 current
-                  ? "border-foreground bg-muted font-medium"
+                  ? "translate-x-1 border-foreground bg-muted font-medium text-foreground"
                   : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
-              <Icon aria-hidden className="size-4 shrink-0" />
+              <Icon
+                aria-hidden
+                className={cn(
+                  "size-4 shrink-0 transition-transform duration-300 motion-reduce:transition-none",
+                  current && "scale-125",
+                )}
+              />
               <span className="flex-1">{candidate.name}</span>
               <span className="text-xs tabular-nums opacity-70">{extractCount(candidate)}</span>
             </Link>
-            {current && (
-              <ul className="my-1 ml-5 flex flex-col border-l">
+            {/* Every list is there, folded: the current one unfolds and the previous one folds. */}
+            <div
+              inert={!current}
+              className={cn(
+                "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+                current ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+              )}
+            >
+              <ul className="my-1 ml-5 flex min-h-0 flex-col overflow-hidden border-l">
                 {candidate.subtopics.map((subtopic) => (
                   <li key={subtopic.id}>
                     <a
@@ -106,7 +128,7 @@ function TopicOutline({
                   </li>
                 ))}
               </ul>
-            )}
+            </div>
           </div>
         );
       })}
@@ -119,11 +141,13 @@ function TopicSheetBar({
   selection,
   variant,
   reading,
+  onPickTopic,
 }: {
   grid: ComparisonGrid;
   selection: ComparisonSelection;
   variant: string;
   reading: string | null;
+  onPickTopic?: (slug: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const topic = grid.find((candidate) => candidate.slug === selection.topic);
@@ -156,6 +180,7 @@ function TopicSheetBar({
               variant={variant}
               reading={reading}
               onNavigate={() => setOpen(false)}
+              onPickTopic={onPickTopic}
             />
           </div>
         </SheetContent>
@@ -296,20 +321,66 @@ export function VariantC({
   const nav = useComparisonNav(selection, variant);
   const topic = grid.find((candidate) => candidate.slug === selection.topic);
   const [reading, setReading] = useState<string | null>(null);
+  const all = phone === "G";
+  const lockUntil = useRef(0);
+  const [readingTopic, setReadingTopic] = useState(selection.topic);
+  const outlineSelection = all ? { ...selection, topic: readingTopic } : selection;
+  const shownTopics = all ? grid : topic ? [topic] : [];
+  const pickTopic = all
+    ? (slug: string) => {
+        // The outline shows the chosen topic at once, not each topic the page scrolls past.
+        lockUntil.current = Date.now() + 1500;
+        setReadingTopic(slug);
+        document.getElementById("topic-" + slug)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    : undefined;
   const columns = { gridTemplateColumns: "repeat(" + chosen.length + ", minmax(0, 1fr))" };
   const pinnedOnPhone = phone !== "E";
 
   useEffect(() => {
     // The subtopic being read is the last one whose top went under the pinned bar.
     function onScroll() {
+      if (Date.now() < lockUntil.current) return;
       const sections = [...document.querySelectorAll<HTMLElement>("[data-subtopic]")];
       const passed = sections.filter((section) => section.getBoundingClientRect().top < 120);
-      setReading((passed.at(-1) ?? sections[0])?.getAttribute("data-subtopic") ?? null);
+      const current = passed.at(-1) ?? sections[0];
+      setReading(current?.getAttribute("data-subtopic") ?? null);
+      // The topic in view is the last one whose title reached the pinned names.
+      const topics = [...document.querySelectorAll<HTMLElement>("section[id^=topic-]")];
+      const topic = topics.filter((section) => section.getBoundingClientRect().top < 160).at(-1) ?? topics[0];
+      if (topic) setReadingTopic(topic.id.slice("topic-".length));
     }
     onScroll();
+    function onScrollEnd() {
+      lockUntil.current = 0;
+      onScroll();
+    }
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    window.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scrollend", onScrollEnd);
+    };
   }, [selection.topic, chosen.length]);
+
+  // A shared link opens on its topic; reading on keeps the link pointing at the topic in view.
+  useEffect(() => {
+    if (!all) return;
+    if (new URLSearchParams(window.location.search).has("thematique") && selection.topic !== grid[0]?.slug) {
+      document.getElementById("topic-" + selection.topic)?.scrollIntoView({ block: "start" });
+    }
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!all) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("thematique", readingTopic);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search.replaceAll("%2C", ","));
+  }, [all, readingTopic]);
 
   if (chosen.length === 0) return <FirstChoice candidacies={candidacies} onAdd={nav.add} />;
 
@@ -329,11 +400,17 @@ export function VariantC({
   );
 
   return (
-    <div className="grid gap-8 md:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="hidden md:block">
         <div className="sticky top-4">
           <p className="mb-2 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Thématiques</p>
-          <TopicOutline grid={grid} selection={selection} variant={variant} reading={reading} />
+          <TopicOutline
+            grid={grid}
+            selection={outlineSelection}
+            variant={variant}
+            reading={reading}
+            onPickTopic={pickTopic}
+          />
         </div>
       </aside>
 
@@ -355,9 +432,15 @@ export function VariantC({
               <TopicTabs grid={grid} selection={selection} variant={variant} />
             </div>
           )}
-          {phone === "D" && (
+          {(phone === "D" || phone === "G") && (
             <div className="md:hidden">
-              <TopicSheetBar grid={grid} selection={selection} variant={variant} reading={reading} />
+              <TopicSheetBar
+                grid={grid}
+                selection={outlineSelection}
+                variant={variant}
+                reading={reading}
+                onPickTopic={pickTopic}
+              />
             </div>
           )}
           {phone === "F" && (
@@ -368,7 +451,7 @@ export function VariantC({
           <div className={cn("items-center gap-4 px-4 py-2 md:flex md:px-0", phone === "C" ? "flex" : "hidden")}>
             <div className="hidden flex-1 gap-4 md:grid" style={columns}>
               {chosen.map((candidacy) => (
-                <CandidacyChip key={candidacy.id} candidacy={candidacy} onRemove={() => nav.remove(candidacy.id)} />
+                <NameTile key={candidacy.id} candidacy={candidacy} onRemove={() => nav.remove(candidacy.id)} />
               ))}
             </div>
             <div className="flex flex-1 md:hidden">{phone === "C" && phoneChips}</div>
@@ -376,13 +459,25 @@ export function VariantC({
           </div>
         </div>
 
-        {topic && (
-          <section aria-labelledby="compared-topic" className="flex flex-col gap-6 pt-6">
-            <h2 id="compared-topic" className="flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight">
+        {shownTopics.map((topic) => (
+          <section
+            key={topic.id}
+            id={"topic-" + topic.slug}
+            aria-labelledby={"title-" + topic.slug}
+            className={cn("flex scroll-mt-14 flex-col gap-6 pt-6 md:scroll-mt-24", all && "pb-6")}
+          >
+            <h2 id={"title-" + topic.slug} className="flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight">
+              {all && <TopicIcon slug={topic.slug} className="size-6" />}
               {topic.name}
             </h2>
             {topic.subtopics.map((subtopic) => (
-              <div key={subtopic.id} id={"sub-" + subtopic.id} data-subtopic={subtopic.id} className="scroll-mt-20 md:scroll-mt-32">
+              <div
+                key={subtopic.id}
+                id={"sub-" + subtopic.id}
+                data-subtopic={subtopic.id}
+                data-topic={topic.slug}
+                className="scroll-mt-20 md:scroll-mt-32"
+              >
                 {isEmptySubtopic(subtopic) ? (
                   <EmptySubtopic name={subtopic.name} />
                 ) : (
@@ -431,7 +526,7 @@ export function VariantC({
               </div>
             )}
           </section>
-        )}
+        ))}
       </div>
     </div>
   );

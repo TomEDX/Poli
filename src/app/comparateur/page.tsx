@@ -44,6 +44,7 @@ const prototypeVariants = [
   { key: "D", name: "Tél. : barre et sommaire en panneau" },
   { key: "E", name: "Tél. : pastilles et thématique suivante" },
   { key: "F", name: "Tél. : menu du téléphone" },
+  { key: "G", name: "Tout sur une page, sommaire pour naviguer" },
 ];
 
 // The URL is read here, outside the cache; each comparison is then cached on its own.
@@ -71,7 +72,10 @@ async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "sea
       ) : variant === "B" ? (
         <VariantB {...props} />
       ) : (
-        <VariantC {...props} phone={(["D", "E", "F"].includes(variant) ? variant : "C") as "C" | "D" | "E" | "F"} />
+        <VariantC
+          {...props}
+          phone={(["D", "E", "F", "G"].includes(variant) ? variant : "C") as "C" | "D" | "E" | "F" | "G"}
+        />
       )}
       <PrototypeSwitcher variants={prototypeVariants} />
     </>
