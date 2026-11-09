@@ -4,13 +4,16 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminSidebarPrototype } from "./admin-sidebar-prototype";
+import { PersistentSidebarProvider } from "@/components/navigation-prototype/persistent-sidebar-provider";
+import { MobileBar } from "@/components/navigation-prototype/sidebar-heading";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentEditor } from "@/modules/editors/authorization";
 
-import { AdminSidebar, SignedInEditor } from "./admin-sidebar";
+import { SignedInEditor } from "./admin-sidebar";
 
 export const metadata: Metadata = {
   title: "Administration · Poli.",
@@ -21,7 +24,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <TooltipProvider>
       <Toaster>
-        <SidebarProvider>
+        <PersistentSidebarProvider>
           <a
             href="#contenu"
             className={cn(
@@ -31,7 +34,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           >
             Aller au contenu
           </a>
-          <AdminSidebar
+          <AdminSidebarPrototype
             footer={
               <Suspense fallback={null}>
                 <EditorFooter />
@@ -39,16 +42,14 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
             }
           />
           <SidebarInset>
-            <header className="flex h-12 shrink-0 items-center border-b px-3">
-              <SidebarTrigger />
-            </header>
+            <MobileBar />
             <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-8 outline-none md:px-8">
               <Suspense fallback={<ContentSkeleton />}>
                 <EditorsOnly>{children}</EditorsOnly>
               </Suspense>
             </div>
           </SidebarInset>
-        </SidebarProvider>
+        </PersistentSidebarProvider>
       </Toaster>
     </TooltipProvider>
   );

@@ -38,7 +38,7 @@ type Section = { href: string; label: string; icon: LucideIcon };
 // menu shows: the tree for the topic tree, the ballot box for candidacies, the Assemblée
 // for its groups, the open book for sources, the scroll for texts, the quote for programmes,
 // the question mark for the quiz, the scales for the method page.
-const menuGroups: { label: string; sections: Section[] }[] = [
+export const menuGroups: { label: string; sections: Section[] }[] = [
   {
     label: "Référentiel",
     sections: [
