@@ -415,7 +415,8 @@ export function VariantC({
   return (
     <div className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="hidden md:block">
-        <div className="sticky top-4">
+        {/* Above the reading column, so the add button's list opens over the names. */}
+        <div className="sticky top-4 z-30">
           {pinnedTitles && (
             // Out of the names row, so each name stays over its column.
             <AddCandidacy
@@ -503,8 +504,7 @@ export function VariantC({
             >
               {all && <TopicIcon slug={topic.slug} className="size-6" />}
               {topic.name}
-              {/* Only on the topic pinned at the top, not on every topic title down the page. */}
-              {pinnedTitles && readingTopic === topic.slug && (
+              {pinnedTitles && (
                 <span className="ml-auto md:hidden">
                   <TopicSheetBar
                     trigger="button"
