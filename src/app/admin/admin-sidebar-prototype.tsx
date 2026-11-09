@@ -1,18 +1,20 @@
 "use client";
 
-import { ChevronDown, Globe, Settings } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { cn } from "cn";
+import { ChevronDown, Globe, type LucideIcon, Settings } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-import { menuGroups } from "./admin-sidebar";
+import { isActiveLink, type NavLink, rubriques, transparencyPages } from "@/components/navigation-prototype/links";
+import { NavLinks } from "@/components/navigation-prototype/nav-links";
+import { PrototypeSwitcher } from "@/components/navigation-prototype/prototype-switcher";
+import { SidebarHeading } from "@/components/navigation-prototype/sidebar-heading";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -20,24 +22,26 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { rubriques, transparencyPages } from "@/components/navigation-prototype/links";
-import { NavLinks } from "@/components/navigation-prototype/nav-links";
-import { PrototypeSwitcher } from "@/components/navigation-prototype/prototype-switcher";
-import { SidebarHeading } from "@/components/navigation-prototype/sidebar-heading";
+import { menuGroups } from "./admin-sidebar";
 
-// PROTOTYPE (navigation): three ways to fit the public menu and the admin menu in one sidebar,
-// switchable with ?variant= and the floating bar.
+// PROTOTYPE (navigation), round 2: two foldable sections, "Site public" above "Administration",
+// four ways to fold them. Switch with ?variant= and the floating bar. Round 1 (A, B, C) is the
+// previous commit on this branch.
 const variants = [
-  { key: "A", name: "Site en haut, admin dessous" },
-  { key: "B", name: "Admin d'abord, site replié en bas" },
-  { key: "C", name: "Bascule Site / Administration" },
+  { key: "A", name: "Deux sections indépendantes" },
+  { key: "B", name: "Une section ouverte à la fois" },
+  { key: "C", name: "Trois niveaux dans l'admin" },
+  { key: "D", name: "Section fermée en rangée d'icônes" },
 ];
+
+const siteLinks: NavLink[] = [...rubriques, ...transparencyPages];
 
 export function AdminSidebarPrototype({ footer }: { footer: React.ReactNode }) {
   return (
     <>
-      <Suspense fallback={<SiteAboveAdmin footer={footer} />}>
+      <Suspense fallback={<IndependentSections footer={footer} />}>
         <ChosenVariant footer={footer} />
       </Suspense>
       {process.env.NODE_ENV !== "production" && <PrototypeSwitcher variants={variants} />}
@@ -47,160 +51,285 @@ export function AdminSidebarPrototype({ footer }: { footer: React.ReactNode }) {
 
 function ChosenVariant({ footer }: { footer: React.ReactNode }) {
   const variant = useSearchParams().get("variant") ?? "A";
-  if (variant === "B") return <AdminFirst footer={footer} />;
-  if (variant === "C") return <ModeSwitch footer={footer} />;
-  return <SiteAboveAdmin footer={footer} />;
+  if (variant === "B") return <OneSectionAtATime footer={footer} />;
+  if (variant === "C") return <ThreeLevels footer={footer} />;
+  if (variant === "D") return <IconRowWhenFolded footer={footer} />;
+  return <IndependentSections footer={footer} />;
 }
 
-function SiteAboveAdmin({ footer }: { footer: React.ReactNode }) {
+function IndependentSections({ footer }: { footer: React.ReactNode }) {
+  const [siteOpen, setSiteOpen] = useStoredOpen("A-site", true);
+  const [adminOpen, setAdminOpen] = useStoredOpen("A-admin", true);
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeading subtitle="Administration" />
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Site</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavLinks links={rubriques} />
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarSeparator className="mx-0" />
-        <AdminGroups />
-      </SidebarContent>
-      <SidebarFooter>
-        <NavLinks links={transparencyPages} />
-        <SidebarSeparator className="mx-0" />
-        {footer}
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <Frame footer={footer}>
+      <SidebarGroup>
+        <SectionHeader label="Site public" icon={Globe} open={siteOpen} onOpenChange={setSiteOpen} />
+        {siteOpen && (
+          <SectionBody>
+            <NavLinks links={siteLinks} />
+          </SectionBody>
+        )}
+      </SidebarGroup>
+      <SidebarSeparator className="mx-0" />
+      <SidebarGroup>
+        <SectionHeader label="Administration" icon={Settings} open={adminOpen} onOpenChange={setAdminOpen} />
+        {adminOpen && (
+          <SectionBody>
+            <LabelledAdminGroups />
+          </SectionBody>
+        )}
+      </SidebarGroup>
+    </Frame>
   );
 }
 
-function AdminFirst({ footer }: { footer: React.ReactNode }) {
+function OneSectionAtATime({ footer }: { footer: React.ReactNode }) {
+  const [openSection, setOpenSection] = useState<"site" | "admin" | null>("admin");
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeading subtitle="Administration" />
-      <SidebarContent>
-        <AdminGroups />
-      </SidebarContent>
-      <SidebarFooter>
-        <FoldedPublicSite />
-        <SidebarSeparator className="mx-0" />
-        {footer}
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <Frame footer={footer}>
+      <SidebarGroup>
+        <SectionHeader
+          label="Site public"
+          icon={Globe}
+          open={openSection === "site"}
+          onOpenChange={(open) => setOpenSection(open ? "site" : null)}
+        />
+        {openSection === "site" && (
+          <SectionBody>
+            <NavLinks links={siteLinks} />
+          </SectionBody>
+        )}
+      </SidebarGroup>
+      <SidebarSeparator className="mx-0" />
+      <SidebarGroup>
+        <SectionHeader
+          label="Administration"
+          icon={Settings}
+          open={openSection === "admin"}
+          onOpenChange={(open) => setOpenSection(open ? "admin" : null)}
+        />
+        {openSection === "admin" && (
+          <SectionBody>
+            <LabelledAdminGroups />
+          </SectionBody>
+        )}
+      </SidebarGroup>
+    </Frame>
   );
 }
 
-function FoldedPublicSite() {
-  const [unfolded, setUnfolded] = useState(false);
-  const { state, setOpen } = useSidebar();
+function ThreeLevels({ footer }: { footer: React.ReactNode }) {
+  const pathname = usePathname();
+  const [siteOpen, setSiteOpen] = useStoredOpen("C-site", false);
+  const [adminOpen, setAdminOpen] = useStoredOpen("C-admin", true);
+  // Only the group holding the current page starts unfolded.
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(
+    () =>
+      new Set(
+        menuGroups
+          .filter((group) => group.sections.some((section) => isActiveLink(pathname, section.href)))
+          .map((group) => group.label),
+      ),
+  );
+  const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
+  function toggleGroup(label: string) {
+    const next = new Set(openGroups);
+    if (next.has(label)) next.delete(label);
+    else next.add(label);
+    setOpenGroups(next);
+  }
+
   return (
-    <div className="flex flex-col gap-1">
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            tooltip="Site public"
-            aria-expanded={unfolded && !collapsed}
-            onClick={() => {
-              if (collapsed) {
-                setOpen(true);
-                setUnfolded(true);
-              } else {
-                setUnfolded(!unfolded);
-              }
-            }}
-          >
-            <Globe />
-            <span>Site public</span>
-            <ChevronDown className={`ml-auto transition-transform ${unfolded ? "rotate-180" : ""}`} />
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-      {unfolded && !collapsed && (
-        <div className="ml-3 border-l pl-1">
-          <NavLinks links={[...rubriques, ...transparencyPages]} />
-        </div>
-      )}
+    <Frame footer={footer}>
+      <SidebarGroup>
+        <SectionHeader label="Site public" icon={Globe} open={siteOpen} onOpenChange={setSiteOpen} />
+        {siteOpen && (
+          <SectionBody>
+            <NavLinks links={siteLinks} />
+          </SectionBody>
+        )}
+      </SidebarGroup>
+      <SidebarSeparator className="mx-0" />
+      <SidebarGroup>
+        <SectionHeader label="Administration" icon={Settings} open={adminOpen} onOpenChange={setAdminOpen} />
+        {adminOpen && (
+          <SectionBody>
+            {menuGroups.map((group) => {
+              const groupOpen = openGroups.has(group.label);
+              return (
+                <div key={group.label} className="flex flex-col">
+                  <button
+                    type="button"
+                    aria-expanded={groupOpen}
+                    onClick={() => toggleGroup(group.label)}
+                    className="flex h-8 w-full items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:hidden"
+                  >
+                    {group.label}
+                    <ChevronDown className={cn("ml-auto size-3.5 transition-transform", groupOpen && "rotate-180")} />
+                  </button>
+                  {(groupOpen || collapsed) && <NavLinks links={group.sections} />}
+                </div>
+              );
+            })}
+          </SectionBody>
+        )}
+      </SidebarGroup>
+    </Frame>
+  );
+}
+
+function IconRowWhenFolded({ footer }: { footer: React.ReactNode }) {
+  const [siteOpen, setSiteOpen] = useStoredOpen("D-site", false);
+  const [adminOpen, setAdminOpen] = useStoredOpen("D-admin", true);
+  const adminLinks = menuGroups.flatMap((group) => group.sections);
+
+  return (
+    <Frame footer={footer}>
+      <SidebarGroup>
+        <SectionHeader label="Site public" icon={Globe} open={siteOpen} onOpenChange={setSiteOpen} />
+        {siteOpen ? (
+          <SectionBody>
+            <NavLinks links={siteLinks} />
+          </SectionBody>
+        ) : (
+          <IconRow links={siteLinks} />
+        )}
+      </SidebarGroup>
+      <SidebarSeparator className="mx-0" />
+      <SidebarGroup>
+        <SectionHeader label="Administration" icon={Settings} open={adminOpen} onOpenChange={setAdminOpen} />
+        {adminOpen ? (
+          <SectionBody>
+            <LabelledAdminGroups />
+          </SectionBody>
+        ) : (
+          <IconRow links={adminLinks} />
+        )}
+      </SidebarGroup>
+    </Frame>
+  );
+}
+
+function Frame({ footer, children }: { footer: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeading subtitle="Administration" />
+      <SidebarContent className="gap-0">{children}</SidebarContent>
+      <SidebarFooter>{footer}</SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
+
+// Folded sidebar: the section is one icon, and clicking it unfolds both the sidebar and the section.
+function SectionHeader({
+  label,
+  icon: Icon,
+  open,
+  onOpenChange,
+}: {
+  label: string;
+  icon: LucideIcon;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { state, setOpen: setSidebarOpen } = useSidebar();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          tooltip={label}
+          aria-expanded={open}
+          className="font-medium"
+          onClick={() => {
+            if (state === "collapsed") {
+              setSidebarOpen(true);
+              onOpenChange(true);
+            } else {
+              onOpenChange(!open);
+            }
+          }}
+        >
+          <Icon />
+          <span>{label}</span>
+          <ChevronDown className={cn("ml-auto transition-transform", open && "rotate-180")} />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+function SectionBody({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-1 ml-3 flex flex-col gap-1 border-l pl-1 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:pl-0">
+      {children}
     </div>
   );
 }
 
-function ModeSwitch({ footer }: { footer: React.ReactNode }) {
-  const [mode, setMode] = useState<"site" | "admin">("admin");
-
-  return (
-    <Sidebar collapsible="icon">
-      <SidebarHeading subtitle={mode === "admin" ? "Administration" : undefined} />
-      <SidebarHeader className="pb-0">
-        <SidebarMenu className="rounded-lg bg-sidebar-accent/60 p-0.5 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0 md:flex-row md:group-data-[collapsible=icon]:flex-col">
-          <ModeButton label="Site" icon={<Globe />} active={mode === "site"} onClick={() => setMode("site")} />
-          <ModeButton
-            label="Administration"
-            icon={<Settings />}
-            active={mode === "admin"}
-            onClick={() => setMode("admin")}
-          />
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        {mode === "site" ? (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <NavLinks links={rubriques} />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : (
-          <AdminGroups />
-        )}
-      </SidebarContent>
-      <SidebarFooter>
-        {mode === "site" && <NavLinks links={transparencyPages} />}
-        {mode === "site" && <SidebarSeparator className="mx-0" />}
-        {footer}
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
-  );
-}
-
-function ModeButton({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <SidebarMenuItem className="flex-1">
-      <SidebarMenuButton
-        tooltip={label}
-        isActive={active}
-        aria-pressed={active}
-        onClick={onClick}
-        className="justify-center data-active:bg-background data-active:shadow-sm"
-      >
-        {icon}
-        <span>{label}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
-
-function AdminGroups() {
+function LabelledAdminGroups() {
   return menuGroups.map((group) => (
-    <SidebarGroup key={group.label}>
-      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <NavLinks links={group.sections} />
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <div key={group.label} className="flex flex-col">
+      <p className="px-2 pt-2 pb-1 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
+        {group.label}
+      </p>
+      <NavLinks links={group.sections} />
+    </div>
   ));
+}
+
+function IconRow({ links }: { links: NavLink[] }) {
+  const pathname = usePathname();
+  const variant = useSearchParams().get("variant");
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-0.5 pl-7 group-data-[collapsible=icon]:hidden">
+      {links.map((link) => {
+        const active = isActiveLink(pathname, link.href);
+        return (
+          <Tooltip key={link.href}>
+            <TooltipTrigger
+              render={
+                <Link
+                  href={variant ? `${link.href}?variant=${variant}` : link.href}
+                  aria-label={link.label}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-md hover:bg-sidebar-accent [&_svg]:size-4",
+                    active && "bg-sidebar-accent text-sidebar-accent-foreground",
+                  )}
+                />
+              }
+            >
+              <link.icon />
+            </TooltipTrigger>
+            <TooltipContent>{link.label}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+// Each section remembers whether it is unfolded, per variant, in this browser.
+function useStoredOpen(key: string, initial: boolean): [boolean, (open: boolean) => void] {
+  const [open, setOpen] = useState(initial);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(`prototype-navigation-${key}`);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored !== null) setOpen(stored === "1");
+  }, [key]);
+
+  function store(next: boolean) {
+    setOpen(next);
+    localStorage.setItem(`prototype-navigation-${key}`, next ? "1" : "0");
+  }
+
+  return [open, store];
 }
