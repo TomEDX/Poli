@@ -1,16 +1,16 @@
-import { cn } from "cn";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { NavigationProvider } from "@/components/navigation/navigation-provider";
+import { EditorNavigation, MobileBar, NavigationSidebar } from "@/components/navigation/navigation-sidebar";
+import { SkipLink } from "@/components/navigation/skip-link";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toast";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentEditor } from "@/modules/editors/authorization";
 
-import { AdminSidebar, SignedInEditor } from "./admin-sidebar";
+import { SignedInEditor } from "./signed-in-editor";
 
 export const metadata: Metadata = {
   title: "Administration · Poli.",
@@ -19,38 +19,29 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <TooltipProvider>
-      <Toaster>
-        <SidebarProvider>
-          <a
-            href="#contenu"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-50 focus-visible:h-8 focus-visible:px-2.5",
-            )}
-          >
-            Aller au contenu
-          </a>
-          <AdminSidebar
+    <Toaster>
+      <NavigationProvider>
+        <SkipLink />
+        <NavigationSidebar subtitle="Administration">
+          <EditorNavigation
+            area="admin"
             footer={
               <Suspense fallback={null}>
                 <EditorFooter />
               </Suspense>
             }
           />
-          <SidebarInset>
-            <header className="flex h-12 shrink-0 items-center border-b px-3">
-              <SidebarTrigger />
-            </header>
-            <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-8 outline-none md:px-8">
-              <Suspense fallback={<ContentSkeleton />}>
-                <EditorsOnly>{children}</EditorsOnly>
-              </Suspense>
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </Toaster>
-    </TooltipProvider>
+        </NavigationSidebar>
+        <SidebarInset>
+          <MobileBar />
+          <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col px-4 py-8 outline-none md:px-8">
+            <Suspense fallback={<ContentSkeleton />}>
+              <EditorsOnly>{children}</EditorsOnly>
+            </Suspense>
+          </div>
+        </SidebarInset>
+      </NavigationProvider>
+    </Toaster>
   );
 }
 

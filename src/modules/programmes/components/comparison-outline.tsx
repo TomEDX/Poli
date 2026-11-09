@@ -44,7 +44,7 @@ export function ComparisonOutline({
                 onClick={(event) => jumpOnClick(event, { topic: topic.slug })}
                 aria-current={current ? "true" : undefined}
                 className={cn(
-                  "flex min-h-11 items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-all duration-300 ease-out motion-reduce:transition-none md:min-h-0",
+                  "flex min-h-11 items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-all duration-200 ease-out motion-reduce:transition-none md:min-h-0",
                   current
                     ? "translate-x-1 border-foreground bg-muted font-medium text-foreground"
                     : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -53,7 +53,7 @@ export function ComparisonOutline({
                 <TopicIcon
                   slug={topic.slug}
                   className={cn(
-                    "size-4 shrink-0 transition-transform duration-300 motion-reduce:transition-none",
+                    "size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none",
                     current && "scale-125",
                   )}
                 />
@@ -66,7 +66,7 @@ export function ComparisonOutline({
               <div
                 inert={!current}
                 className={cn(
-                  "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+                  "grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none",
                   current ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
                 )}
               >
