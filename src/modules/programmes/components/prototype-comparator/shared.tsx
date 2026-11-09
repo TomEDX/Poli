@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { createElement, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 
 import { shuffled } from "@/lib/shuffle";
 import { PartyLogo } from "@/modules/reference/parties/components/party-logo";
@@ -56,6 +56,10 @@ const topicIcons: Record<string, LucideIcon> = {
 
 export function topicIcon(slug: string): LucideIcon {
   return topicIcons[slug] ?? TagIcon;
+}
+
+export function TopicIcon({ slug, className }: { slug: string; className?: string }) {
+  return createElement(topicIcon(slug), { "aria-hidden": true, className });
 }
 
 export function prototypeHref(selection: ComparisonSelection, variant: string): string {

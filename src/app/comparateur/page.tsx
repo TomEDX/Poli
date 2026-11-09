@@ -37,11 +37,13 @@ export default function ComparatorPage({ searchParams }: PageProps<"/comparateur
   );
 }
 
-// PROTOTYPE, throwaway: three layouts of the comparator, switched with ?variant=A|B|C.
+// PROTOTYPE, throwaway: layouts of the comparator, switched with ?variant=. A and B were set
+// aside; C to F share the wide-screen table of contents and differ on a phone only.
 const prototypeVariants = [
-  { key: "A", name: "Onglets épinglés" },
-  { key: "B", name: "Barre qui se réduit, glisser sur téléphone" },
-  { key: "C", name: "Sommaire latéral" },
+  { key: "C", name: "Tél. : onglets épinglés" },
+  { key: "D", name: "Tél. : barre et sommaire en panneau" },
+  { key: "E", name: "Tél. : pastilles et thématique suivante" },
+  { key: "F", name: "Tél. : menu du téléphone" },
 ];
 
 // The URL is read here, outside the cache; each comparison is then cached on its own.
@@ -55,8 +57,8 @@ async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "sea
     params,
     candidacies.map((candidacy) => candidacy.id),
   );
-  const variant = [params.variant].flat()[0] ?? "A";
-  const grid = withDemoQuotes(await comparisonGrid(requested.candidacyIds), params.demo === "1");
+  const variant = [params.variant].flat()[0] ?? "C";
+  const grid = withDemoQuotes(await comparisonGrid(requested.candidacyIds), params.demo !== "0");
   const topic = grid.find((candidate) => candidate.slug === requested.topic) ?? grid[0];
   const selection = { ...requested, topic: topic?.slug ?? "" };
   const chosen = selection.candidacyIds.flatMap((id) => candidacies.filter((candidacy) => candidacy.id === id));
@@ -64,7 +66,13 @@ async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "sea
   const props = { candidacies, chosen, grid, selection, variant };
   return (
     <>
-      {variant === "B" ? <VariantB {...props} /> : variant === "C" ? <VariantC {...props} /> : <VariantA {...props} />}
+      {variant === "A" ? (
+        <VariantA {...props} />
+      ) : variant === "B" ? (
+        <VariantB {...props} />
+      ) : (
+        <VariantC {...props} phone={(["D", "E", "F"].includes(variant) ? variant : "C") as "C" | "D" | "E" | "F"} />
+      )}
       <PrototypeSwitcher variants={prototypeVariants} />
     </>
   );
@@ -81,8 +89,8 @@ async function comparisonGrid(candidacyIds: string[]) {
   return getComparisonGrid(candidacyIds);
 }
 
-// PROTOTYPE, throwaway: ?demo=1 fills one subtopic out of two with made-up quotes, in memory
-// only, so the page is long enough to judge the pinned bar.
+// PROTOTYPE, throwaway: fills one subtopic out of two with made-up quotes, in memory only, so
+// the page is long enough to judge the pinned bar; ?demo=0 shows the seeded extracts alone.
 const demoQuotes = [
   "Nous lancerons dès la première année une grande concertation nationale associant les élus locaux, les partenaires sociaux et les associations, afin de bâtir une loi de programmation sur cinq ans.",
   "Le financement sera assuré par le redéploiement de crédits existants, sans hausse d’impôt pour les ménages.",
