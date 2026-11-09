@@ -44,7 +44,7 @@ export function ComparisonOutline({
                 onClick={(event) => jumpOnClick(event, { topic: topic.slug })}
                 aria-current={current ? "true" : undefined}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-all duration-300 ease-out motion-reduce:transition-none",
+                  "flex min-h-11 items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-all duration-300 ease-out motion-reduce:transition-none md:min-h-0",
                   current
                     ? "translate-x-1 border-foreground bg-muted font-medium text-foreground"
                     : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -78,7 +78,7 @@ export function ComparisonOutline({
                         onClick={(event) => jumpOnClick(event, { topic: topic.slug, subtopic: subtopic.id })}
                         aria-current={current && reading.subtopic === subtopic.id ? "location" : undefined}
                         className={cn(
-                          "-ml-px block border-l py-1.5 pl-3 text-sm",
+                          "-ml-px flex min-h-11 items-center border-l py-1.5 pl-3 text-sm md:block md:min-h-0",
                           current && reading.subtopic === subtopic.id
                             ? "border-foreground text-foreground"
                             : "border-transparent text-muted-foreground hover:text-foreground",

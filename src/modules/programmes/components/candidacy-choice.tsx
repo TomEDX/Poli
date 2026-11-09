@@ -5,6 +5,7 @@ import { cn } from "cn";
 import { PlusIcon, XIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { shuffled } from "@/lib/shuffle";
 import { PartyLogo } from "@/modules/reference/parties/components/party-logo";
@@ -42,13 +43,13 @@ export function FirstChoice({
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {order.map((candidacy) => (
             <li key={candidacy.id}>
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={() => onAdd(candidacy.id)}
-                className="flex h-full w-full items-center gap-2 rounded-lg border px-3 py-2 text-left hover:bg-muted"
+                className="h-full min-h-11 w-full justify-start gap-2 px-3 py-2 text-left font-normal whitespace-normal"
               >
                 <CandidacyName candidacy={candidacy} />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -79,10 +80,16 @@ export function AddCandidacy({
     <Menu.Root>
       <Menu.Trigger
         aria-label={compact ? "Ajouter une candidature" : undefined}
-        className={cn(
-          "flex items-center gap-1.5 border border-dashed text-sm text-muted-foreground hover:border-foreground hover:text-foreground data-popup-open:border-foreground data-popup-open:text-foreground",
-          compact ? "size-9 justify-center rounded-full" : "w-full rounded-lg px-3 py-2",
-        )}
+        render={
+          <Button
+            variant="outline"
+            size={compact ? "icon" : "default"}
+            className={cn(
+              "border-dashed font-normal text-muted-foreground hover:border-foreground data-popup-open:border-foreground data-popup-open:text-foreground",
+              compact ? "size-11 rounded-full" : "h-auto w-full justify-start px-3 py-2",
+            )}
+          />
+        }
       >
         <PlusIcon aria-hidden className="size-4 shrink-0" />
         {!compact && "Ajouter une candidature"}
@@ -146,14 +153,15 @@ export function CandidacyChip({ candidacy, onRemove }: { candidacy: PublishedCan
 
 function RemoveButton({ candidacy, onRemove }: { candidacy: PublishedCandidacy; onRemove: () => void }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={onRemove}
       aria-label={`Retirer ${candidacy.label}`}
-      className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+      className="ml-auto size-11 rounded-full text-muted-foreground hover:bg-background md:size-8"
     >
       <XIcon aria-hidden className="size-4" />
-    </button>
+    </Button>
   );
 }
 

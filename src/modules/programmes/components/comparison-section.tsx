@@ -1,6 +1,7 @@
 import { ListTreeIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 
+import { Button } from "@/components/ui/button";
 import type { PublishedCandidacy } from "@/modules/reference/parties/queries";
 import { SourceLinks } from "@/modules/reference/sources/components/source-links";
 
@@ -57,14 +58,10 @@ export function ComparisonSection({
           <TopicIcon slug={topic.slug} className="size-6 shrink-0" />
           {topic.name}
         </h2>
-        <button
-          type="button"
-          onClick={onOpenOutline}
-          className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border bg-background px-3 text-sm md:hidden"
-        >
+        <Button variant="outline" size="xl" onClick={onOpenOutline} className="rounded-full text-sm md:hidden">
           <ListTreeIcon aria-hidden className="size-4" />
           Sommaire
-        </button>
+        </Button>
       </div>
       {topic.subtopics.map((subtopic) =>
         isAddressedByNone(subtopic) ? (
