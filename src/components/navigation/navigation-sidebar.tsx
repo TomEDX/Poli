@@ -21,8 +21,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-import { useLeaveGuard } from "./leave-guard";
-import { adminGroups, isActiveLink, type NavLink, type NavSection, rubriques, sectionOf, transparencyLinks } from "./links";
+import { useLeaveGuard } from "@/components/leave-guard";
+import {
+  adminGroups,
+  homeLink,
+  isActiveLink,
+  type NavLink,
+  type NavSection,
+  rubriques,
+  sectionOf,
+  transparencyLinks,
+} from "./links";
+
+const siteLinks = [homeLink, ...rubriques];
 
 /** The sidebar shared by the public site and the administration; its links come as children. */
 export function NavigationSidebar({ subtitle, children }: { subtitle?: string; children: React.ReactNode }) {
@@ -47,21 +58,21 @@ export function NavigationSidebar({ subtitle, children }: { subtitle?: string; c
 export function MobileBar() {
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:hidden">
-      <SidebarTrigger />
-      <NavigationLink href="/" className="font-heading font-semibold">
+      <SidebarTrigger className="size-11" />
+      <NavigationLink href="/" className="flex min-h-11 items-center px-1 font-heading font-semibold">
         Poli.
       </NavigationLink>
     </header>
   );
 }
 
-/** A visitor's links: the rubriques at the top, the method and sources at the bottom. */
+/** A visitor's links: the home page and the rubriques at the top, the method and sources at the bottom. */
 export function VisitorNavigation() {
   return (
     <>
       <SidebarContent>
         <SidebarGroup>
-          <NavLinks links={rubriques} />
+          <NavLinks links={siteLinks} />
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
@@ -107,6 +118,7 @@ function LinkList({ links, pathname }: { links: NavLink[]; pathname: string | nu
             <SidebarMenuButton
               tooltip={link.label}
               isActive={active}
+              className="max-md:h-11"
               render={<NavigationLink href={link.href} aria-current={active ? "page" : undefined} />}
             >
               <link.icon />
@@ -170,7 +182,7 @@ function EditorSections({
             holdsCurrentPage={current === "site"}
             onOpenChange={(opened) => setOpen(opened ? "site" : null)}
           >
-            <LinkList links={[...rubriques, ...transparencyLinks]} pathname={pathname} />
+            <LinkList links={[...siteLinks, ...transparencyLinks]} pathname={pathname} />
           </Section>
         </SidebarGroup>
         <SidebarSeparator className="mx-0" />
@@ -225,7 +237,7 @@ function Section({
             aria-expanded={open}
             aria-controls={bodyId}
             data-current={holdsCurrentPage || undefined}
-            className="font-medium sidebar-folded:data-current:bg-sidebar-accent sidebar-folded:data-current:text-sidebar-accent-foreground"
+            className="font-medium max-md:h-11 sidebar-folded:data-current:bg-sidebar-accent sidebar-folded:data-current:text-sidebar-accent-foreground"
             onClick={() => {
               if (state === "collapsed" && !isMobile) {
                 setSidebarOpen(true);
