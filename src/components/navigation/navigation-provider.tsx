@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import { LeaveGuardProvider } from "./leave-guard";
+import { LeaveGuardProvider } from "@/components/leave-guard";
 import { sidebarStorageKey } from "./sidebar-preference";
 
 const listeners = new Set<() => void>();

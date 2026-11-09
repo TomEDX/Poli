@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { type LeaveWarning, useLeaveWarning } from "@/components/navigation/leave-guard";
+import { type LeaveWarning, useLeaveWarning } from "@/components/leave-guard";
 import { Button } from "@/components/ui/button";
 import { Progress, ProgressLabel } from "@/components/ui/progress";
 import { shuffled } from "@/lib/shuffle";
