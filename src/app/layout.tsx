@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { sidebarPreferenceScript } from "@/components/navigation/sidebar-preference";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,7 +26,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The script below sets the sidebar's state on this element before React hydrates it.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: sidebarPreferenceScript }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
