@@ -3,11 +3,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { CandidacyPicker } from "@/modules/programmes/components/candidacy-picker";
-import { ComparisonTable } from "@/modules/programmes/components/comparison-table";
-import { ComparisonTopics } from "@/modules/programmes/components/comparison-topics";
+import { PrototypeSwitcher } from "@/components/prototype-switcher";
+import { VariantA } from "@/modules/programmes/components/prototype-comparator/variant-a";
+import { VariantB } from "@/modules/programmes/components/prototype-comparator/variant-b";
+import { VariantC } from "@/modules/programmes/components/prototype-comparator/variant-c";
 import { readComparison } from "@/modules/programmes/comparison-params";
-import { getComparisonGrid } from "@/modules/programmes/queries";
+import { type ComparisonGrid, getComparisonGrid } from "@/modules/programmes/queries";
 import { getPublishedCandidacies } from "@/modules/reference/parties/queries";
 
 export const metadata: Metadata = {
@@ -36,39 +37,36 @@ export default function ComparatorPage({ searchParams }: PageProps<"/comparateur
   );
 }
 
+// PROTOTYPE, throwaway: three layouts of the comparator, switched with ?variant=A|B|C.
+const prototypeVariants = [
+  { key: "A", name: "Onglets épinglés" },
+  { key: "B", name: "Barre qui se réduit, glisser sur téléphone" },
+  { key: "C", name: "Sommaire latéral" },
+];
+
 // The URL is read here, outside the cache; each comparison is then cached on its own.
 async function Comparison({ searchParams }: Pick<PageProps<"/comparateur">, "searchParams">) {
   const candidacies = await publishedCandidacies();
   if (candidacies.length === 0) {
     return <p className="text-muted-foreground">Aucune candidature n’est encore publiée.</p>;
   }
+  const params = await searchParams;
   const requested = readComparison(
-    await searchParams,
+    params,
     candidacies.map((candidacy) => candidacy.id),
   );
-  const grid = await comparisonGrid(requested.candidacyIds);
+  const variant = [params.variant].flat()[0] ?? "A";
+  const grid = withDemoQuotes(await comparisonGrid(requested.candidacyIds), params.demo === "1");
   const topic = grid.find((candidate) => candidate.slug === requested.topic) ?? grid[0];
   const selection = { ...requested, topic: topic?.slug ?? "" };
   const chosen = selection.candidacyIds.flatMap((id) => candidacies.filter((candidacy) => candidacy.id === id));
 
+  const props = { candidacies, chosen, grid, selection, variant };
   return (
-    <div className="flex flex-col gap-6">
-      <CandidacyPicker candidacies={candidacies} selection={selection} />
-      {chosen.length > 0 && topic && (
-        <>
-          <ComparisonTopics grid={grid} selection={selection} />
-          <section aria-labelledby="compared-topic" className="flex flex-col gap-4">
-            <h2 id="compared-topic" className="font-heading text-2xl font-semibold tracking-tight">
-              {topic.name}
-            </h2>
-            <ComparisonTable topic={topic} candidacies={chosen} />
-          </section>
-        </>
-      )}
-      {chosen.length > 0 && !topic && (
-        <p className="text-muted-foreground">Aucune thématique n’est encore définie.</p>
-      )}
-    </div>
+    <>
+      {variant === "B" ? <VariantB {...props} /> : variant === "C" ? <VariantC {...props} /> : <VariantA {...props} />}
+      <PrototypeSwitcher variants={prototypeVariants} />
+    </>
   );
 }
 
@@ -81,6 +79,37 @@ async function publishedCandidacies() {
 async function comparisonGrid(candidacyIds: string[]) {
   "use cache";
   return getComparisonGrid(candidacyIds);
+}
+
+// PROTOTYPE, throwaway: ?demo=1 fills one subtopic out of two with made-up quotes, in memory
+// only, so the page is long enough to judge the pinned bar.
+const demoQuotes = [
+  "Nous lancerons dès la première année une grande concertation nationale associant les élus locaux, les partenaires sociaux et les associations, afin de bâtir une loi de programmation sur cinq ans.",
+  "Le financement sera assuré par le redéploiement de crédits existants, sans hausse d’impôt pour les ménages.",
+  "Une évaluation indépendante sera publiée chaque année et présentée au Parlement.",
+];
+
+function withDemoQuotes(grid: ComparisonGrid, demo: boolean): ComparisonGrid {
+  if (!demo) return grid;
+  return grid.map((topic) => ({
+    ...topic,
+    subtopics: topic.subtopics.map((subtopic, subtopicIndex) => ({
+      ...subtopic,
+      cells: subtopic.cells.map((cell, cellIndex) =>
+        cell.extracts.length > 0 || subtopicIndex % 2 === 1 || (subtopicIndex + cellIndex) % 3 === 2
+          ? cell
+          : {
+              ...cell,
+              extracts: demoQuotes.slice(0, 1 + ((subtopicIndex + cellIndex) % 3)).map((quote, index) => ({
+                id: subtopic.id + cell.candidacyId + index,
+                quote,
+                recordedOn: "2026-10-12",
+                sources: [],
+              })),
+            },
+      ),
+    })),
+  }));
 }
 
 function ComparisonSkeleton() {
