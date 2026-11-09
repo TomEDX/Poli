@@ -72,7 +72,7 @@ export function TextListFilters({ topics, selection }: { topics: TextTopic[]; se
             ))}
           </NativeSelect>
         </Field>
-        <Field>
+        <Field data-disabled={subtopics.length === 0}>
           <FieldLabel htmlFor={ids.subtopic}>Sous-thématique</FieldLabel>
           <NativeSelect
             id={ids.subtopic}

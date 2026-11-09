@@ -101,7 +101,7 @@ export function AddCandidacy({
               <Menu.Item
                 key={candidacy.id}
                 onClick={() => onAdd(candidacy.id)}
-                className="flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none data-highlighted:bg-muted"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none data-highlighted:bg-muted"
               >
                 <CandidacyName candidacy={candidacy} />
               </Menu.Item>
