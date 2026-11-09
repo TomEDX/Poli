@@ -35,7 +35,7 @@ export function Comparator({
   const [pending, startTransition] = useTransition();
   const root = useRef<HTMLDivElement>(null);
   const firstTopic = grid[0]?.slug ?? "";
-  const { reading, jumpTo } = useReadingPosition({
+  const { reading, jumpTo, holdPlace } = useReadingPosition({
     root,
     firstTopic,
     openingTopic: selection.topic,
@@ -56,6 +56,7 @@ export function Comparator({
 
   function choose(candidacyIds: string[]) {
     const topic = comparing ? reading.topic : selection.topic;
+    if (comparing) holdPlace();
     startTransition(() => router.push(comparisonHref({ candidacyIds, topic }), { scroll: false }));
   }
   const add = (id: string) => choose([...selection.candidacyIds, id]);
@@ -66,9 +67,11 @@ export function Comparator({
 
   return (
     <>
+      {/* Without the browser's scroll anchoring, which would move the page a second time
+          after the reading position puts the passage back in place. */}
       <div
         ref={root}
-        className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]"
+        className="grid gap-8 [overflow-anchor:none] md:grid-cols-[12rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]"
       >
         <aside className="hidden md:block">
           {/* Above the reading column, so the list of candidacies to add opens over the names. */}

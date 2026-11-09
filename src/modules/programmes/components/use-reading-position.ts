@@ -59,7 +59,19 @@ export function useReadingPosition({
   layoutKey: string;
 }) {
   const [reading, setReading] = useState<ReadingPosition>({ topic: openingTopic || firstTopic, subtopic: null });
-  const tracking = useRef<Tracking>({ jump: null, held: null });
+  const tracking = useRef<Tracking>({ jump: null, held: null, anchor: null });
+
+  // Called before the sections change (a candidacy added or removed): the passage being read
+  // stays at the same distance under the pinned names, while the sections above it and the
+  // names themselves grow or shrink.
+  function holdPlace() {
+    const element = root.current;
+    const id = reading.subtopic ? subtopicSectionId(reading.subtopic) : topicSectionId(reading.topic);
+    const anchor = element?.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+    stopJump(tracking.current);
+    tracking.current.anchor =
+      element && anchor ? { id, underNames: anchor.getBoundingClientRect().top - pinnedNamesHeight(element) } : null;
+  }
 
   function jumpTo(target: JumpTarget) {
     const element = root.current;
@@ -102,6 +114,14 @@ export function useReadingPosition({
     if (!element) return;
     const publish = () => publishPinnedHeights(element);
     publish();
+    const state = tracking.current;
+    const anchor = state.anchor && element.querySelector<HTMLElement>(`#${CSS.escape(state.anchor.id)}`);
+    if (state.anchor && anchor) {
+      const top = anchor.getBoundingClientRect().top - pinnedNamesHeight(element) - state.anchor.underNames;
+      window.scrollTo({ top: window.scrollY + top, behavior: "instant" });
+      state.anchor = null;
+      follow(element, state, setReading);
+    }
     const observer = new ResizeObserver(publish);
     for (const pinned of element.querySelectorAll(`[${pinnedNamesAttribute}], [${topicTitleAttribute}]`)) {
       observer.observe(pinned);
@@ -119,8 +139,9 @@ export function useReadingPosition({
         follow(root.current, state, setReading);
       });
     }
-    // The visitor scrolling during a jump takes over from it.
+    // The visitor scrolling during a jump, or while a new comparison loads, takes over.
     function onInput() {
+      state.anchor = null;
       if (stopJump(state)) follow(root.current, state, setReading);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -170,12 +191,17 @@ export function useReadingPosition({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { reading, jumpTo };
+  return { reading, jumpTo, holdPlace };
 }
 
-// What the hook keeps between frames: the jump under way, and a jump target the page cannot
-// scroll up to near its end, kept until the visitor scrolls back.
-type Tracking = { jump: { frame: number } | null; held: ReadingPosition | null };
+// What the hook keeps between frames: the jump under way, a jump target the page cannot
+// scroll up to near its end, kept until the visitor scrolls back, and the passage to keep in
+// place while the comparison changes.
+type Tracking = {
+  jump: { frame: number } | null;
+  held: ReadingPosition | null;
+  anchor: { id: string; underNames: number } | null;
+};
 
 function follow(
   root: HTMLElement | null,
