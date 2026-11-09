@@ -416,6 +416,16 @@ export function VariantC({
     <div className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="hidden md:block">
         <div className="sticky top-4">
+          {pinnedTitles && (
+            // Out of the names row, so each name stays over its column.
+            <AddCandidacy
+              candidacies={candidacies}
+              selection={selection}
+              onAdd={nav.add}
+              label="Ajouter une candidature"
+              className="mb-4 [&_ul]:right-auto [&_ul]:left-0 [&>button]:h-auto [&>button]:w-full [&>button]:rounded-lg [&>button]:py-2 [&>button]:text-left"
+            />
+          )}
           <p className="mb-2 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Thématiques</p>
           <TopicOutline
             grid={grid}
@@ -469,7 +479,9 @@ export function VariantC({
               ))}
             </div>
             <div className="flex flex-1 md:hidden">{phone === "C" && phoneChips}</div>
-            <AddCandidacy candidacies={candidacies} selection={selection} onAdd={nav.add} className="hidden md:block" />
+            {!pinnedTitles && (
+              <AddCandidacy candidacies={candidacies} selection={selection} onAdd={nav.add} className="hidden md:block" />
+            )}
           </div>
         </div>
 
@@ -491,7 +503,8 @@ export function VariantC({
             >
               {all && <TopicIcon slug={topic.slug} className="size-6" />}
               {topic.name}
-              {pinnedTitles && (
+              {/* Only on the topic pinned at the top, not on every topic title down the page. */}
+              {pinnedTitles && readingTopic === topic.slug && (
                 <span className="ml-auto md:hidden">
                   <TopicSheetBar
                     trigger="button"
